@@ -1,0 +1,39 @@
+# Cloudflare Workers deployment — no ChatGPT account or Sites panel needed.
+# One-time setup: create the D1 database and the KV namespace (see DEPLOY-CLOUDFLARE.md)
+# and paste both ids below. Every secret is pushed as a Worker secret by
+# .github/workflows/deploy.yml from GitHub repository secrets, so nothing secret
+# ever lives in this file.
+name = "mezon-aroos"
+main = "worker/index.js"
+compatibility_date = "2026-10-01"
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mezon-aroos"
+database_id = "2f7afaba-775b-40b9-9585-df20e87a3299"
+migrations_dir = "drizzle"
+
+# Photo storage. Workers KV is on the free plan and needs no payment method.
+[[kv_namespaces]]
+binding = "KV"
+id = "0bfbd0a59f3b43d68463a8194900e9bb"
+
+# Optional: R2 needs a payment method on the account. If you enable R2 billing later,
+# uncomment this block, delete the KV block and keep bucket name "ayneh-mezon-media".
+# [[r2_buckets]]
+# binding = "BUCKET"
+# bucket_name = "ayneh-mezon-media"
+
+# Telegram delivery retries and retention cleanup run automatically; no GitHub cron needed.
+# The account is at the Workers Free limit of 5 cron triggers, so none is set here.
+# Re-add `[triggers] crons = ["*/10 * * * *"]` once a cron slot is free (or on Workers Paid).
+
+# Catalog style photos (public/catalog/NN.webp) are served as static files before the worker.
+# The custom domain mezon.ayneh-salon.site is attached in the Cloudflare dashboard
+# (Workers & Pages > ayneh-mezon > Settings > Domains & Routes), because the deploy token cannot edit zone routes.
+
+[assets]
+directory = "./public"

@@ -1,0 +1,110 @@
+name: Deploy Ayneh Mezon
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-mezon-aroos
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm test
+      - name: Check Cloudflare configuration
+        id: config
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is missing; skipping deploy."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Apply D1 migrations
+        if: steps.config.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: d1 migrations apply DB --remote
+      - name: Deploy worker
+        id: deploy
+        if: steps.config.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+      - name: Push runtime secrets to the worker
+        if: steps.config.outputs.ready == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          KIE_API_KEY: ${{ secrets.KIE_API_KEY }}
+          OWNER_EMAIL: ${{ secrets.OWNER_EMAIL }}
+          OWNER_ID: ${{ secrets.OWNER_ID }}
+          OWNER_PASSWORD: ${{ secrets.OWNER_PASSWORD }}
+          OWNER_PASSWORD_HASH: ${{ secrets.OWNER_PASSWORD_HASH }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          JOB_TOKEN: ${{ secrets.JOB_TOKEN }}
+          APP_ORIGIN: https://mezon.ayneh-salon.site
+          TELEGRAM_BOT_TOKEN: ${{ secrets.MEZON_TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_WEBHOOK_SECRET: ${{ secrets.MEZON_TELEGRAM_WEBHOOK_SECRET }}
+          TELEGRAM_BOT_USERNAME: ${{ secrets.MEZON_TELEGRAM_BOT_USERNAME }}
+          BALE_BOT_TOKEN: ${{ secrets.MEZON_BALE_BOT_TOKEN }}
+          BALE_BOT_USERNAME: ${{ secrets.MEZON_BALE_BOT_USERNAME }}
+          MELIPAYAMAK_TOKEN: ${{ secrets.MELIPAYAMAK_TOKEN }}
+          MELIPAYAMAK_BODY_ID: ${{ secrets.MELIPAYAMAK_BODY_ID }}
+          MELIPAYAMAK_OTP_BODY_ID: ${{ secrets.MELIPAYAMAK_OTP_BODY_ID }}
+        run: |
+          set -euo pipefail
+          npm install --no-save wrangler@4 >/dev/null 2>&1
+          for name in KIE_API_KEY OWNER_EMAIL OWNER_ID OWNER_PASSWORD OWNER_PASSWORD_HASH \
+                      SESSION_SECRET JOB_TOKEN APP_ORIGIN TELEGRAM_BOT_TOKEN TELEGRAM_WEBHOOK_SECRET \
+                      TELEGRAM_BOT_USERNAME MELIPAYAMAK_TOKEN MELIPAYAMAK_BODY_ID MELIPAYAMAK_OTP_BODY_ID BALE_BOT_TOKEN BALE_BOT_USERNAME; do
+            value="${!name:-}"
+            if [ -n "$value" ]; then
+              # Cloudflare's own git build can upload a newer version at the same moment, and then
+              # secrets cannot be edited ("latest version isn't deployed"): redeploy this code and retry.
+              ok=""
+              for try in 1 2 3 4; do
+                if printf '%s' "$value" | npx wrangler secret put "$name" >/dev/null 2>secret.err; then ok=1; break; fi
+                grep -q "isn't currently deployed" secret.err || { cat secret.err; exit 1; }
+                echo "secret $name: a newer version is not deployed yet; redeploying and retrying ($try)"
+                sleep 15; npx wrangler deploy >/dev/null 2>&1 || true
+              done
+              [ -n "$ok" ] || { cat secret.err; exit 1; }
+              echo "secret set: $name"
+            fi
+          done
+      - name: Point the Telegram bot at this deployment
+        if: steps.config.outputs.ready == 'true'
+        env:
+          TOKEN: ${{ secrets.MEZON_TELEGRAM_BOT_TOKEN }}
+          SECRET: ${{ secrets.MEZON_TELEGRAM_WEBHOOK_SECRET }}
+          ORIGIN: https://mezon.ayneh-salon.site
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$SECRET" ] || [ -z "$ORIGIN" ]; then echo "Telegram or APP_ORIGIN not configured; skipping webhook."; exit 0; fi
+          curl -sS -o /dev/null -w "setWebhook HTTP %{http_code}\n" "https://api.telegram.org/bot$TOKEN/setWebhook" \
+            --data-urlencode "url=$ORIGIN/api/telegram/webhook" --data-urlencode "secret_token=$SECRET" \
+            --data-urlencode 'allowed_updates=["message","callback_query"]'
+      - name: Point the Bale bot at this deployment
+        if: steps.config.outputs.ready == 'true'
+        env:
+          TOKEN: ${{ secrets.MEZON_BALE_BOT_TOKEN }}
+          SECRET: ${{ secrets.MEZON_TELEGRAM_WEBHOOK_SECRET }}
+          ORIGIN: https://mezon.ayneh-salon.site
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$SECRET" ] || [ -z "$ORIGIN" ]; then echo "Bale or APP_ORIGIN not configured; skipping."; exit 0; fi
+          curl -sS -o /dev/null -w "Bale setWebhook HTTP %{http_code}\n" "https://tapi.bale.ai/bot$TOKEN/setWebhook" --data-urlencode "url=$ORIGIN/api/bale/webhook/$SECRET"
+      - name: Summary
+        if: steps.config.outputs.ready == 'true'
+        env:
+          URL: https://mezon.ayneh-salon.site
+        run: echo "Deployed ${URL:-(address not reported)}" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,49 @@
+name: Generate Mezon dress photos
+# Makes the ready-made style photos (wedding dresses) with the project's KIE key and commits them.
+# Runs when the prompt script changes, or by hand from the Actions tab.
+# Only missing photos are generated, so reruns do not pay twice.
+on:
+  push:
+    paths:
+      - scripts/generate-catalog.mjs
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Regenerate every photo (costs KIE credits for all of them)'
+        type: boolean
+        default: false
+      only:
+        description: 'Only these: dress numbers (3,7) or demo (empty = all missing)'
+        type: string
+        default: ''
+permissions:
+  contents: write
+concurrency:
+  group: catalog-mezon-aroos-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-save sharp@0.34
+      - name: Generate missing photos
+        env:
+          KIE_API_KEY: ${{ secrets.KIE_API_KEY }}
+          FORCE: ${{ inputs.force && '1' || '0' }}
+          ONLY: ${{ inputs.only }}
+        run: node scripts/generate-catalog.mjs
+      - name: Commit photos
+        # Keep what was made even if the run stopped (e.g. KIE credit ran out).
+        if: always()
+        run: |
+          git add public/catalog
+          if git diff --cached --quiet; then echo "No new photos."; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Add catalog style photos"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
