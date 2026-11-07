@@ -1,4 +1,4 @@
-# Mezon Aroos — آینه مزون
+# Mezon Aroos — مزون عروس
 
 Wedding-dress virtual fitting for boutiques (Persian, RTL). The bride's full-body photo is kept — face, hair and body size locked — and the dress is fitted on her real body with KIE (Nano Banana Pro). Cloudflare Worker + D1 + KV, Telegram/Bale bot for the boutique owner.
 

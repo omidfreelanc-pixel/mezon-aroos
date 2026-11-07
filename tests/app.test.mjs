@@ -637,7 +637,7 @@ test('mezon: one dress line, 15 ready-made dresses, prompts lock body size and i
 
 test('mezon: landing is public and the customer page is dress-only (limits temporarily off)',async()=>{
  const e=fixture(),s=await salon(e),g=await guest(e,s);
- const home=await app.fetch(new Request(origin+'/'),e);assert.equal(home.status,200);assert.match(await home.text(),/آینه مزون/);
+ const home=await app.fetch(new Request(origin+'/'),e);assert.equal(home.status,200);assert.match(await home.text(),/مزون عروس/);
  const page=await app.fetch(new Request(origin+'/s/'+s.slug),e);const html=await page.text();
  assert.equal(page.status,200);assert.match(html,/لباس‌های مزون/);
  const v='ab'.repeat(16);assert.deepEqual((await call(e,'/api/s/'+s.slug+'/session?v='+v,undefined,g)).data.quota.left,{dress:1000});

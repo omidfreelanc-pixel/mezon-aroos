@@ -567,7 +567,7 @@ function track(kind,meta,once){if(once){if(tracked[kind+meta])return;tracked[kin
  try{var rr=await Promise.race([api('ref',{v:VISITOR,r:refIn}),sleep(2500).then(function(){return null})]);if(rr){state.tag=rr.tag;state.mine=rr.mine||null}}catch(e){}
  if(refIn&&history.replaceState){try{history.replaceState(null,'',location.pathname)}catch(e){}}
  if(state.mine)state.pub.portfolio=(state.pub.portfolio||[]).slice().sort(function(a,b){return (b.maker===state.mine)-(a.maker===state.mine)});
- document.title=state.pub.salon.name+' | آینه مزون';
+ document.title=state.pub.salon.name+' | مزون عروس';
  if(state.pub.trial)trialBar(state.pub.trial);
  if(state.pub.demo)document.body.prepend(el('div',{class:'trialbar',role:'status'},[document.createTextNode('نسخهٔ نمونهٔ آینه · روزی ۳ تصویر · '),el('a',{href:'/#start',style:'color:#fff;text-decoration:underline',text:'صفحهٔ مزون خودتان را بسازید'})]));
  var lq=(location.search.match(/[?&]l=(dress)/)||[])[1];var lm=null;try{lm=localStorage.getItem('ayneh-line-'+SLUG)}catch(e){}
@@ -609,7 +609,7 @@ function showFatal(msg){
 function heroTag(){return 'لباس عروس را روی اندام خودت ببین؛ سایز و فرم بدنت همان می‌ماند. بعد برای مزون بفرست.'}
 function renderHead(){
  var s=state.pub.salon,p=s.profile||{},head=$('#head');
- var bar=el('div',{class:'hero__bar'},[el('span',{class:'brand',html:MARK+'<span>آینه مزون</span>'}),el('div',{class:'hero__tools'},[el('button',{class:'help-btn',type:'button','aria-label':'راهنمای استفاده',onclick:startTour,text:'؟'}),el('button',{class:'about-btn',type:'button',onclick:openAbout,html:ICO.info+'<span>دربارهٔ مزون</span>'})])]);
+ var bar=el('div',{class:'hero__bar'},[el('span',{class:'brand',html:MARK+'<span>مزون عروس</span>'}),el('div',{class:'hero__tools'},[el('button',{class:'help-btn',type:'button','aria-label':'راهنمای استفاده',onclick:startTour,text:'؟'}),el('button',{class:'about-btn',type:'button',onclick:openAbout,html:ICO.info+'<span>دربارهٔ مزون</span>'})])]);
  // Full-width cover with the round logo sitting on its edge; without a cover, a soft mirror-glass panel.
  var cover=el('div',{class:'cover'+(p.cover?'':' cover--plain')},[p.cover?el('img',{class:'cover__img',src:media(p.cover),alt:'',fetchpriority:'high'}):el('span',{class:'cover__glow','aria-hidden':'true'})]);
  var logo=p.logo?el('img',{class:'cover__logo',src:media(p.logo),alt:'لوگوی '+s.name}):el('span',{class:'cover__logo cover__logo--letter','aria-hidden':'true',text:(s.name||'آ').trim().charAt(0)});
@@ -1536,7 +1536,7 @@ function startTour(){
   root.classList.add('tour--welcome');
   card.replaceChildren(
    demoCompare('tour__demo')||null,
-   el('h2',{id:'tour-title',class:'tour__title',text:'به آینه مزون خوش آمدی'}),
+   el('h2',{id:'tour-title',class:'tour__title',text:'به مزون عروس خوش آمدی'}),
    el('p',{class:'tour__text',text:'قبل از اینکه به پرو «'+state.pub.salon.name+'» بیایی، لباس عروس را روی اندام خودت ببین؛ قد و سایز بدنت همان می‌ماند. در یک دقیقه نشانت می‌دهم چطور.'}),
    el('ol',{class:'tour__path'},[
     el('li',{},[el('span',{html:ICO.camera}),el('b',{text:'عکس تو'})]),
