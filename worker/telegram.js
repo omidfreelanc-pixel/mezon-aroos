@@ -82,7 +82,7 @@ const help=(name,sms,P)=>'<b>راهنمای مدیر مزون'+(name?' — '+esc
  '<b>🖼 نمونه‌کار</b>\nعکس را همین‌جا بفرستید و زیرش (کپشن) اسم کار را بنویسید، مثلاً «پرنسسی پفی دانتل» یا «ماهی ساده یقه هفت». عکس لباس را تک‌عکس و واضح بفرستید؛ لباس روی مانکن یا آویز، تمام‌قد و با نور خوب، تا مشتری همان لباس را روی خودش ببیند. چند عکس با هم هم می‌شود؛ همه کپشن همان آلبوم را می‌گیرند. عکس بلافاصله روی صفحهٔ مزون می‌نشیند. با فرستادن عکس تأیید می‌کنید اجازهٔ انتشارش را دارید.\n\n'+
  '<b>📲 لینک برای مشتری</b>\nشمارهٔ موبایل مشتری را بنویسید (مثلاً ۰۹۱۲۱۲۳۴۵۶۷، تا ۵ شماره با فاصله)'+(sms?' تا لینک مزون برایش پیامک شود.':'. دکمه‌هایی می‌آید که لینک را با واتساپ، تلگرام، پیامک از گوشی خودتان، بله یا دایرکت اینستاگرام برایش بفرستید. /share همین دکمه‌ها را بدون شماره می‌دهد.')+'\n\n'+
  '<b>دستورها</b>\n/share فرستادن لینک برای مشتری با پیام‌رسان\n/team تیم مزون: افزودن و حذف مزون‌دار، لینک دعوت و لینک اختصاصی هر نفر\n/link لینک اختصاصی خودتان (اگر خودتان هم کار می‌کنید)\n/setup تکمیل یا تغییر اطلاعات صفحهٔ مزون (هر سؤال «رد شو» دارد)\n/list نمونه‌کارها و حذف\n/help همین راهنما';
-const ownerHelp='<b>گزارش‌های آینه</b>\n\nاز این به بعد هشدارها همین‌جا می‌آید: مزون یا مزون‌داری که ربات را وصل کرد یا نکرد، صفحه‌ای که کامل یا نیمه‌کاره ماند، درخواستی که ۲۴ ساعت بی‌جواب ماند یا گیر کرد، و خطاهای ربات. هر شب ساعت ۲۱ هم خلاصهٔ روز می‌آید.\n\n/report خلاصهٔ همین الان';
+const ownerHelp='<b>گزارش‌های مزون عروس</b>\n\nاز این به بعد هشدارها همین‌جا می‌آید: مزون یا مزون‌داری که ربات را وصل کرد یا نکرد، صفحه‌ای که کامل یا نیمه‌کاره ماند، درخواستی که ۲۴ ساعت بی‌جواب ماند یا گیر کرد، و خطاهای ربات. هر شب ساعت ۲۱ هم خلاصهٔ روز می‌آید.\n\n/report خلاصهٔ همین الان';
 async function salonByChat(db,p,chat){return one(db,'SELECT * FROM salons WHERE '+PLATFORMS[p].col+'=?',String(chat))}
 // Who is writing: the salon's manager chat, or a team member's chat (manager wins if both).
 async function actorByChat(db,p,chat){
@@ -161,7 +161,7 @@ async function handle(req,env,p){
   // plain words and the owner is alerted.
   console.error(p+' webhook',e?.message);
   const why=e instanceof Problem?e.message:'یک مشکل پیش آمد و کار انجام نشد';
-  if(ctx.say)await ctx.say('⚠️ '+why+'. دوباره امتحان کنید؛ اگر باز نشد، به مدیر آینه خبر بدهید.').catch(()=>{});
+  if(ctx.say)await ctx.say('⚠️ '+why+'. دوباره امتحان کنید؛ اگر باز نشد، به مدیر مزون عروس خبر بدهید.').catch(()=>{});
   await notifyOwner(env,{salon:ctx.salon,kind:'error',level:'error',text:'خطای ربات'+(ctx.staff&&ctx.role==='staff'?' برای '+ctx.staff.name:'')+': '+String(e?.message||e).slice(0,200)});
   return J({ok:false});
  }
@@ -170,7 +170,7 @@ async function handle(req,env,p){
 async function strangerMessage(ctx){
  const l=await one(ctx.db,'SELECT l.salon_status,l.look,s.name AS salon_name,s.profile AS salon_profile FROM leads l JOIN salons s ON s.id=l.salon_id WHERE l.follow_chat=? AND l.follow_platform=? ORDER BY l.created_at DESC LIMIT 1',ctx.chat,ctx.p);
  if(l){const tel=parse(l.salon_profile).phone;await ctx.say('این ربات فقط وضعیت درخواستت را خبر می‌دهد و پیامت را به مزون نمی‌رساند.\n\nوضعیت درخواستت در «'+l.salon_name+'»'+(l.look?' ('+l.look+')':'')+': '+STATUS[l.salon_status||'new']+'.'+(tel?'\n📞 برای صحبت با مزون: '+local(tel):''));return}
- await ctx.say('این گفتگو به هیچ مزونی وصل نیست.\n• اگر مزون‌دار یا مدیر مزون هستید، لینک اتصال را از مدیر آینه یا مدیر مزونتان بگیرید و باز کنید.\n• اگر مشتری هستید، از صفحهٔ مزون درخواست بفرستید و بعد «خبرم کن» را بزنید.');
+ await ctx.say('این گفتگو به هیچ مزونی وصل نیست.\n• اگر مزون‌دار یا مدیر مزون هستید، لینک اتصال را از مدیر مزون عروس یا مدیر مزونتان بگیرید و باز کنید.\n• اگر مشتری هستید، از صفحهٔ مزون درخواست بفرستید و بعد «خبرم کن» را بزنید.');
 }
 const photoOf=m=>m.photo?.length?m.photo[m.photo.length-1]:(m.document&&/^image\/(jpeg|png|webp)$/.test(m.document.mime_type||'')?m.document:null);
 
@@ -179,7 +179,7 @@ async function onStart(ctx,arg){
  if(/^[a-f0-9]{24}$/.test(arg)){
   const salon=await one(db,'SELECT * FROM salons WHERE telegram_code_hash=? AND telegram_code_expires>?',await hash(arg),Date.now());
   if(!salon){const t=await one(db,'SELECT * FROM team WHERE invite_hash=? AND invite_expires>? AND active=1',await hash(arg),Date.now());if(t){await linkStaff(ctx,t);return}}
-  if(!salon){await ctx.say('این لینک اتصال منقضی یا قبلاً استفاده شده است. لینک تازه را از مدیر آینه بگیرید.');return}
+  if(!salon){await ctx.say('این لینک اتصال منقضی یا قبلاً استفاده شده است. لینک تازه را از مدیر مزون عروس بگیرید.');return}
   // A chat serves one salon; linking moves it.
   await run(db,'UPDATE salons SET '+P.col+'=NULL WHERE '+P.col+'=? AND id<>?',ctx.chat,salon.id);
   await run(db,'UPDATE salons SET '+P.col+'=?,telegram_code_hash=NULL,telegram_code_expires=NULL WHERE id=?',ctx.chat,salon.id);
@@ -199,7 +199,7 @@ async function onStart(ctx,arg){
  const a=await actorByChat(db,p,ctx.chat);
  if(a?.role==='staff'){await ctx.say(staffHelp(a.staff,a.salon,ctx.origin,inviteReady(env)),{parse_mode:'HTML'});return}
  const s=a?.salon;
- await ctx.say(s?help(s.name,inviteReady(env),P):'سلام! این ربات مخصوص مزون‌های عضو آینه است. اگر از صفحهٔ یک مزون آمده‌اید، دکمهٔ «خبرم کن» را همان‌جا بزنید.',{parse_mode:'HTML'});
+ await ctx.say(s?help(s.name,inviteReady(env),P):'سلام! این ربات مخصوص مزون‌های عضو مزون عروس است. اگر از صفحهٔ یک مزون آمده‌اید، دکمهٔ «خبرم کن» را همان‌جا بزنید.',{parse_mode:'HTML'});
 }
 
 /* ---------- setup wizard: the salon fills its own page, one question at a time ---------- */
@@ -517,7 +517,7 @@ async function shareInvites(ctx,numbers,member=null){
 async function sendInvites(env,db,salon,chat,numbers,say,member=null){
  // A member's text carries their own code, so whoever opens it becomes their customer.
  const slugArg=member?salon.slug+'?r='+member.ref_code:salon.slug;
- if(!inviteReady(env)){await say('ارسال پیامک برای مشتری هنوز فعال نشده است. از مدیر آینه بخواهید فعالش کند.');return}
+ if(!inviteReady(env)){await say('ارسال پیامک برای مشتری هنوز فعال نشده است. از مدیر مزون عروس بخواهید فعالش کند.');return}
  const lines=[];
  for(const n of numbers){
   const local=n.replace(/^\+98/,'0');

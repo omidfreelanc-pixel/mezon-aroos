@@ -179,7 +179,7 @@ var TG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.4 4.2 2.9 11.3
 }).catch(function(e){$('#app').replaceChildren(el('div',{class:'loading',text:e.message}))})})();
 
 function login(me){
- var box=el('section',{class:'card login'},[el('div',{class:'mirror'},[el('div',{class:'mirror__glass'},[el('span',{html:MARK})])]),h('h1','مدیریت آینه'),h('p','اینجا فقط برای مدیر آینه است. مزون‌ها با ربات تلگرام کار می‌کنند و مشتری‌ها از لینک اختصاصی مزون وارد می‌شوند.')]);
+ var box=el('section',{class:'card login'},[el('div',{class:'mirror'},[el('div',{class:'mirror__glass'},[el('span',{html:MARK})])]),h('h1','مدیریت مزون عروس'),h('p','اینجا فقط برای مدیر مزون عروس است. مزون‌ها با ربات تلگرام کار می‌کنند و مشتری‌ها از لینک اختصاصی مزون وارد می‌شوند.')]);
  if(me.passwordLogin){var f=field('pw','رمز مدیر','', 'password');var go=el('button',{class:'btn btn--primary btn--block',type:'button',text:'ورود',onclick:act(function(){return api('/api/login',{password:$('#pw').value}).then(function(){location.reload()})})});f.querySelector('input').addEventListener('keydown',function(e){if(e.key==='Enter')go.click()});box.append(f,go)}
  else box.append(el('p',{class:'notice notice--warn',text:'ورود با رمز روی این میزبان تنظیم نشده است (OWNER_PASSWORD و SESSION_SECRET).'}));
  $('#app').replaceChildren(box);
@@ -365,7 +365,7 @@ function shrink(file){return createImageBitmap(file).then(function(b){var c=docu
 
 function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  var S=d.salon,p=S.profile||{},images={logo:p.logo,cover:p.cover,portrait:p.portrait};
- document.title=S.name+' | مدیریت آینه';
+ document.title=S.name+' | مدیریت مزون عروس';
  var head=el('div',{class:'page-head'},[el('div',{},[el('a',{class:'back',href:'/admin',text:'→ همهٔ مزون‌ها'}),h('h1',S.name),h('p','اطلاعاتی که اینجا وارد می‌کنید در بخش «دربارهٔ مزون» صفحهٔ مشتری دیده می‌شود.'),setupLine({setup:d.setup})]),el('div',{class:'row'},[el('a',{class:'btn btn--ghost',href:'/admin?salon='+encodeURIComponent(S.slug),text:'آمار این مزون'}),el('a',{class:'btn btn--ghost',href:'/s/'+S.slug,target:'_blank',rel:'noopener',text:'دیدن صفحهٔ مشتری'})])]);
 
  // Telegram
@@ -437,12 +437,12 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
 $('#logout').addEventListener('click',function(){api('/api/logout',{}).then(function(){location.href='/'})});
 `;
 
-export const appHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#e8edeb"><meta name="robots" content="noindex"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin><title>آینه | مدیریت مزون‌ها</title><style>__CSS__</style></head><body>
+export const appHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#e8edeb"><meta name="robots" content="noindex"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin><title>مزون عروس | مدیریت مزون‌ها</title><style>__CSS__</style></head><body>
 <a class="skip" href="#app">پرش به محتوای اصلی</a>
-<header class="appbar"><a href="/admin" class="appbar__brand">__MARKHTML__<span>آینه</span></a><button class="btn btn--ghost btn--sm" id="logout" type="button" hidden>خروج</button></header>
+<header class="appbar"><a href="/admin" class="appbar__brand">__MARKHTML__<span>مزون عروس</span></a><button class="btn btn--ghost btn--sm" id="logout" type="button" hidden>خروج</button></header>
 <main id="app"><div class="loading">در حال باز کردن…</div></main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<footer class="foot">آینه: شبیه‌سازی پیشنهادی برای مشاورهٔ مو.</footer>
+<footer class="foot">مزون عروس: شبیه‌سازی پیشنهادی برای مشاورهٔ مو.</footer>
 <script>__JS__</script>
 </body></html>`
  .replace('__CSS__',()=>baseCSS+css)

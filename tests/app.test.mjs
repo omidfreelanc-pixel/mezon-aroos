@@ -465,7 +465,7 @@ const toOwner=(tg,chat=1000)=>tg.calls.filter(c=>c.method==='sendMessage'&&Strin
 const say=(e,chat,text)=>hook(e,{message:{chat:{id:chat,type:'private'},text}});
 
 test('owner alerts: linking, setup events, abandoned wizard frees later photos, /report and the nightly digest',async()=>{const e=tgEnv(fixture()),s=await salon(e);const tg=mockTelegram();try{
- await linkOwnerChat(e);assert(toOwner(tg).some(t=>/گزارش‌های آینه/.test(t)));
+ await linkOwnerChat(e);assert(toOwner(tg).some(t=>/گزارش‌های مزون عروس/.test(t)));
  assert.deepEqual((await call(e,'/api/owner',undefined,OWNER)).data.alerts.chats,['telegram']);
  const r=await call(e,'/api/s/salon-a/owner/telegram-link',{},OWNER);await say(e,777,'/start '+r.data.code);
  assert(toOwner(tg).some(t=>/ربات را در تلگرام وصل کرد/.test(t)),'owner hears the salon linked');
@@ -481,7 +481,7 @@ test('owner alerts: linking, setup events, abandoned wizard frees later photos, 
  assert(tg.calls.some(c=>c.body.chat_id==='777'&&/از ۱۱ مورد پر شده/.test(c.body.text||'')));assert(toOwner(tg).some(t=>/زودتر تمام کرد/.test(t)));
  const owner=(await call(e,'/api/owner',undefined,OWNER)).data;assert.equal(owner.salons[0].setup.total,11);assert(owner.activity.length>=3);
  // /report and the 21:00 digest (once a day).
- await say(e,1000,'/report');assert(toOwner(tg).some(t=>/گزارش امروز آینه/.test(t)));
+ await say(e,1000,'/report');assert(toOwner(tg).some(t=>/گزارش امروز مزون عروس/.test(t)));
  const {maybeDigest}=await import('../worker/alerts.js');const nine=Date.parse('2026-11-02T17:45:00Z');
  assert.equal(await maybeDigest(e,nine),true);assert.equal(await maybeDigest(e,nine+60000),false,'once a day');
  assert.equal(await maybeDigest(e,Date.parse('2026-11-03T10:00:00Z')),false,'not before 21:00');
