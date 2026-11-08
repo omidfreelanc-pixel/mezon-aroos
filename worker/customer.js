@@ -348,7 +348,7 @@ body.is-touring{overflow:hidden}
 .wl__brand b{font-size:21px}
 .wl__cap{position:absolute;bottom:92px;inset-inline:0;text-align:center;transition:opacity .5s}.wl__cap strong{display:block;font-size:26px;letter-spacing:.2px}.wl__cap span{opacity:.9;font-size:15px}
 .wl__tap{position:absolute;bottom:30px;inset-inline:0;text-align:center;font-size:17px;animation:wlpulse 2s ease-in-out infinite}@keyframes wlpulse{50%{opacity:.45}}
-.wl__qr{position:absolute;bottom:20px;inset-inline-start:20px;transform-origin:bottom left;max-width:260px}
+.wl__qr{position:absolute;top:18px;inset-inline-end:20px;width:118px;padding:6px;border-radius:14px;background:rgba(255,255,255,.92)}.wl.is-paused .wl__qr,.wl.is-paused .wl__brand{display:none}.wl__qr p,.wl__qr span{display:none}.wl__qr .qr__code{width:100%}.wl__qr .kqr{margin:0}
 .wl__card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,460px);padding:30px 26px;border-radius:26px;background:rgba(250,251,250,.94);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.45);text-align:center;display:none}
 .wl.is-paused .wl__card{display:block;animation:wlin .45s ease}@keyframes wlin{from{opacity:0;transform:translate(-50%,-46%)}}
 .wl__card img.logo{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #d9b878;margin:0 auto 10px;display:block;background:#fff}
