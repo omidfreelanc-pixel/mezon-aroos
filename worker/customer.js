@@ -319,7 +319,7 @@ body.is-touring{overflow:hidden}
 /* ---------- professional camera screen: dimmed room, an arched frame with a soft bridal silhouette, a ring countdown ---------- */
 .kcam{background:#0b1c1c}.kcam video{filter:saturate(1.02)}
 .kcam__shade{position:absolute;inset:0;pointer-events:none;background:radial-gradient(70% 90% at 50% 45%,transparent 55%,rgba(5,18,18,.55))}
-.kcam__arch{position:absolute;left:50%;top:50%;height:74%;max-height:calc(100% - 210px);aspect-ratio:.5;transform:translate(-50%,-52%);border:2px solid rgba(255,255,255,.92);border-radius:999px 999px 22px 22px;box-shadow:0 0 0 100vmax rgba(6,20,20,.58),0 0 40px rgba(212,176,118,.35),inset 0 0 36px rgba(255,255,255,.07);pointer-events:none}
+.kcam__arch{position:absolute;left:50%;top:88px;bottom:268px;aspect-ratio:.46;transform:translateX(-50%);border:2px solid rgba(255,255,255,.92);border-radius:999px 999px 22px 22px;box-shadow:0 0 0 100vmax rgba(6,20,20,.74),0 0 40px rgba(212,176,118,.35),inset 0 0 36px rgba(255,255,255,.07);pointer-events:none}
 .kcam__arch svg{position:absolute;inset:6% 12% 3%;width:76%;height:91%;overflow:visible}
 .kcam__arch svg .sil{fill:rgba(255,255,255,.10);stroke:rgba(255,255,255,.72);stroke-width:1.6;stroke-linejoin:round}
 .kcam__mark{position:absolute;inset-inline:-70px;display:flex;align-items:center;gap:8px;font-size:12px;color:#f3e6cf;pointer-events:none}
@@ -330,12 +330,12 @@ body.is-touring{overflow:hidden}
 .kcam__head{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;padding:14px 18px;background:linear-gradient(180deg,rgba(5,18,18,.85),transparent);pointer-events:none}
 .kcam__head img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid rgba(243,230,207,.7);background:#fff}
 .kcam__head b{display:block;font-size:17px}.kcam__head small{opacity:.85;font-size:13px}
-.kcam__ring{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);width:92px;height:92px;pointer-events:none}
+.kcam__ring{position:absolute;bottom:84px;width:84px!important;height:84px!important;left:50%;transform:translateX(-50%);width:92px;height:92px;pointer-events:none}
 .kcam__ring svg{width:100%;height:100%;transform:rotate(-90deg)}.kcam__ring circle{fill:rgba(6,20,20,.55);stroke-width:5}
 .kcam__ring .bg{stroke:rgba(255,255,255,.25)}.kcam__ring .fg{stroke:#d9b878;stroke-linecap:round;fill:none;stroke-dasharray:276.5;stroke-dashoffset:276.5}
 .kcam__ring.go .fg{animation:kring 10s linear forwards}@keyframes kring{to{stroke-dashoffset:0}}
 .kcam__ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:38px;font-weight:700}
-.kcam .kcam__tip{top:auto;bottom:196px;font-size:14px;padding:0 20px;opacity:.95}
+.kcam .kcam__tip{top:auto;bottom:186px;left:0;right:0;font-size:14px;line-height:1.7;padding:0 22px;opacity:.95;max-height:70px}
 .kcam .btn--primary{background:linear-gradient(135deg,#d9b878,#b98f4c);color:#2b1d07;border:0}
 /* ---------- welcome: full-screen preview of the boutique, then name and mobile ---------- */
 .wl{position:fixed;inset:0;z-index:90;background:#0b1c1c;color:#fff;overflow:hidden;font-family:inherit}
@@ -348,7 +348,7 @@ body.is-touring{overflow:hidden}
 .wl__brand b{font-size:21px}
 .wl__cap{position:absolute;bottom:92px;inset-inline:0;text-align:center;transition:opacity .5s}.wl__cap strong{display:block;font-size:26px;letter-spacing:.2px}.wl__cap span{opacity:.9;font-size:15px}
 .wl__tap{position:absolute;bottom:30px;inset-inline:0;text-align:center;font-size:17px;animation:wlpulse 2s ease-in-out infinite}@keyframes wlpulse{50%{opacity:.45}}
-.wl__qr{position:absolute;top:18px;inset-inline-end:20px;width:118px;padding:6px;border-radius:14px;background:rgba(255,255,255,.92)}.wl.is-paused .wl__qr,.wl.is-paused .wl__brand{display:none}.wl__qr p,.wl__qr span{display:none}.wl__qr .qr__code{width:100%}.wl__qr .kqr{margin:0}
+.wl__qr{position:absolute;top:72px;inset-inline-end:20px;width:118px;padding:6px;border-radius:14px;background:rgba(255,255,255,.92)}.wl.is-paused .wl__qr,.wl.is-paused .wl__brand{display:none}.wl__qr p,.wl__qr span{display:none}.wl__qr .qr__code{width:100%}.wl__qr .kqr{margin:0}
 .wl__card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,460px);padding:30px 26px;border-radius:26px;background:rgba(250,251,250,.94);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.45);text-align:center;display:none}
 .wl.is-paused .wl__card{display:block;animation:wlin .45s ease}@keyframes wlin{from{opacity:0;transform:translate(-50%,-46%)}}
 .wl__card img.logo{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #d9b878;margin:0 auto 10px;display:block;background:#fff}

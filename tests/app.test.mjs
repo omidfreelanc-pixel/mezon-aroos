@@ -962,3 +962,29 @@ test('a salon can set sale/rent, price and stock per dress; customers see them, 
  p=(await call(e,'/api/s/salon-a/public')).data.portfolio.find(x=>x.id===id);
  assert.deepEqual([p.mode,p.price.length,p.stock],['',60,'']);
 });
+
+test('name + mobile on the welcome screen, thumbs, and "send it to me" reaches the chat that shared the same number',async()=>{
+  const e=tgEnv(fixture()),s=await salon(e,'me-a'),g=await guest(e,s),original=await upload(e,s,g),tg=mockTelegram();
+  try{
+    assert.equal((await call(e,'/api/s/me-a/session/profile',{v:'k'.repeat(20),name:'م',phone:'09123456789'},g)).status,400,'name too short');
+    assert.equal((await call(e,'/api/s/me-a/session/profile',{v:'k'.repeat(20),name:'مریم احمدی',phone:'12345'},g)).status,400,'bad mobile');
+    const ok=await call(e,'/api/s/me-a/session/profile',{v:'k'.repeat(20),name:'مریم احمدی',phone:'۹۱۲۳۴۵۶۷۸۹'},g);assert.equal(ok.status,200,JSON.stringify(ok));assert.equal(ok.data.phone,'09123456789');
+    const ses=await call(e,'/api/s/me-a/session',undefined,g);assert.equal(ses.data.cname,'مریم احمدی');assert.equal(ses.data.cphone,'09123456789');
+    const sess=e.DB.sql.prepare('SELECT id FROM sessions').get().id,salonId=e.DB.sql.prepare('SELECT id FROM salons').get().id,gid=crypto.randomUUID();
+    e.DB.sql.prepare("INSERT INTO generations(id,salon_id,session_id,idem,state,original_id,result_id,style,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)").run(gid,salonId,sess,crypto.randomUUID(),'success',original,original,3,Date.now(),Date.now());
+    assert.equal((await call(e,'/api/s/me-a/reaction',{v:'k'.repeat(20),gen:gid,r:'up'},g)).status,200);assert.equal(e.DB.sql.prepare('SELECT reaction FROM generations WHERE id=?').get(gid).reaction,'up');
+    await call(e,'/api/s/me-a/reaction',{v:'k'.repeat(20),gen:gid,r:'x'},g);assert.equal(e.DB.sql.prepare('SELECT reaction FROM generations WHERE id=?').get(gid).reaction,'');
+    const none=await call(e,'/api/s/me-a/send-bot',{v:'k'.repeat(20),gen:gid},g);assert.equal(none.status,200);assert.equal(none.data.sent,false,'bot does not know this number yet');
+    // she shares her contact with the bot
+    const hookMsg=m=>hook(e,{update_id:77,message:{chat:{id:9100,type:'private'},from:{id:9100,first_name:'مریم'},...m}});
+    await hookMsg({text:'/start c_me-a'});
+    assert.ok(tg.calls.some(c=>c.method==='sendMessage'&&c.body.reply_markup?.keyboard?.[0]?.[0]?.request_contact),'asks for her number');
+    await hook(e,{update_id:78,message:{chat:{id:9100,type:'private'},from:{id:9100,first_name:'مریم'},contact:{phone_number:'+989123456789',user_id:9100}}});
+    assert.equal(e.DB.sql.prepare('SELECT phone FROM bot_customers WHERE chat_id=?').get('9100').phone,'09123456789');
+    const sent=await call(e,'/api/s/me-a/send-bot',{v:'k'.repeat(20),gen:gid},g);assert.equal(sent.data.sent,true,JSON.stringify(sent));
+    assert.ok(tg.calls.some(c=>c.method==='sendMessage'&&String(c.body.chat_id)==='9100'&&String(c.body.text).includes('مریم احمدی')&&String(c.body.text).includes('09123456789')),'details sent');
+    // someone else's contact is ignored
+    await hook(e,{update_id:79,message:{chat:{id:9100,type:'private'},from:{id:9100,first_name:'م'},contact:{phone_number:'+989111111111',user_id:5}}});
+    assert.equal(e.DB.sql.prepare('SELECT phone FROM bot_customers WHERE chat_id=?').get('9100').phone,'09123456789');
+  }finally{tg.restore()}
+});
