@@ -235,11 +235,14 @@ export async function api(req,env){const u=new URL(req.url),path=u.pathname;must
   // Portfolio added from the owner console (same row the bot makes): a photo uploaded with
   // upload?kind=portfolio, its title. Published and usable for try-on.
   if(r==='portfolio/add'){
-   const media=String(b.media_id||''),line=LINE_KEYS.includes(b.line)?b.line:'dress';
-   must(await one(db,"SELECT 1 FROM media WHERE id=? AND salon_id=? AND kind='portfolio'",media,salon.id),'عکس نمونه‌کار معتبر نیست');
-   must(!await one(db,'SELECT 1 FROM portfolio WHERE salon_id=? AND EXISTS(SELECT 1 FROM json_each(images) WHERE value=?)',salon.id,media),'این عکس قبلاً اضافه شده');
+   // One dress = up to 4 real photos from different angles (front, side, back, detail); they all reach the model and the video.
+   const ids=[...new Set((Array.isArray(b.media_ids)?b.media_ids:[b.media_id]).map(x=>String(x||'')).filter(Boolean))].slice(0,4),media=ids[0],line=LINE_KEYS.includes(b.line)?b.line:'dress';
+   must(ids.length,'عکس نمونه‌کار معتبر نیست');
+   for(const m of ids){
+    must(await one(db,"SELECT 1 FROM media WHERE id=? AND salon_id=? AND kind='portfolio'",m,salon.id),'عکس نمونه‌کار معتبر نیست');
+    must(!await one(db,'SELECT 1 FROM portfolio WHERE salon_id=? AND EXISTS(SELECT 1 FROM json_each(images) WHERE value=?)',salon.id,m),'این عکس قبلاً اضافه شده');}
    const title=text(String(b.title||'').slice(0,150),150)||'نمونه‌کار',id=uid();
-   await run(db,'INSERT INTO portfolio(id,salon_id,title,category,description,stylist,images,published,try_on,permission,created_at,staff_id,media_group,line,look) VALUES(?,?,?,?,?,?,?,1,1,1,?,NULL,NULL,?,?)',id,salon.id,title,text(String(b.category||'').slice(0,60),60),text(String(b.description||'').slice(0,500),500),text(String(b.stylist||'').slice(0,80),80),JSON.stringify([media]),Date.now(),line,text(String(b.look||'').slice(0,600),600));
+   await run(db,'INSERT INTO portfolio(id,salon_id,title,category,description,stylist,images,published,try_on,permission,created_at,staff_id,media_group,line,look) VALUES(?,?,?,?,?,?,?,1,1,1,?,NULL,NULL,?,?)',id,salon.id,title,text(String(b.category||'').slice(0,60),60),text(String(b.description||'').slice(0,500),500),text(String(b.stylist||'').slice(0,80),80),JSON.stringify(ids),Date.now(),line,text(String(b.look||'').slice(0,600),600));
    return J({id});
   }
   if(r==='portfolio/look'){await run(db,'UPDATE portfolio SET look=? WHERE id=? AND salon_id=?',text(String(b.look||'').slice(0,600),600),String(b.id||''),salon.id);return J({ok:true});}

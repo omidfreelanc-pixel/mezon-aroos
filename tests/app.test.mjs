@@ -1084,3 +1084,11 @@ test('manager can text the page link to customers (needs the invite text); appro
  const ok=await call(e,'/api/s/'+slug+'/owner/invite',{numbers:'09121234567 09351234567'},OWNER);assert.equal(ok.status,200,JSON.stringify(ok));assert.equal(ok.data.results.filter(x=>x.ok).length,2);
  assert.equal((await call(e,'/api/s/'+slug+'/owner/invite',{numbers:'abc'},OWNER)).status,400);
 });
+
+test('quick dress intake: one dress with 4 angle photos, duplicates refused',async()=>{
+ const e=fixture(),s=await salon(e);
+ const ids=[];for(let i=0;i<5;i++)ids.push(await ownerPortfolio(e,s));
+ const r=await call(e,'/api/s/salon-a/owner/portfolio/add',{media_ids:ids,title:'چهار زاویه'},OWNER);assert.equal(r.status,200);
+ const row=e.DB.sql.prepare('SELECT images FROM portfolio WHERE id=?').get(r.data.id);assert.deepEqual(JSON.parse(row.images),ids.slice(0,4),'max 4 photos, in order');
+ const dup=await call(e,'/api/s/salon-a/owner/portfolio/add',{media_ids:[ids[0]],title:'تکراری'},OWNER);assert.equal(dup.status,400);
+});
