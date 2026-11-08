@@ -463,7 +463,7 @@ const toOwner=(tg,chat=1000)=>tg.calls.filter(c=>c.method==='sendMessage'&&Strin
 const say=(e,chat,text)=>hook(e,{message:{chat:{id:chat,type:'private'},text}});
 
 test('owner alerts: linking, setup events, abandoned wizard frees later photos, /report and the nightly digest',async()=>{const e=tgEnv(fixture()),s=await salon(e);const tg=mockTelegram();try{
- await linkOwnerChat(e);assert(toOwner(tg).some(t=>/گزارش‌های مزون عروس/.test(t)));
+ await linkOwnerChat(e);assert(toOwner(tg).some(t=>/گزارش‌های مزون آینه/.test(t)));
  assert.deepEqual((await call(e,'/api/owner',undefined,OWNER)).data.alerts.chats,['telegram']);
  const r=await call(e,'/api/s/salon-a/owner/telegram-link',{},OWNER);await say(e,777,'/start '+r.data.code);
  assert(toOwner(tg).some(t=>/ربات را در تلگرام وصل کرد/.test(t)),'owner hears the salon linked');
@@ -479,7 +479,7 @@ test('owner alerts: linking, setup events, abandoned wizard frees later photos, 
  assert(tg.calls.some(c=>c.body.chat_id==='777'&&/از ۱۱ مورد پر شده/.test(c.body.text||'')));assert(toOwner(tg).some(t=>/زودتر تمام کرد/.test(t)));
  const owner=(await call(e,'/api/owner',undefined,OWNER)).data;assert.equal(owner.salons[0].setup.total,11);assert(owner.activity.length>=3);
  // /report and the 21:00 digest (once a day).
- await say(e,1000,'/report');assert(toOwner(tg).some(t=>/گزارش امروز مزون عروس/.test(t)));
+ await say(e,1000,'/report');assert(toOwner(tg).some(t=>/گزارش امروز مزون آینه/.test(t)));
  const {maybeDigest}=await import('../worker/alerts.js');const nine=Date.parse('2026-11-02T17:45:00Z');
  assert.equal(await maybeDigest(e,nine),true);assert.equal(await maybeDigest(e,nine+60000),false,'once a day');
  assert.equal(await maybeDigest(e,Date.parse('2026-11-03T10:00:00Z')),false,'not before 21:00');
@@ -641,7 +641,7 @@ test('mezon: the three-angle prompt is about the dress, not about hair',()=>{
 
 test('mezon: landing is public and the customer page is dress-only (limits temporarily off)',async()=>{
  const e=fixture(),s=await salon(e),g=await guest(e,s);
- const home=await app.fetch(new Request(origin+'/'),e);assert.equal(home.status,200);assert.match(await home.text(),/مزون عروس/);
+ const home=await app.fetch(new Request(origin+'/'),e);assert.equal(home.status,200);assert.match(await home.text(),/مزون آینه/);
  const page=await app.fetch(new Request(origin+'/s/'+s.slug),e);const html=await page.text();
  assert.equal(page.status,200);assert.match(html,/لباس‌های مزون/);
  const v='ab'.repeat(16);assert.deepEqual((await call(e,'/api/s/'+s.slug+'/session?v='+v,undefined,g)).data.quota.left,{dress:1000});

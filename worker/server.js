@@ -57,7 +57,7 @@ export async function logEvent(db,salonId,kind,visitor='',meta=''){await run(db,
 function publicSalon(s){return {id:s.id,slug:s.slug,name:s.name,profile:parse(s.profile)};}
 
 // The salon panel is gone; only the project owner manages salons.
-export async function owner(req,env){const who=await identity(req,env);must(who,'برای ورود، رمز مدیر را وارد کنید',401);must(who.via==='password'||(env.OWNER_EMAIL&&who.email===env.OWNER_EMAIL),'فقط مدیر مزون عروس به این بخش دسترسی دارد',403);return who;}
+export async function owner(req,env){const who=await identity(req,env);must(who,'برای ورود، رمز مدیر را وارد کنید',401);must(who.via==='password'||(env.OWNER_EMAIL&&who.email===env.OWNER_EMAIL),'فقط مدیر مزون آینه به این بخش دسترسی دارد',403);return who;}
 export async function session(req,db,salon){const t=(req.headers.get('cookie')||'').match(/(?:^|; )ayneh=([a-f0-9]{64})(?:;|$)/)?.[1];must(t,'جلسه پیدا نشد؛ صفحه را تازه کنید',401);const s=await one(db,'SELECT * FROM sessions WHERE token_hash=? AND salon_id=? AND expires_at>?',await hash(t),salon.id,Date.now());must(s,'جلسه منقضی شده؛ صفحه را تازه کنید',401);return s;}
 async function newSession(db,salon){const raw=token(),s={id:uid(),salon_id:salon.id,customer_id:null,token_hash:await hash(raw),expires_at:Date.now()+7*86400000,created_at:Date.now()};await run(db,'INSERT INTO sessions(id,salon_id,customer_id,token_hash,expires_at,created_at) VALUES(?,?,?,?,?,?)',...Object.values(s));return {s,raw};}
 const clientIp=req=>req.headers.get('cf-connecting-ip')||(req.headers.get('x-forwarded-for')||'').split(',')[0].trim()||req.headers.get('x-real-ip')||'unknown';
@@ -103,7 +103,7 @@ export async function api(req,env){const u=new URL(req.url),path=u.pathname;must
   must(name.length>=2,'نام را بنویس');must(salon.length>=2,'نام مزون را بنویس');
   const tel=phone(b.phone),id=uid();
   await run(db,'INSERT INTO inquiries(id,name,salon,city,phone,note,chosen,created_at) VALUES(?,?,?,?,?,?,?,?)',id,name,salon,city,tel,note,chosen,Date.now());
-  await notifyOwner(env,{kind:'inquiry',level:'good',text:'درخواست معرفی مزون عروس از «'+salon+'»'+(city?' ('+city+')':'')+' ثبت شد',detail:'👤 '+name+'\n📞 '+tel+(chosen?'\n✨ انتخاب در مزون عروس: '+chosen:'')+(note?'\n📝 '+note:'')});
+  await notifyOwner(env,{kind:'inquiry',level:'good',text:'درخواست معرفی مزون آینه از «'+salon+'»'+(city?' ('+city+')':'')+' ثبت شد',detail:'👤 '+name+'\n📞 '+tel+(chosen?'\n✨ انتخاب در مزون آینه: '+chosen:'')+(note?'\n📝 '+note:'')});
   return J({ok:true});
  }
  if(path==='/api/trial'&&req.method==='POST'){
@@ -130,7 +130,7 @@ export async function api(req,env){const u=new URL(req.url),path=u.pathname;must
   must(!await one(db,'SELECT 1 FROM salons WHERE slug=?',b.slug),'این نشانی را مزون دیگری گرفته؛ یک نشانی دیگر بنویسید');must(text(b.name||'',100).length>=2,'نام مزون را بنویسید');await run(db,'INSERT INTO salons(id,slug,owner_id,name,created_at,settings) VALUES(?,?,?,?,?,?)',id,b.slug,who.user||'owner',text(b.name,100),Date.now(),JSON.stringify({generation_enabled:true,reference_verified:true}));return J({id,slug:b.slug});}
  const match=path.match(/^\/api\/s\/([a-z0-9-]+)(?:\/(.*))?$/);must(match,'مسیر پیدا نشد',404);let salon=await one(db,'SELECT * FROM salons WHERE slug=?',match[1]);
  // The public demo salon behind the landing page is created on first visit; owner_id 'system' marks it.
- if(!salon&&match[1]==='demo'){await run(db,'INSERT OR IGNORE INTO salons(id,slug,owner_id,name,profile,settings,created_at) VALUES(?,?,?,?,?,?,?)',uid(),'demo','system','مزون عروس (نسخهٔ نمونه)','{}',JSON.stringify({generation_enabled:true,reference_verified:false,demo:true}),Date.now());salon=await one(db,'SELECT * FROM salons WHERE slug=?','demo')}
+ if(!salon&&match[1]==='demo'){await run(db,'INSERT OR IGNORE INTO salons(id,slug,owner_id,name,profile,settings,created_at) VALUES(?,?,?,?,?,?,?)',uid(),'demo','system','مزون آینه (نسخهٔ نمونه)','{}',JSON.stringify({generation_enabled:true,reference_verified:false,demo:true}),Date.now());salon=await one(db,'SELECT * FROM salons WHERE slug=?','demo')}
  must(salon,'مزون پیدا نشد',404);const route=match[2]||'',cfg=parse(salon.settings),trial=cfg.trial?await trialOf(db,salon.id):null,demo=false;
  if(trial&&!trialLive(trial)&&route!=='public'&&!route.startsWith('owner'))throw new Problem(410,'مهلت ۱۰ ساعتهٔ صفحهٔ آزمایشی تمام شده است؛ برای ادامه با ما تماس بگیرید');
  const readOnly=route==='public'||route==='owner'||route==='owner/leads'||route==='owner/leads.csv'||route==='requests'||route.startsWith('media/')||route.startsWith('generation/');

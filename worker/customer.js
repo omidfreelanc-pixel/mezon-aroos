@@ -500,9 +500,9 @@ function track(kind,meta,once){if(once){if(tracked[kind+meta])return;tracked[kin
  try{state.pub=await pubP}catch(e){showFatal(e.message);return}
  var ft=document.getElementById('foot');if(ft&&state.pub.retention_days)ft.append(document.createElement('br'),document.createTextNode(retentionLine()))
  if(refIn&&history.replaceState){try{history.replaceState(null,'',location.pathname)}catch(e){}}
- document.title=state.pub.salon.name+' | مزون عروس';
+ document.title=state.pub.salon.name+' | مزون آینه';
  if(state.pub.trial)trialBar(state.pub.trial);
- if(state.pub.demo)document.body.prepend(el('div',{class:'trialbar',role:'status'},[document.createTextNode('نسخهٔ نمونهٔ مزون عروس · روزی ۳ تصویر · '),el('a',{href:'/#start',style:'color:#fff;text-decoration:underline',text:'صفحهٔ مزون خودتان را بسازید'})]));
+ if(state.pub.demo)document.body.prepend(el('div',{class:'trialbar',role:'status'},[document.createTextNode('نسخهٔ نمونهٔ مزون آینه · روزی ۳ تصویر · '),el('a',{href:'/#start',style:'color:#fff;text-decoration:underline',text:'صفحهٔ مزون خودتان را بسازید'})]));
  var pending=null;try{pending=sessionStorage.getItem('ayneh-job-'+SLUG)}catch(e){}
  if(pending)pending=pending.replace(/^dress:/,'');
  // Open on the boutique's own dresses when it has some, otherwise on the ready-made ones.
@@ -521,7 +521,7 @@ function trialBar(t){
  var root=document.documentElement;
  if(/^#[0-9a-f]{6}$/i.test(t.brand||'')){var n=parseInt(t.brand.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255,mix=function(k,to){return 'rgb('+[r,g,b].map(function(c){return Math.round(c+(to-c)*k)}).join(',')+')'};root.style.setProperty('--accent',mix(.18,0));root.style.setProperty('--accent-ink',mix(.45,0));root.style.setProperty('--accent-soft',mix(.82,255));root.style.setProperty('--accent-ring','rgba('+r+','+g+','+b+',.3)')}
  var bar=el('div',{class:'trialbar',role:'status'}),fa=function(x){return String(x).replace(/\d/g,function(d){return '۰۱۲۳۴۵۶۷۸۹'[d]})};
- function paint(){var ms=t.expires_at-Date.now();if(t.expired||ms<=0){bar.textContent='مهلت صفحهٔ آزمایشی تمام شد. برای ادامه با مزون عروس تماس بگیرید.';bar.classList.add('is-over');var main=$('#main');if(main&&!$('.trial-over')){main.replaceChildren(el('div',{class:'panel fatal trial-over'},[h('h1','مهلت صفحهٔ آزمایشی تمام شد'),h('p','این صفحه ۱۰ ساعت و ۵ تصویر برای امتحان داشت. برای نسخهٔ دائمی با مزون عروس تماس بگیرید.','muted'),el('a',{class:'btn btn--primary',href:'/#start',text:'درخواست نسخهٔ دائمی'})]))}return}
+ function paint(){var ms=t.expires_at-Date.now();if(t.expired||ms<=0){bar.textContent='مهلت صفحهٔ آزمایشی تمام شد. برای ادامه با مزون آینه تماس بگیرید.';bar.classList.add('is-over');var main=$('#main');if(main&&!$('.trial-over')){main.replaceChildren(el('div',{class:'panel fatal trial-over'},[h('h1','مهلت صفحهٔ آزمایشی تمام شد'),h('p','این صفحه ۱۰ ساعت و ۵ تصویر برای امتحان داشت. برای نسخهٔ دائمی با مزون آینه تماس بگیرید.','muted'),el('a',{class:'btn btn--primary',href:'/#start',text:'درخواست نسخهٔ دائمی'})]))}return}
   var m=Math.ceil(ms/60000),hh=Math.floor(m/60),mm=m%60;bar.textContent='صفحهٔ آزمایشی · '+fa(hh)+' ساعت و '+fa(mm)+' دقیقه مانده · '+fa(t.images_left)+' تصویر از '+fa(t.images_limit)}
  paint();document.body.prepend(bar);setInterval(paint,30000);
  window.__trialLeft=function(){return api('public').then(function(p){if(p.trial){t.images_left=p.trial.images_left;t.expired=p.trial.expired;paint()}}).catch(function(){})};
@@ -529,7 +529,7 @@ function trialBar(t){
 
 function showFatal(msg){
  var main=$('#main');if(!main)return;
- main.replaceChildren(el('div',{class:'panel fatal'},[h('h1','این صفحه باز نشد'),h('p',msg,'muted'),el('a',{class:'btn btn--primary',href:'/',text:'بازگشت به مزون عروس'})]));
+ main.replaceChildren(el('div',{class:'panel fatal'},[h('h1','این صفحه باز نشد'),h('p',msg,'muted'),el('a',{class:'btn btn--primary',href:'/',text:'بازگشت به مزون آینه'})]));
  var dock=$('#dock');if(dock)dock.hidden=true;
 }
 
@@ -537,7 +537,7 @@ function showFatal(msg){
 function heroTag(){return 'لباس عروس را روی اندام خودت ببین؛ سایز و فرم بدنت همان می‌ماند. بعد برای مزون بفرست.'}
 function renderHead(){
  var s=state.pub.salon,p=s.profile||{},head=$('#head');
- var bar=el('div',{class:'hero__bar'},[el('span',{class:'brand',html:MARK+'<span>مزون عروس</span>'}),el('div',{class:'hero__tools'},[el('button',{class:'help-btn',type:'button','aria-label':'راهنمای استفاده',onclick:startTour,text:'؟'}),el('button',{class:'about-btn',type:'button',onclick:openAbout,html:ICO.info+'<span>دربارهٔ مزون</span>'})])]);
+ var bar=el('div',{class:'hero__bar'},[el('span',{class:'brand',html:MARK+'<span>مزون آینه</span>'}),el('div',{class:'hero__tools'},[el('button',{class:'help-btn',type:'button','aria-label':'راهنمای استفاده',onclick:startTour,text:'؟'}),el('button',{class:'about-btn',type:'button',onclick:openAbout,html:ICO.info+'<span>دربارهٔ مزون</span>'})])]);
  // Full-width cover with the round logo sitting on its edge; without a cover, a soft mirror-glass panel.
  var cover=el('div',{class:'cover'+(p.cover?'':' cover--plain')},[p.cover?el('img',{class:'cover__img',src:media(p.cover),alt:'',fetchpriority:'high'}):el('span',{class:'cover__glow','aria-hidden':'true'})]);
  var logo=p.logo?el('img',{class:'cover__logo',src:media(p.logo),alt:'لوگوی '+s.name}):el('span',{class:'cover__logo cover__logo--letter','aria-hidden':'true',text:(s.name||'آ').trim().charAt(0)});
@@ -1317,7 +1317,7 @@ function startTour(){
   root.classList.add('tour--welcome');
   card.replaceChildren(
    demoCompare('tour__demo')||null,
-   el('h2',{id:'tour-title',class:'tour__title',text:'به مزون عروس خوش آمدی'}),
+   el('h2',{id:'tour-title',class:'tour__title',text:'به مزون آینه خوش آمدی'}),
    el('p',{class:'tour__text',text:'قبل از اینکه به پرو «'+state.pub.salon.name+'» بیایی، لباس عروس را روی اندام خودت ببین؛ قد و سایز بدنت همان می‌ماند. در یک دقیقه نشانت می‌دهم چطور.'}),
    el('ol',{class:'tour__path'},[
     el('li',{},[el('span',{html:ICO.camera}),el('b',{text:'عکس تو'})]),
@@ -1459,7 +1459,7 @@ function openRequest(){
  var panel=el('div',{class:'sheet__panel'});
  panel.append(el('div',{class:'sheet__head'},[h('h2','فرستادن برای '+artist()),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
  if(!state.pub.telegram){
-  panel.append(notice('info',state.pub.demo?'این نسخهٔ نمونهٔ مزون عروس است و مزونی برای دریافت ندارد. نتیجه را دانلود کن. برای اینکه مشتری‌های خودت به مزون خودت درخواست بفرستند، صفحهٔ آزمایشی رایگان را بساز.':'«'+s.name+'» هنوز دریافت آنلاین را فعال نکرده. عکس نتیجه را دانلود کن و از یکی از این راه‌ها برای مزون بفرست.'));
+  panel.append(notice('info',state.pub.demo?'این نسخهٔ نمونهٔ مزون آینه است و مزونی برای دریافت ندارد. نتیجه را دانلود کن. برای اینکه مشتری‌های خودت به مزون خودت درخواست بفرستند، صفحهٔ آزمایشی رایگان را بساز.':'«'+s.name+'» هنوز دریافت آنلاین را فعال نکرده. عکس نتیجه را دانلود کن و از یکی از این راه‌ها برای مزون بفرست.'));
   if(state.pub.demo)panel.append(el('a',{class:'btn btn--primary',href:'/#start',style:'margin-top:12px',text:'صفحهٔ آزمایشی رایگان مزون من'}));
   var ways=el('div',{class:'about__quick',style:'margin-top:14px'});
   if(p.phone)ways.append(el('a',{class:'btn btn--primary',href:'tel:'+p.phone,html:ICO.phone+'<span>تماس با مزون</span>'}));
@@ -1736,13 +1736,13 @@ export const customerHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><h
 <meta name="theme-color" content="#e8edeb">
 <meta name="color-scheme" content="light">
 <meta name="description" content="لباس عروس را روی عکس تمام‌قد خودت ببین؛ سایز و فرم بدنت همان می‌ماند. بعد برای مزون بفرست.">
-<meta property="og:title" content="مزون عروس | لباس عروس را روی اندام خودت ببین">
+<meta property="og:title" content="مزون آینه | لباس عروس را روی اندام خودت ببین">
 <meta property="og:description" content="لباس عروس را انتخاب کن، عکس تمام‌قدت را اضافه کن و نتیجه را برای بررسی به مزون بفرست.">
 <meta property="og:type" content="website">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/estedad-arabic.woff2" as="font" type="font/woff2" crossorigin>
-<title>مزون عروس | لباس عروس را روی اندام خودت ببین</title>
+<title>مزون آینه | لباس عروس را روی اندام خودت ببین</title>
 <style>__CSS__.trialbar{position:sticky;top:0;z-index:30;padding:8px 14px;text-align:center;font-size:13px;font-weight:700;background:var(--accent-ink);color:#fff}.trialbar.is-over{background:var(--danger)}</style>
 </head><body>
 <a class="skip" href="#main">پرش به محتوای اصلی</a>

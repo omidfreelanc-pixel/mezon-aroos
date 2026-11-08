@@ -77,7 +77,7 @@ export async function alertUnanswered(env,now=Date.now()){
 export async function digest(env,now=Date.now()){
  const db=env.DB,day=tehranDay(now),start=Date.parse(day+'T00:00:00Z')-SHIFT;
  const salons=await all(db,'SELECT * FROM salons ORDER BY created_at');
- const lines=['📊 گزارش امروز مزون عروس — '+new Intl.DateTimeFormat('fa-IR-u-ca-persian',{dateStyle:'full',timeZone:'Asia/Tehran'}).format(now),''];
+ const lines=['📊 گزارش امروز مزون آینه — '+new Intl.DateTimeFormat('fa-IR-u-ca-persian',{dateStyle:'full',timeZone:'Asia/Tehran'}).format(now),''];
  let tv=0,tl=0;
  for(const s of salons){
   const visitors=Number((await one(db,"SELECT COUNT(DISTINCT visitor) n FROM events_log WHERE salon_id=? AND kind='view' AND visitor<>'' AND created_at>=?",s.id,start))?.n||0);
