@@ -1,4 +1,4 @@
-// Generates the Ayneh Mezon lookbook: one full-length photo per ready-made wedding dress
+// Generates the Mezon Aroos lookbook: one full-length photo per ready-made wedding dress
 // (worker/lines.js DRESS_STYLES) → public/catalog/dress/NN.webp, plus a demo before/after pair.
 // ONLY limits a run: dress numbers (3,7) or 'demo'. Existing files are skipped unless FORCE=1.
 // Needs KIE_API_KEY in the environment and `sharp` installed.
@@ -52,7 +52,7 @@ const b1=out+'/demo-before.webp',a1=out+'/demo-after.webp';
 if((!existsSync(b1)||!existsSync(a1)||force)&&(!only.length||only.includes('demo'))){
  try{
   const before=await generate({prompt:'Photorealistic casual smartphone photo, FULL-LENGTH from head to feet, of an Iranian woman in her thirties with olive skin and a medium build with natural curves, standing straight facing the camera in a bright boutique fitting room, wearing a plain fitted grey knit top and long dark trousers, hair in a loose low bun, feet visible on the floor. Soft daylight, natural skin, no filter. No text or watermark.',image_input:[],aspect_ratio:'2:3',resolution:'1K',output_format:'jpg'});
-  const after=await generate({prompt:linePrompt('dress','catalog',DRESS_SHOTS[0],{},''),image_input:[before],aspect_ratio:'2:3',resolution:'1K',output_format:'jpg'});
+  const after=await generate({prompt:linePrompt('dress','catalog',DRESS_SHOTS[0]),image_input:[before],aspect_ratio:'2:3',resolution:'1K',output_format:'jpg'});
   await save(before,b1,480,720);await save(after,a1,480,720);console.log('demo ✓');made+=2;
  }catch(e){stop(e);console.log('demo failed:',e.message);failed++}
 }

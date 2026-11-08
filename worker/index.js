@@ -1,9 +1,7 @@
-import legacy from './legacy.js';
 import {appHTML} from './ui.js';
 import {customerHTML} from './customer.js';
 import {api,errorResponse,tick} from './server.js';
 import {must} from './domain.js';
-import {identity} from './auth.js';
 import {fontResponse} from './fonts.js';
 import {webhook,baleWebhook} from './telegram.js';
 import {favicon,baseCSS} from './design.js';
@@ -13,7 +11,7 @@ const htmlHeaders={'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-
 const pages=[/^\/admin\/?$/,/^\/admin\/[a-z0-9-]{1,64}\/?$/,/^\/s\/[a-z0-9-]{1,64}\/?$/,/^\/i\/[a-z0-9-]{1,64}\/?$/,/^\/signin-with-chatgpt(\/.*)?$/];
 const notFound='<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#e8edeb"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><title>صفحه پیدا نشد | مزون عروس</title><style>'+baseCSS+'.nf{min-height:100vh;display:grid;place-items:center;padding:32px 20px;text-align:center}.nf main{display:grid;justify-items:center;gap:18px;max-width:420px}.nf .mirror{width:150px}.nf .mirror__glass{aspect-ratio:3/4}.nf h1{font-family:var(--display);font-weight:800;font-size:32px}.nf p{color:var(--muted);line-height:2}</style></head><body class="nf"><main><div class="mirror"><div class="mirror__glass"></div></div><h1>این صفحه پیدا نشد</h1><p>نشانی اشتباه است یا صفحهٔ مزون برداشته شده. لینک اختصاصی مزون را دوباره باز کنید.</p><a class="btn btn--primary" href="/">صفحهٔ اصلی مزون عروس</a></main></body></html>';
 // Link previews (Telegram, WhatsApp, Instagram, iMessage) read these tags, so each salon page
-// carries its own name, description and cover instead of the generic Ayneh ones.
+// carries its own name, description and cover instead of generic ones.
 const attr=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function salonPage(u,env){
  const slug=u.pathname.split('/')[2];let salon=null;
@@ -32,7 +30,6 @@ const homeHTML='<!doctype html><html lang="fa" dir="rtl"><head><meta charset="ut
 export default {
  async fetch(request,env){try{const u=new URL(request.url);
   if(u.pathname==='/api/internal/tick'){must(request.method==='POST','متد مجاز نیست',405);must(env.JOB_TOKEN&&request.headers.get('Authorization')==='Bearer '+env.JOB_TOKEN,'دسترسی مجاز نیست',403);return Response.json(await tick(env,u.origin));}
-  const oldApi=['/api/config','/api/create','/api/status','/api/views'].includes(u.pathname);if(u.pathname==='/legacy'||oldApi){const who=await identity(request,env);must(who&&(who.via==='password'||who.email===env.OWNER_EMAIL),'این استودیو فقط برای مدیر پروژه است',403);return legacy.fetch(request,env);}
   if(u.pathname==='/api/telegram/webhook')return await webhook(request,env);
   if(u.pathname.startsWith('/api/bale/webhook/'))return await baleWebhook(request,env,decodeURIComponent(u.pathname.slice(18)));
   if(u.pathname.startsWith('/api/'))return await api(request,env);

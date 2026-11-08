@@ -8,4 +8,4 @@ Wedding-dress virtual fitting for boutiques (Persian, RTL). The bride's full-bod
 - Deploy: `.github/workflows/deploy.yml` on every push to `main` (Worker `mezon-aroos`).
 - Sample dress photos: run the "Generate Mezon dress photos" workflow by hand.
 
-Required repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `KIE_API_KEY`, `SESSION_SECRET`, `JOB_TOKEN`, `OWNER_*` (as in the Ayneh project), and the bot: `MEZON_TELEGRAM_BOT_TOKEN`, `MEZON_TELEGRAM_WEBHOOK_SECRET`, `MEZON_TELEGRAM_BOT_USERNAME`.
+Required repository secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `KIE_API_KEY`, `SESSION_SECRET`, `JOB_TOKEN`, `OWNER_EMAIL`, `OWNER_ID`, `OWNER_PASSWORD`, `OWNER_PASSWORD_HASH`, and the bot: `MEZON_TELEGRAM_BOT_TOKEN`, `MEZON_TELEGRAM_WEBHOOK_SECRET`, `MEZON_TELEGRAM_BOT_USERNAME`.

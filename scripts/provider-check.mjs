@@ -7,7 +7,7 @@ const key=process.env.KIE_API_KEY||fromFile('KIE_API_KEY');
 if(!key){console.log('KIE_API_KEY تنظیم نشده است. آن را در .dev.vars (محلی، داخل .gitignore) یا در تنظیمات امن میزبانی بگذارید، نه در چت و نه در گیت.');process.exit(2)}
 console.log('KIE_API_KEY تنظیم شده است (طول '+key.length+' کاراکتر). مقدار کلید هرگز چاپ نمی‌شود.');
 let res,body;
-try{res=await fetch('https://api.kie.ai/api/v1/jobs/recordInfo?taskId=ayneh-connectivity-check',{headers:{Authorization:'Bearer '+key},signal:AbortSignal.timeout(20000)})}
+try{res=await fetch('https://api.kie.ai/api/v1/jobs/recordInfo?taskId=mezon-connectivity-check',{headers:{Authorization:'Bearer '+key},signal:AbortSignal.timeout(20000)})}
 catch{console.log('اتصال به api.kie.ai برقرار نشد؛ شبکه یا فیلترینگ را بررسی کنید. کلید نامعتبر اعلام نمی‌شود.');process.exit(3)}
 try{body=await res.json()}catch{body={}}
 const code=Number(body?.code??0);

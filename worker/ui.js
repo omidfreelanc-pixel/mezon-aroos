@@ -29,7 +29,6 @@ const css=String.raw`
 .dcard>.lead{margin-bottom:4px}
 .hbars{display:grid;gap:10px}
 .slug-preview{direction:ltr;text-align:right;unicode-bidi:plaintext;font-family:ui-monospace,monospace;color:var(--accent-ink)}
-.port__line{font:inherit;font-size:12.5px;padding:4px 8px;border-radius:8px;border:1px solid var(--line-2);background:var(--surface)}
 .setup{display:grid;gap:4px;margin-top:6px}.setup small{color:var(--muted);font-size:12px;line-height:1.7}
 .setup__bar{display:block;height:6px;border-radius:3px;background:var(--line-2);overflow:hidden}.setup__bar span{display:block;height:100%;background:var(--accent);border-radius:3px}
 .acts{display:grid;gap:6px;max-height:420px;overflow:auto;margin-top:6px}
@@ -249,16 +248,13 @@ function dashboard(salons){
    card('درخواست در روز','',columns(d.daily,'sent','درخواست','accent'),tableOf(['روز','درخواست'],d.daily.map(function(x){return [pday(x.day),fa(x.sent)]})))
   ]));
   out.push(el('div',{class:'dgrid'},[
-   card('مدل‌های پرطرفدار','بیشترین انتخاب مشتری‌ها.',hbars(d.looks),tableOf(['مدل','انتخاب'],d.looks.map(function(x){return [x.label,fa(x.count)]}))),
-   card('رنگ‌های پرطرفدار','رنگ‌هایی که مشتری‌ها نوشتند یا انتخاب کردند.',hbars(d.colors.map(function(c){return {label:c.label,count:c.count,swatch:swatchOf(c.label)}})),tableOf(['رنگ','تعداد'],d.colors.map(function(x){return [x.label,fa(x.count)]})))
+   card('لباس‌های پرطرفدار','بیشترین انتخاب مشتری‌ها.',hbars(d.looks),tableOf(['لباس','انتخاب'],d.looks.map(function(x){return [x.label,fa(x.count)]})))
   ]));
   var r=d.rating,g=d.generation,x=d.extra;
   out.push(el('div',{class:'dgrid'},[
    card('رضایت از شبیه‌سازی',r.count?'میانگین '+fa(r.avg.toFixed(1))+' از ۵، از '+fa(r.count)+' امتیاز':'هنوز امتیازی ثبت نشده.',hbars([5,4,3,2,1].map(function(v,i){return {label:fa(v)+' ستاره',count:r.dist[i]}}),{tone:'honey'}),tableOf(['امتیاز','تعداد'],[5,4,3,2,1].map(function(v,i){return [fa(v),fa(r.dist[i])]}))),
-   card('کیفیت فنی و رفتار','',el('div',{class:'kpis kpis--small'},[tile('شبیه‌سازی موفق',g.total?pct(g.rate):'—',null,fa(g.success)+' از '+fa(g.total)),tile('تور آموزشی',x.tourStart?pct(x.tourDone/x.tourStart):'—',null,'کامل دیدند ('+fa(x.tourDone)+' از '+fa(x.tourStart)+')'),tile('نمای ۳۶۰',fa(x.view360)),tile('خبرم کن',fa(x.follow),null,'مشتری ربات را باز کرد'),tile('دربارهٔ مزون',fa(x.about))]))
+   card('کیفیت فنی و رفتار','',el('div',{class:'kpis kpis--small'},[tile('شبیه‌سازی موفق',g.total?pct(g.rate):'—',null,fa(g.success)+' از '+fa(g.total)),tile('تور آموزشی',x.tourStart?pct(x.tourDone/x.tourStart):'—',null,'کامل دیدند ('+fa(x.tourDone)+' از '+fa(x.tourStart)+')'),tile('نمای سه‌زاویه',fa(x.view360)),tile('خبرم کن',fa(x.follow),null,'مشتری ربات را باز کرد'),tile('دربارهٔ مزون',fa(x.about))]))
   ]));
-  var L=d.lines||{requests:{},switches:{}},LN=[['dress','لباس عروس']];
-  out.push(card('خدمت‌ها','درخواست‌ها به تفکیک مدل مو، رنگ مو، ناخن و مژه، و چند بار مشتری‌ها به هر بخش سر زدند.',hbars(LN.map(function(x){return {label:x[1],count:L.requests[x[0]]||0,sw:L.switches[x[0]]||0}}),{fmt:function(it){return fa(it.count)+' درخواست'},tip:function(it){return fa(it.count)+' درخواست · '+fa(it.sw)+' بار باز کردن این بخش'}}),tableOf(['خدمت','درخواست','باز کردن بخش'],LN.map(function(x){return [x[1],fa(L.requests[x[0]]||0),fa(L.switches[x[0]]||0)]}))));
   var sh=d.share||{opened:0,sent:0,visitors:0,byApp:[]},APP={telegram:'تلگرام',whatsapp:'واتساپ',sms:'پیامک',instagram:'اینستاگرام',copy:'کپی لینک',native:'سایر برنامه‌ها (بله، ایتا…)'};
   var apps=sh.byApp.map(function(a){return {label:APP[a.label]||a.label,count:a.count}});
   out.push(card('معرفی به دوستان','بنر پایین صفحهٔ مزون: چند نفر لینک را برای دوستشان فرستادند و چند نفر از همین لینک آمدند.',el('div',{},[el('div',{class:'kpis kpis--small'},[tile('بنر را باز کردند',fa(sh.opened)),tile('فرستادند',fa(sh.sent)),tile('آمده از لینک معرفی',fa(sh.visitors),null,'بازدیدکنندهٔ تازه')]),apps.length?el('div',{style:'margin-top:16px'},[hbars(apps)]):el('p',{class:'lead',style:'margin-top:14px',text:'هنوز کسی لینک را نفرستاده.'})]),apps.length?tableOf(['برنامه','دفعه'],apps.map(function(x){return [x.label,fa(x.count)]})):null));
@@ -295,8 +291,6 @@ function referrals(r){
  return out;
 }
 
-var SW={'مشکی':'#151515','قهوه‌ای':'#5e3c25','شکلات':'#4b2b1c','عسل':'#b8803a','کارامل':'#a86c34','بلوند':'#d8b064','شامپاین':'#e2cfa5','پلاتین':'#ece8dc','مس':'#b5602f','شراب':'#6b1f2e','دودی':'#8a7f75','زیتون':'#6b6a3f','نسکافه':'#8d6646','بنفش':'#5b3a78','صورتی':'#e8b4c4','نقره':'#c4c4c2','خاکستر':'#a9a9a6','حنا':'#a4482a','ماهاگون':'#6e2f25'};
-function swatchOf(name){var k=Object.keys(SW).find(function(k){return String(name).indexOf(k)>=0});return k?SW[k]:'#cdd6d2'}
 
 // Setup progress of a salon page: how many fields are filled and which are missing.
 function setupLine(s){var st=s.setup||{filled:0,total:11,missing:[]};var done=st.filled>=st.total;
@@ -416,14 +410,13 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
 
  // Portfolio
  var ports=el('div',{class:'ports'});
- d.portfolio.forEach(function(it){var ids=[];try{ids=JSON.parse(it.images)}catch(e){}var ln=el('select',{class:'port__line','aria-label':'بخش'},[['dress','لباس عروس']].map(function(o){return el('option',{value:o[0],text:o[1]})}));ln.value=it.line||'hair';ln.addEventListener('change',function(){api('/api/s/'+slug+'/owner/portfolio/line',{id:it.id,line:ln.value}).then(function(){toast('بخش نمونه‌کار عوض شد.')}).catch(function(e){toast(e.message,true)})});ports.append(el('div',{class:'port'},[ids[0]?el('img',{src:'/api/s/'+slug+'/media/'+ids[0],alt:'',loading:'lazy'}):null,h('b',it.title),it.stylist?h('small','کار '+it.stylist):null,ln,el('button',{class:'btn btn--danger btn--sm',type:'button',text:'حذف',onclick:act(function(){if(!confirm('«'+it.title+'» از صفحهٔ مزون حذف شود؟'))return;return api('/api/s/'+slug+'/owner/portfolio/delete',{id:it.id}).then(salonPage)})})]))});
+ d.portfolio.forEach(function(it){var ids=[];try{ids=JSON.parse(it.images)}catch(e){}ports.append(el('div',{class:'port'},[ids[0]?el('img',{src:'/api/s/'+slug+'/media/'+ids[0],alt:'',loading:'lazy'}):null,h('b',it.title),it.stylist?h('small','کار '+it.stylist):null,el('button',{class:'btn btn--danger btn--sm',type:'button',text:'حذف',onclick:act(function(){if(!confirm('«'+it.title+'» از صفحهٔ مزون حذف شود؟'))return;return api('/api/s/'+slug+'/owner/portfolio/delete',{id:it.id}).then(salonPage)})})]))});
  // Add from here too: pick photos, a title for each (the file name by default) and the section.
- var addLine=el('select',{'aria-label':'بخش'},[['dress','لباس عروس']].map(function(o){return el('option',{value:o[0],text:o[1]})}));
  var addFiles=el('input',{type:'file',accept:'image/jpeg,image/png,image/webp',multiple:'multiple'}),addList=el('div',{class:'port-add__list'});
  addFiles.addEventListener('change',function(){addList.replaceChildren.apply(addList,Array.prototype.map.call(addFiles.files,function(f){return el('input',{type:'text',maxlength:'150',value:f.name.replace(/\.[a-z]+$/i,'').replace(/[-_]+/g,' '),'aria-label':'اسم کار '+f.name})}))});
  var addBtn=el('button',{class:'btn btn--primary',type:'button',text:'افزودن به صفحه',onclick:act(function(){var fs=Array.prototype.slice.call(addFiles.files);if(!fs.length){toast('اول عکس انتخاب کنید',true);return}var names=Array.prototype.map.call(addList.querySelectorAll('input'),function(i){return i.value.trim()});
-  return fs.reduce(function(p,f,i){return p.then(function(){return api('/api/s/'+slug+'/upload?kind=portfolio',f,true).then(function(m){return api('/api/s/'+slug+'/owner/portfolio/add',{media_id:m.id,title:names[i]||'نمونه‌کار',line:addLine.value})})})},Promise.resolve()).then(function(){toast(fs.length+' نمونه‌کار اضافه شد.');salonPage()})})});
- var add=el('div',{class:'port-add'},[h('b','افزودن نمونه‌کار از همین‌جا'),el('label',{class:'field'},[el('span',{class:'lbl',text:'بخش'}),addLine]),el('label',{class:'field'},[el('span',{class:'lbl',text:'عکس‌ها'}),addFiles]),addList,addBtn]);
+  return fs.reduce(function(p,f,i){return p.then(function(){return api('/api/s/'+slug+'/upload?kind=portfolio',f,true).then(function(m){return api('/api/s/'+slug+'/owner/portfolio/add',{media_id:m.id,title:names[i]||'نمونه‌کار',line:'dress'})})})},Promise.resolve()).then(function(){toast(fs.length+' نمونه‌کار اضافه شد.');salonPage()})})});
+ var add=el('div',{class:'port-add'},[h('b','افزودن نمونه‌کار از همین‌جا'),el('label',{class:'field'},[el('span',{class:'lbl',text:'عکس‌ها'}),addFiles]),addList,addBtn]);
  var port=el('section',{class:'card'},[h('h2','نمونه‌کارها'),h('p','مزون عکس را برای ربات تلگرام می‌فرستد و همان لحظه اینجا و روی صفحهٔ مشتری می‌نشیند. از همین‌جا هم می‌توانید اضافه کنید.','lead'),d.portfolio.length?ports:h('p','هنوز نمونه‌کاری نیامده.','empty-note'),add]);
 
  // Delivery log
@@ -442,7 +435,7 @@ export const appHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><
 <header class="appbar"><a href="/admin" class="appbar__brand">__MARKHTML__<span>مزون عروس</span></a><button class="btn btn--ghost btn--sm" id="logout" type="button" hidden>خروج</button></header>
 <main id="app"><div class="loading">در حال باز کردن…</div></main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<footer class="foot">مزون عروس: شبیه‌سازی پیشنهادی برای مشاورهٔ مو.</footer>
+<footer class="foot">مزون عروس: شبیه‌سازی پیشنهادی برای انتخاب لباس عروس.</footer>
 <script>__JS__</script>
 </body></html>`
  .replace('__CSS__',()=>baseCSS+css)

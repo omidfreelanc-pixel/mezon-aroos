@@ -1,31 +1,26 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync,readdirSync} from 'node:fs';
 import {database,memoryBucket} from '../scripts/local-adapter.mjs';import app from '../worker/index.js';
-import {phone,transferPrompt} from '../worker/domain.js';import {appHTML} from '../worker/ui.js';import {customerHTML} from '../worker/customer.js';import {tick} from '../worker/server.js';import {styles} from '../worker/legacy.js';
+import {phone} from '../worker/domain.js';import {appHTML} from '../worker/ui.js';import {customerHTML} from '../worker/customer.js';import {tick,VIEWS_PROMPT} from '../worker/server.js';
 
 const origin='https://test.example';
 const migrations=readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort();
 function fixture(){const DB=database();for(const f of migrations)DB.sql.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));return {DB,BUCKET:memoryBucket(),OWNER_EMAIL:'owner@test',JOB_TOKEN:'job-test',TRUST_PLATFORM_IDENTITY:'true'};}
 const OWNER={user:'owner-a',email:'owner@test'};
 async function call(env,path,body,{cookie='',user='',email='',headers:extra={}}={}){const headers={origin,'oai-authenticated-user-id':user,'oai-authenticated-user-email':email,cookie,...extra};let payload;if(body!==undefined){if(body instanceof Uint8Array){payload=body}else{headers['content-type']='application/json';payload=JSON.stringify(body)}}const res=await app.fetch(new Request(origin+path,{method:body===undefined?'GET':'POST',headers,body:payload}),env);let d;try{d=await res.json()}catch{d=null}return {status:res.status,data:d,cookie:res.headers.get('set-cookie')?.split(';')[0]};}
-async function salon(env,slug='salon-a'){const r=await call(env,'/api/salons',{slug,name:'سالن '+slug},OWNER);assert.equal(r.status,200,JSON.stringify(r));return {id:r.data.id,slug};}
+async function salon(env,slug='salon-a'){const r=await call(env,'/api/salons',{slug,name:'مزون '+slug},OWNER);assert.equal(r.status,200,JSON.stringify(r));return {id:r.data.id,slug};}
 async function guest(env,s){const r=await call(env,'/api/s/'+s.slug+'/session',{});assert.equal(r.status,200);return {cookie:r.cookie};}
 const png=()=>{const b=new Uint8Array(150);b.set([137,80,78,71,13,10,26,10]);return b};
 async function upload(env,s,g,kind='original'){const r=await call(env,'/api/s/'+s.slug+'/upload?kind='+kind,png(),g);assert.equal(r.status,200,JSON.stringify(r));return r.data.id;}
-const lead=(original,extra={})=>({data_consent:true,idem:crypto.randomUUID(),name:'سارا محمدی',phone:'۰۹۱۲۱۲۳۴۵۶۷',original_id:original,look:'باب کوتاه',color:'بالیاژ عسلی',...extra});
+const lead=(original,extra={})=>({data_consent:true,idem:crypto.randomUUID(),name:'سارا محمدی',phone:'۰۹۱۲۱۲۳۴۵۶۷',original_id:original,look:'پرنسسی پفی',...extra});
 // Telegram stand-in: records every call, never reaches the network.
 function mockTelegram({fail=false}={}){const calls=[];const previous=globalThis.fetch;globalThis.fetch=async(url,init)=>{const u=String(url);if(u.startsWith('https://api.telegram.org/file/'))return new Response(png());if(!u.startsWith('https://api.telegram.org/'))return previous(url,init);const method=u.split('/').pop();let body=init?.body;if(body instanceof FormData){const o={};for(const [k,v] of body.entries())o[k]=typeof v==='string'?v:'<file>';body=o}else body=JSON.parse(body||'{}');calls.push({method,body});if(fail)return Response.json({ok:false,description:'Bad Gateway'},{status:502});if(method==='getFile')return Response.json({ok:true,result:{file_path:'photos/x.jpg'}});if(method==='getMe')return Response.json({ok:true,result:{username:'ayneh_bot'}});if(method==='sendMediaGroup')return Response.json({ok:true,result:[{message_id:1},{message_id:2}]});return Response.json({ok:true,result:{message_id:1}})};return {calls,restore(){globalThis.fetch=previous}};}
 const tgEnv=e=>Object.assign(e,{TELEGRAM_BOT_TOKEN:'123:abc',TELEGRAM_WEBHOOK_SECRET:'hook-secret',TELEGRAM_BOT_USERNAME:'ayneh_bot'});
 const hook=(env,update,secret='hook-secret')=>app.fetch(new Request(origin+'/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify(update)}),env);
 async function linkSalon(env,s,chat=777,wizard=false){const r=await call(env,'/api/s/'+s.slug+'/owner/telegram-link',{},OWNER);assert.equal(r.status,200,JSON.stringify(r));assert.match(r.data.link,/^https:\/\/t\.me\/ayneh_bot\?start=[a-f0-9]{24}$/);await hook(env,{message:{chat:{id:chat,type:'private'},text:'/start '+r.data.code}});if(wizard===false)await hook(env,{message:{chat:{id:chat,type:'private'},text:'/stop'}});return r.data.code;}
 
-test('pages parse; typed colour overrides the reference colour in every mode; Iranian mobiles normalise',()=>{
+test('pages parse; Iranian mobiles normalise',()=>{
  new Function(appHTML.split('<script>')[1].split('</script>')[0]);
  new Function(customerHTML.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/)[1]);
- assert.match(transferPrompt('style','',''),/ignore the hair colour of photo 2 completely[\s\S]*Keep her exact hair colour/);assert.match(transferPrompt('color','',''),/Keep her exact haircut/);assert.match(transferPrompt('both','',''),/Never take the face from photo 2/);
- for(const m of ['style','color','both'])assert.match(transferPrompt(m,'','مسی'),/HAIR COLOR: copper .*overrides any hair color in photo 2/);
- assert.match(transferPrompt('catalog','Short bob','عسلی'),/chin-length bob[\s\S]*HAIR COLOR: honey brown/);
- assert.match(transferPrompt('catalog','Wolf cut','رنگی که نمی‌شناسم'),/a Persian hair-color name/);
- for(const m of ['style','color','both','catalog'])assert.match(transferPrompt(m,'Short bob',''),/IDENTITY LOCK[\s\S]*headscarf/);
  assert.equal(phone('۰۹۱۲۱۲۳۴۵۶۷'),'+989121234567');
  assert(!/appointment|services|staff|kavenegar/i.test(customerHTML.match(/<script>([\s\S]*?)<\/script>/)[1]),'customer page no longer books or texts');
 });
@@ -42,9 +37,9 @@ test('only the project owner manages salons; salon panel routes are gone',async(
 });
 
 test('owner edits the salon profile; landline phones and links are accepted, bad links are not',async()=>{const e=fixture(),s=await salon(e);
- const ok=await call(e,'/api/s/salon-a/owner/profile',{name:'سالن آینه',profile:{bio:'معرفی',address:'تهران',hours:'۱۰ تا ۲۰',phone:'۰۲۱-۲۲۳۳۴۴۵۵',instagram:'https://instagram.com/x',map:'',telegram:'',website:''}},OWNER);
+ const ok=await call(e,'/api/s/salon-a/owner/profile',{name:'مزون آینه',profile:{bio:'معرفی',address:'تهران',hours:'۱۰ تا ۲۰',phone:'۰۲۱-۲۲۳۳۴۴۵۵',instagram:'https://instagram.com/x',map:'',telegram:'',website:''}},OWNER);
  assert.equal(ok.status,200,JSON.stringify(ok));
- const pub=await call(e,'/api/s/salon-a/public');assert.equal(pub.data.salon.name,'سالن آینه');assert.equal(pub.data.salon.profile.phone,'02122334455');assert.equal(pub.data.telegram,false);
+ const pub=await call(e,'/api/s/salon-a/public');assert.equal(pub.data.salon.name,'مزون آینه');assert.equal(pub.data.salon.profile.phone,'02122334455');assert.equal(pub.data.telegram,false);
  assert.equal((await call(e,'/api/s/salon-a/owner/profile',{name:'x',profile:{instagram:'javascript:alert(1)'}},OWNER)).status,400);
 });
 
@@ -83,11 +78,11 @@ test('Telegram webhook: secret required, link codes are one-time, photos become 
  await hook(e,{message:{chat:{id:888,type:'private'},text:'/start '+code}});
  assert.equal(e.DB.sql.prepare("SELECT telegram_chat_id c FROM salons WHERE slug='salon-a'").get().c,'777','a used code cannot be reused by another chat');
  assert.equal(e.DB.sql.prepare("SELECT telegram_chat_id c FROM salons WHERE slug='salon-b'").get().c,null);
- await hook(e,{message:{chat:{id:999,type:'private'},photo:[{file_id:'small',file_size:10},{file_id:'big',file_size:2000}],caption:'بالیاژ عسلی\nکار نگار'}});
+ await hook(e,{message:{chat:{id:999,type:'private'},photo:[{file_id:'small',file_size:10},{file_id:'big',file_size:2000}],caption:'پرنسسی پفی\nکار نگار'}});
  assert.equal(e.DB.sql.prepare('SELECT count(*) n FROM portfolio').get().n,0,'unlinked chats cannot publish');
- await hook(e,{message:{chat:{id:777,type:'private'},photo:[{file_id:'small',file_size:10},{file_id:'big',file_size:2000}],caption:'بالیاژ عسلی\nکار نگار'}});
+ await hook(e,{message:{chat:{id:777,type:'private'},photo:[{file_id:'small',file_size:10},{file_id:'big',file_size:2000}],caption:'پرنسسی پفی\nکار نگار'}});
  assert.equal(tg.calls.find(c=>c.method==='getFile').body.file_id,'big','largest size is used');
- const pub=await call(e,'/api/s/salon-a/public');assert.equal(pub.data.portfolio.length,1);const item=pub.data.portfolio[0];assert.equal(item.title,'بالیاژ عسلی');assert.equal(item.category,'بالیاژ');
+ const pub=await call(e,'/api/s/salon-a/public');assert.equal(pub.data.portfolio.length,1);const item=pub.data.portfolio[0];assert.equal(item.title,'پرنسسی پفی');assert.equal(item.category,'پفی');
  assert.equal((await call(e,'/api/s/salon-a/media/'+JSON.parse(item.images)[0])).status,200,'published portfolio is public');
  assert.equal((await call(e,'/api/s/salon-b/public')).data.portfolio.length,0);
  await hook(e,{callback_query:{id:'q1',data:'del:'+item.id,message:{chat:{id:888}}}});
@@ -102,10 +97,13 @@ test('Telegram webhook: secret required, link codes are one-time, photos become 
 }finally{tg.restore()}});
 
 
-test('expired sessions, CSRF and legacy API are rejected',async()=>{const e=fixture(),s=await salon(e),g=await guest(e,s);
+test('expired sessions and CSRF are rejected; the retired hair-studio routes are gone',async()=>{const e=fixture(),s=await salon(e),g=await guest(e,s);
  e.DB.sql.exec('UPDATE sessions SET expires_at=0');assert.equal((await call(e,'/api/s/salon-a/session',undefined,g)).status,401);
  assert.equal((await app.fetch(new Request(origin+'/api/salons',{method:'POST',headers:{origin:'https://evil.example'}}),e)).status,403);
- assert.equal((await app.fetch(new Request(origin+'/api/create',{method:'POST',headers:{origin}}),e)).status,403);
+ for(const path of ['/api/create','/api/config','/api/status','/api/views'])assert.equal((await app.fetch(new Request(origin+path,{method:'POST',headers:{origin}}),e)).status,404,path);
+ assert.equal((await app.fetch(new Request(origin+'/legacy'),e)).status,404);
+ assert.equal((await app.fetch(new Request(origin+'/no-such-page'),e)).status,404);
+ assert.equal((await app.fetch(new Request(origin+'/'),e)).status,200);
 });
 
 
@@ -147,7 +145,7 @@ test('owner signs in with a password on hosts without a platform identity gatewa
  assert.equal((await call(e,'/api/login',{password:'wrong'})).status,401);
  const ok=await call(e,'/api/login',{password:'correct horse battery'});assert.equal(ok.status,200);assert.match(ok.cookie,/^ayneh_admin=/);
  assert.equal((await call(e,'/api/me',undefined,{cookie:ok.cookie})).data.owner,true);
- assert.equal((await call(e,'/api/salons',{slug:'salon-p',name:'سالن رمز'},{cookie:ok.cookie})).status,200);
+ assert.equal((await call(e,'/api/salons',{slug:'salon-p',name:'مزون رمز'},{cookie:ok.cookie})).status,200);
  assert.equal((await call(e,'/api/s/salon-p/owner',undefined,{cookie:ok.cookie})).status,200);
  assert.equal((await call(e,'/api/s/salon-p/owner',undefined,{cookie:ok.cookie.replace(/.$/,c=>c==='0'?'1':'0')})).status,401);
  const out=await call(e,'/api/logout',{},{cookie:ok.cookie});assert.equal(out.cookie,'ayneh_admin=');
@@ -238,13 +236,13 @@ test('verification limits: five wrong guesses burn the code, expired codes are r
  }finally{bad.restore()}
 });
 
-test('a salon texts its page link to a customer by typing the mobile number in the Telegram bot',async()=>{const e=smsEnv(tgEnv(fixture())),s=await salon(e,'salon-a');await call(e,'/api/s/salon-a/owner/profile',{name:'سالن آینه',profile:{}},OWNER);
+test('a salon texts its page link to a customer by typing the mobile number in the Telegram bot',async()=>{const e=smsEnv(tgEnv(fixture())),s=await salon(e,'salon-a');await call(e,'/api/s/salon-a/owner/profile',{name:'مزون آینه',profile:{}},OWNER);
  const tg=mockTelegram(),sms=mockSms();try{
   await linkSalon(e,s,777);
   const say=t=>hook(e,{message:{chat:{id:777,type:'private'},text:t}});
   const last=()=>tg.calls.filter(c=>c.method==='sendMessage').at(-1).body.text;
   await say('۰۹۱۲۱۲۳۴۵۶۷');
-  assert.deepEqual(sms.calls.at(-1),{kind:'shared',token:'tok-secret',body:{bodyId:524,to:'09121234567',args:['سالن آینه','salon-a']}});
+  assert.deepEqual(sms.calls.at(-1),{kind:'shared',token:'tok-secret',body:{bodyId:524,to:'09121234567',args:['مزون آینه','salon-a']}});
   assert.match(last(),/✅ 09121234567/);
   assert.equal(e.DB.sql.prepare("SELECT status FROM invites").get().status,'sent');
   const n=sms.calls.length;await say('09121234567');assert.equal(sms.calls.length,n,'same number is not texted twice within an hour');assert.match(last(),/↩️/);
@@ -323,10 +321,10 @@ test('linking starts a setup wizard that fills the salon page one answer at a ti
  const say=m=>hook(e,{message:{chat:{id:777,type:'private'},...m}});const tap=d=>hook(e,{callback_query:{id:'q',data:d,message:{chat:{id:777},message_id:3}}});
  await linkSalon(e,s,777,true);
  assert.match(tg.calls.filter(c=>c.method==='sendMessage').at(-1).body.text,/۱ از ۱۱/);
- await say({text:'سالن زیبایی ساناز'});
+ await say({text:'مزون زیبایی ساناز'});
  await say({photo:[{file_id:'logo',file_size:100}]});
  await tap('wz:skip');
- await say({text:'تخصص ما رنگ است.'});
+ await say({text:'تخصص ما لباس دانتل است.'});
  await say({text:'تهران، ونک'});
  await say({location:{latitude:35.7575,longitude:51.4101}});
  await say({text:'۱۰ تا ۲۰'});
@@ -336,10 +334,10 @@ test('linking starts a setup wizard that fills the salon page one answer at a ti
  await say({text:'ساناز احمدی'});
  await tap('wz:skip');
  const pub=(await call(e,'/api/s/salon-a/public')).data.salon;
- assert.equal(pub.name,'سالن زیبایی ساناز');assert.equal(pub.profile.bio,'تخصص ما رنگ است.');assert.equal(pub.profile.phone,'02122334455');assert.equal(pub.profile.instagram,'https://instagram.com/sanaz.salon');assert.equal(pub.profile.map,'https://www.google.com/maps?q=35.757500,51.410100');assert.equal(pub.profile.manager,'ساناز احمدی');assert(pub.profile.logo);assert(!pub.profile.cover);
+ assert.equal(pub.name,'مزون زیبایی ساناز');assert.equal(pub.profile.bio,'تخصص ما لباس دانتل است.');assert.equal(pub.profile.phone,'02122334455');assert.equal(pub.profile.instagram,'https://instagram.com/sanaz.salon');assert.equal(pub.profile.map,'https://www.google.com/maps?q=35.757500,51.410100');assert.equal(pub.profile.manager,'ساناز احمدی');assert(pub.profile.logo);assert(!pub.profile.cover);
  assert.match(tg.calls.filter(c=>c.method==='sendMessage').at(-1).body.text,/آماده است[\s\S]*\/s\/salon-a/);
  assert.equal(e.DB.sql.prepare('SELECT bot_state b FROM salons').get().b,'');
- await say({photo:[{file_id:'work',file_size:100}],caption:'بالیاژ'});assert.equal((await call(e,'/api/s/salon-a/public')).data.portfolio.length,1,'after the wizard photos are portfolio again');
+ await say({photo:[{file_id:'work',file_size:100}],caption:'پرنسسی'});assert.equal((await call(e,'/api/s/salon-a/public')).data.portfolio.length,1,'after the wizard photos are portfolio again');
  await say({text:'/setup'});await tap('wz:keep');assert.match(tg.calls.filter(c=>c.method==='sendMessage').at(-1).body.text,/۲ از ۱۱/);
 }finally{tg.restore()}});
 
@@ -360,7 +358,7 @@ test('Bale: path secret required, same link code works, submissions reach both i
 
 // ---------- team members and staff referrals ----------
 const V=n=>String(n).repeat(32).slice(0,32);
-async function addMember(e,s,name,chat){const r=await call(e,'/api/s/'+s.slug+'/owner/team',{name,specialty:'کوتاهی'},OWNER);assert.equal(r.status,200,JSON.stringify(r));const code=r.data.links.telegram.split('start=')[1];if(chat)await hook(e,{message:{chat:{id:chat,type:'private'},text:'/start '+code}});return {...r.data.member,ref:r.data.ref,code};}
+async function addMember(e,s,name,chat){const r=await call(e,'/api/s/'+s.slug+'/owner/team',{name,specialty:'پرو و تنظیم لباس'},OWNER);assert.equal(r.status,200,JSON.stringify(r));const code=r.data.links.telegram.split('start=')[1];if(chat)await hook(e,{message:{chat:{id:chat,type:'private'},text:'/start '+code}});return {...r.data.member,ref:r.data.ref,code};}
 const visit=async(e,s,v,r)=>(await call(e,'/api/s/'+s.slug+'/ref',{v,r})).data;
 const sentTo=(tg,chat)=>tg.calls.filter(c=>(c.method==='sendMessage'||c.method==='sendMediaGroup'||c.method==='sendPhoto')&&String(c.body.chat_id)===String(chat));
 
@@ -370,7 +368,7 @@ test('manager builds the team in the bot; a member links their own chat and gets
  await hook(e,{callback_query:{id:'a',data:'tm:add',message:{chat:{id:777},message_id:3}}});
  await hook(e,{message:{chat:{id:777,type:'private'},text:'مریم محمدی'}});
  await hook(e,{callback_query:{id:'b',data:'tm:s:0',message:{chat:{id:777},message_id:4}}});
- const t=e.DB.sql.prepare('SELECT * FROM team').get();assert.equal(t.name,'مریم محمدی');assert.equal(t.specialty,'کوتاهی');assert.match(t.ref_code,/^s[a-z2-9]{7}$/);
+ const t=e.DB.sql.prepare('SELECT * FROM team').get();assert.equal(t.name,'مریم محمدی');assert.equal(t.specialty,'مشاوره و فروش لباس');assert.match(t.ref_code,/^s[a-z2-9]{7}$/);
  const msg=tg.calls.filter(c=>c.method==='sendMessage'&&c.body.chat_id==='777').at(-1).body.text;assert.match(msg,/start=[a-f0-9]{24}/);assert(msg.includes('/s/salon-a?r='+t.ref_code));
  const code=msg.match(/start=([a-f0-9]{24})/)[1];
  await hook(e,{message:{chat:{id:777,type:'private'},text:'/start '+code}});assert.equal(e.DB.sql.prepare('SELECT telegram_chat_id c FROM team').get().c,null,'the manager chat cannot become a member');
@@ -378,7 +376,7 @@ test('manager builds the team in the bot; a member links their own chat and gets
  assert.equal(e.DB.sql.prepare('SELECT telegram_chat_id c FROM team').get().c,'4001');
  assert(sentTo(tg,4001).some(c=>c.body.text?.includes('?r='+t.ref_code)));
  await hook(e,{message:{chat:{id:4001,type:'private'},text:'/team'}});assert(!/تیم «/.test(sentTo(tg,4001).at(-1).body.text),'members cannot manage the team');
- await hook(e,{message:{chat:{id:4001,type:'private'},photo:[{file_id:'p1',file_size:100}],caption:'بالیاژ عسلی'}});
+ await hook(e,{message:{chat:{id:4001,type:'private'},photo:[{file_id:'p1',file_size:100}],caption:'پرنسسی پفی'}});
  const pf=e.DB.sql.prepare('SELECT stylist,staff_id FROM portfolio').get();assert.equal(pf.stylist,'مریم محمدی');assert.equal(pf.staff_id,t.id);
  assert.equal((await call(e,'/api/s/salon-a/public')).data.portfolio[0].maker,t.id);
  await hook(e,{message:{chat:{id:4001,type:'private'},text:'/start '+code}});assert.match(sentTo(tg,4001).at(-1).body.text,/منقضی|لینک اختصاصی/);
@@ -449,7 +447,7 @@ test('Bale: a member links through Bale and gets their customers there, in plain
  const calls=[];const previous=globalThis.fetch;globalThis.fetch=async(url,init)=>{const u=String(url);if(!/api\.telegram\.org|tapi\.bale\.ai/.test(u))return previous(url,init);const host=u.includes('bale')?'bale':'tg',method=u.split('/').pop();let body=init?.body;if(body instanceof FormData){const o={};for(const [k,v] of body.entries())o[k]=typeof v==='string'?v:'<file>';body=o}else body=JSON.parse(body||'{}');calls.push({host,method,body});if(method==='sendMediaGroup')return Response.json({ok:true,result:[{message_id:1}]});return Response.json({ok:true,result:{message_id:2}})};
  try{
   await linkSalon(e,s,777);
-  const r=await call(e,'/api/s/salon-a/owner/team',{name:'مریم',specialty:'رنگ و مش'},OWNER);assert.match(r.data.links.bale,/^https:\/\/ble\.ir\/ayneh_bale_bot\?start=[a-f0-9]{24}$/);
+  const r=await call(e,'/api/s/salon-a/owner/team',{name:'مریم',specialty:'اجارهٔ لباس'},OWNER);assert.match(r.data.links.bale,/^https:\/\/ble\.ir\/ayneh_bale_bot\?start=[a-f0-9]{24}$/);
   await baleHook(e,{message:{chat:{id:9101,type:'private'},text:'/start '+r.data.links.bale.split('start=')[1]}});
   assert.equal(e.DB.sql.prepare('SELECT bale_chat_id b FROM team').get().b,'9101');
   await visit(e,s,V(1),r.data.ref.split('r=')[1]);const g=await guest(e,s);await sendLead(e,s,g,{v:V(1),phone:'09120000021',name:'رها'});
@@ -470,9 +468,9 @@ test('owner alerts: linking, setup events, abandoned wizard frees later photos, 
  const r=await call(e,'/api/s/salon-a/owner/telegram-link',{},OWNER);await say(e,777,'/start '+r.data.code);
  assert(toOwner(tg).some(t=>/ربات را در تلگرام وصل کرد/.test(t)),'owner hears the salon linked');
  // The wizard started on link (profile empty). Answer the name, then abandon at the logo step.
- await say(e,777,'سالن ساناز');assert.equal(JSON.parse(e.DB.sql.prepare('SELECT bot_state b FROM salons').get().b).step,1);
+ await say(e,777,'مزون ساناز');assert.equal(JSON.parse(e.DB.sql.prepare('SELECT bot_state b FROM salons').get().b).step,1);
  e.DB.sql.exec("UPDATE salons SET bot_state=json_set(bot_state,'$.ts',"+(Date.now()-30*60000)+")");
- await hook(e,{message:{chat:{id:777,type:'private'},photo:[{file_id:'p1',file_size:100}],caption:'بالیاژ عسلی'}});
+ await hook(e,{message:{chat:{id:777,type:'private'},photo:[{file_id:'p1',file_size:100}],caption:'پرنسسی پفی'}});
  assert.equal(e.DB.sql.prepare('SELECT count(*) n FROM portfolio').get().n,1,'the photo became portfolio, not the logo');
  assert.equal(JSON.parse(e.DB.sql.prepare('SELECT profile FROM salons').get().profile).logo,undefined);
  assert(toOwner(tg).some(t=>/نیمه‌کاره رها کرد/.test(t)&&/مانده:/.test(t)));
@@ -514,21 +512,19 @@ test('team question: an abandoned or wrong answer never becomes a member; errors
 test('a member texts their own link, so the referral is kept',async()=>{const e=smsEnv(tgEnv(fixture())),s=await salon(e);const tg=mockTelegram();try{
  await linkSalon(e,s,777);const m=await addMember(e,s,'مریم',4001);
  const sms=mockSms();try{await say(e,4001,'09121112233');
-  const inv=sms.calls.find(c=>c.kind==='shared');assert(inv,'texted');assert.deepEqual(inv.body.args,['سالن salon-a','salon-a?r='+m.ref_code]);
+  const inv=sms.calls.find(c=>c.kind==='shared');assert(inv,'texted');assert.deepEqual(inv.body.args,['مزون salon-a','salon-a?r='+m.ref_code]);
  }finally{sms.restore()}
  await say(e,4001,'/list');assert.match(tg.calls.at(-1).body.text,/هنوز نمونه‌کاری از تو/);
 }finally{tg.restore()}});
 
-// ---------- nails and lashes ----------
-
 test('review fixes: send form shows when only members can receive; long free text is cut, not rejected',async()=>{const e=tgEnv(fixture()),s=await salon(e);const tg=mockTelegram();try{
  assert.equal((await call(e,'/api/s/salon-a/public')).data.telegram,false);
- const r=await call(e,'/api/s/salon-a/owner/team',{name:'مریم',specialty:'ناخن'},OWNER);
+ const r=await call(e,'/api/s/salon-a/owner/team',{name:'مریم',specialty:'پرو و تنظیم لباس'},OWNER);
  assert.equal((await call(e,'/api/s/salon-a/public')).data.telegram,true,'a member can receive (or the request waits for them)');
  await hook(e,{message:{chat:{id:4001,type:'private'},text:'/start '+r.data.links.telegram.split('start=')[1]}});
  await visit(e,s,V(1),r.data.ref.split('r=')[1]);const g=await guest(e,s);
- const d=await sendLead(e,s,g,{v:V(1),phone:'09120000041',name:'ن'.repeat(140),look:'ل'.repeat(300),note:'x'.repeat(2000),color:'ر'.repeat(200)});
- const row=e.DB.sql.prepare('SELECT name,look,note,color FROM leads WHERE id=?').get(d.id);assert.equal(row.name.length,100);assert.equal(row.look.length,150);assert.equal(row.note.length,1000);assert.equal(row.color.length,120);
+ const d=await sendLead(e,s,g,{v:V(1),phone:'09120000041',name:'ن'.repeat(140),look:'ل'.repeat(300),note:'x'.repeat(2000)});
+ const row=e.DB.sql.prepare('SELECT name,look,note FROM leads WHERE id=?').get(d.id);assert.equal(row.name.length,100);assert.equal(row.look.length,150);assert.equal(row.note.length,1000);
  assert(tg.calls.some(c=>String(c.body.chat_id)==='4001'&&(c.body.text||'').includes('درخواست تازه')));
 }finally{tg.restore()}});
 
@@ -543,7 +539,7 @@ test('without SMS invites the bot offers messenger buttons and /i/ is a send pag
   assert.match(m.text,/salon-a/);assert.equal(m.reply_markup.inline_keyboard.flat().length,3);assert.match(m.reply_markup.inline_keyboard[0][0].url,/^https:\/\/wa\.me\/\?text=/);
   const t=e.DB.sql.prepare("SELECT id FROM salons WHERE slug='salon-a'").get();e.DB.sql.prepare("INSERT INTO team(id,salon_id,name,specialty,ref_code,created_at) VALUES('t1',?,'مریم','',?,1)").run(t.id,'sabcdefg');
   const page=await app.fetch(new Request(origin+'/i/salon-a?r=sabcdefg&to=09121234567'),e);assert.equal(page.status,200);const html=await page.text();
-  assert.match(html,/sms:09121234567\?&amp;body=/);assert.match(html,/wa\.me\/989121234567/);assert.match(html,/\/s\/salon-a\?r=sabcdefg/);assert.match(html,/مریم از «سالن salon-a»/);assert.match(html,/noindex/);
+  assert.match(html,/sms:09121234567\?&amp;body=/);assert.match(html,/wa\.me\/989121234567/);assert.match(html,/\/s\/salon-a\?r=sabcdefg/);assert.match(html,/مریم از «مزون salon-a»/);assert.match(html,/noindex/);
   new Function(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
   const bad=await app.fetch(new Request(origin+'/i/salon-a?r=<x>&to=javascript:1'),e);const bh=await bad.text();assert.doesNotMatch(bh,/javascript:1|<x>/);assert.match(bh,/\/s\/salon-a/);
   assert.equal((await app.fetch(new Request(origin+'/i/nope'),e)).status,404);
@@ -554,16 +550,16 @@ test('without SMS invites the bot offers messenger buttons and /i/ is a send pag
 test('free trial salon: built from the landing form, one per mobile, 5 images and 10 hours enforced by the server',async()=>{const e=tgEnv(fixture());e.KIE_API_KEY='mock';const tg=mockTelegram();const previous=globalThis.fetch;let tasks=0;
  const net=globalThis.fetch;globalThis.fetch=async(url,opts)=>{const u=String(url);if(u.includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/'+crypto.randomUUID()+'.jpg'}});if(u.includes('createTask')){tasks++;return Response.json({code:200,data:{taskId:'t'+tasks}})}return net(url,opts)};
  try{await linkOwnerChat(e);
-  const body={name:'سارا',salon:'سالن رز',city:'تهران',phone:'۰۹۱۲۱۲۳۴۵۶۷',brand:'#8E3050',consent:true};
+  const body={name:'سارا',salon:'مزون رز',city:'تهران',phone:'۰۹۱۲۱۲۳۴۵۶۷',brand:'#8E3050',consent:true};
   assert.equal((await call(e,'/api/trial',{...body,consent:false})).status,400);
   assert.equal((await call(e,'/api/trial',{...body,website:'x'})).status,200);assert.equal(e.DB.sql.prepare('SELECT count(*) n FROM trials').get().n,0,'honeypot is dropped');
   const r=await call(e,'/api/trial',body);assert.equal(r.status,200,JSON.stringify(r));assert.match(r.data.path,/^\/s\/t-[a-f0-9]{8}$/);assert.equal(r.data.images,5);assert.equal(r.data.hours,10);
   assert.equal((await call(e,'/api/trial',body)).status,409,'one trial per mobile');
   const slug=r.data.path.slice(3),row=e.DB.sql.prepare('SELECT * FROM trials').get();assert.ok(Math.abs(row.expires_at-row.created_at-36000000)<1000);
-  assert(toOwner(tg).find(t=>/سالن رز/.test(t)&&new RegExp(slug).test(t)),'owner chat got the trial link');
+  assert(toOwner(tg).find(t=>/مزون رز/.test(t)&&new RegExp(slug).test(t)),'owner chat got the trial link');
   const pub=await call(e,'/api/s/'+slug+'/public');assert.equal(pub.status,200);assert.equal(pub.data.trial.images_left,5);assert.equal(pub.data.trial.brand,'#8E3050');
   const g=await guest(e,{slug}),original=await upload(e,{slug},g);
-  const gen=()=>call(e,'/api/s/'+slug+'/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:0,color:'عسلی'},g);
+  const gen=()=>call(e,'/api/s/'+slug+'/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:0},g);
   for(let i=0;i<5;i++)assert.equal((await gen()).status,200);assert.equal(tasks,5);
   const sixth=await gen();assert.equal(sixth.status,402);assert.equal(tasks,5,'no paid task after the budget');
   assert.equal((await call(e,'/api/s/'+slug+'/public')).data.trial.images_left,0);
@@ -575,7 +571,7 @@ test('free trial salon: built from the landing form, one per mobile, 5 images an
 
 
 test('free trial with SMS on: the mobile is confirmed by a texted code before the page is built',async()=>{const e=smsEnv(tgEnv(fixture()));const tg=mockTelegram(),sms=mockSms();try{await linkOwnerChat(e);
- const body={salon:'سالن یاس',phone:'۰۹۱۲۷۶۵۴۳۲۱',consent:true};
+ const body={salon:'مزون یاس',phone:'۰۹۱۲۷۶۵۴۳۲۱',consent:true};
  const sent=await call(e,'/api/trial',body);assert.equal(sent.status,200,JSON.stringify(sent));assert.equal(sent.data.code_sent,true);assert.equal(sms.calls.length,1);
  assert.equal(e.DB.sql.prepare('SELECT count(*) n FROM trials').get().n,0,'nothing is built before the code');
  assert.equal((await call(e,'/api/trial',body)).status,429,'resend cooldown');
@@ -589,12 +585,12 @@ test('salon daily image cap is an owner setting: 0 removes it, a number enforces
  const previous=globalThis.fetch;let tasks=0;
  globalThis.fetch=async(url)=>{if(String(url).includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/'+crypto.randomUUID()+'.jpg'}});if(String(url).includes('createTask')){tasks++;return Response.json({code:200,data:{taskId:'t'+tasks}})}return new Response(png())};
  try{
-  const o=await upload(e,s,g),gen=line=>call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),line,original_id:o,style:0},g);
+  const o=await upload(e,s,g),gen=()=>call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:o,style:0},g);
   assert.equal((await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,reference_verified:true,daily_limit:2},OWNER)).status,200);
-  assert.equal((await gen('hair')).status,200);assert.equal((await gen('nails')).status,200);
-  const third=await gen('lashes');assert.equal(third.status,429);assert.match(third.data.error,/سقف استفادهٔ روزانه/);
+  assert.equal((await gen()).status,200);assert.equal((await gen()).status,200);
+  const third=await gen();assert.equal(third.status,429);assert.match(third.data.error,/سقف استفادهٔ روزانه/);
   assert.equal((await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,reference_verified:true,daily_limit:0},OWNER)).status,200);
-  assert.equal((await gen('lashes')).status,200,'no cap');
+  assert.equal((await gen()).status,200,'no cap');
   const st=(await call(e,'/api/s/salon-a/owner',undefined,OWNER)).data.salon.settings;assert.equal(st.daily_limit,0);assert.equal(st.generation_enabled,true);
   // Saving without the field keeps the cap; flags set elsewhere survive.
   e.DB.sql.prepare("UPDATE salons SET settings=json_set(settings,'$.demo',json('true')) WHERE slug='salon-a'").run();
@@ -613,26 +609,34 @@ test('the team\'s own verified mobiles (app_settings unlimited_phones) have no i
   e.DB.sql.prepare('UPDATE sessions SET verified_phone=? WHERE id=?').run('+989120000001',sid);
   const o=await upload(e,s,g);
   assert.equal((await call(e,'/api/s/salon-a/session',undefined,g)).data.quota,null);
-  for(let i=0;i<5;i++){const r=await call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),line:'hair',original_id:o,style:0},g);assert.equal(r.status,200,JSON.stringify(r))}
+  for(let i=0;i<5;i++){const r=await call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:o,style:0},g);assert.equal(r.status,200,JSON.stringify(r))}
   // Anyone else still has the limits.
   const g2=await guest(e,s),o2=await upload(e,s,g2);
-  const other=()=>call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),line:'hair',original_id:o2,style:0},g2);
+  const other=()=>call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:o2,style:0},g2);
   assert.equal((await other()).status,200);assert.equal((await other()).status,200);assert.equal((await other()).status,429,'the daily cap of 2 still applies to others');
  }finally{globalThis.fetch=previous}
 });
 
-// ---- Ayneh Mezon (wedding-dress fitting) ----
-import {LINE_KEYS,DRESS_STYLES,linePrompt,guessLine,lineFromSpecialty} from '../worker/lines.js';
+// ---- Mezon Aroos (wedding-dress fitting) ----
+import {LINE_KEYS,DRESS_STYLES,linePrompt} from '../worker/lines.js';
 
 test('mezon: one dress line, 15 ready-made dresses, prompts lock body size and identity',()=>{
  assert.deepEqual(LINE_KEYS,['dress']);assert.equal(DRESS_STYLES.length,15);
- assert.equal(guessLine('پرنسسی پفی'),'dress');assert.equal(lineFromSpecialty('مو'),'dress');
  for(const [,,,d] of DRESS_STYLES)assert(d.length>40,'every dress is described in detail');
- const cat=linePrompt('dress','catalog',DRESS_STYLES[1][3],{},'');
+ const cat=linePrompt('dress','catalog',DRESS_STYLES[1][3]);
  assert.match(cat,/Photo 1 is the bride in a full-body photo/);assert.match(cat,/ball-gown/);assert.match(cat,/never slim|never.*idealis/i);assert.match(cat,/IDENTITY LOCK/i);assert.match(cat,/no text|watermark/i);
- const ref=linePrompt('dress','reference','','','');
+ const ref=linePrompt('dress','reference','');
  assert.match(ref,/Photo 2 shows a wedding dress[\s\S]*DIFFERENT person/);assert.match(ref,/never her face, hair, skin, body/);
- assert(!/hair colour|hair color/i.test(cat.replace(/never her face, hair/g,'')) || true);
+ assert(!/haircut|hair colou?r|hair-salon|salon consultation/i.test(cat+ref),'no hair-salon wording in the prompts');
+ assert.equal(linePrompt('hair','catalog','x'),'','no other service lines exist');
+});
+
+test('mezon: the three-angle prompt is about the dress, not about hair',()=>{
+ assert.match(VIEWS_PROMPT,/SAME bride[\s\S]*SAME dress/);assert.match(VIEWS_PROMPT,/3 equal tiles side by side in one row/);
+ assert.match(VIEWS_PROMPT,/tile 1 = front 3\/4[\s\S]*tile 2 = exact side profile[\s\S]*tile 3 = back view[\s\S]*train/);
+ assert.match(VIEWS_PROMPT,/plain light background/);assert.match(VIEWS_PROMPT,/body size and proportions/);
+ assert(!/haircut|hair consultation|back of her head/i.test(VIEWS_PROMPT));
+ assert.match(customerHTML,/نمای سه‌زاویه/);assert(!/۳۶۰ درجه|مدل مو|رنگ مو|ناخن|مژه/.test(customerHTML+appHTML),'no salon wording on the pages');
 });
 
 test('mezon: landing is public and the customer page is dress-only (limits temporarily off)',async()=>{

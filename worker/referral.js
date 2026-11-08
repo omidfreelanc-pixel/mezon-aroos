@@ -14,7 +14,7 @@ const ALPH='abcdefghjkmnpqrstuvwxyz23456789';
 export const code=(prefix,n)=>prefix+Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>ALPH[b%ALPH.length]).join('');
 export const validVisitor=v=>/^[a-f0-9]{16,32}$/.test(String(v||''));
 export const STAFF_CODE=/^s[a-z2-9]{7}$/,VISITOR_TAG=/^v[a-z2-9]{8}$/;
-export const SPECIALTIES=['کوتاهی','رنگ و مش','شینیون','صافی و کراتین','ناخن','مژه و ابرو','سایر'];
+export const SPECIALTIES=['مشاوره و فروش لباس','پرو و تنظیم لباس','اجارهٔ لباس','اکسسوری و تور','سایر'];
 export const phoneKey=(env,number)=>hash('ref-phone:'+(env?.SESSION_SECRET||'')+':'+number);
 
 // An inactive member hands over to whoever replaced them (a short chain at most).

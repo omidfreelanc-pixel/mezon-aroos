@@ -17,7 +17,7 @@ import {inviteReady,sendInvite} from './sms.js';
 import {shareLinks,shareKeyboard} from './share.js';
 import {bucketFor,putImage} from './storage.js';
 import {createStaff,transfer,assign,team as teamOf,SPECIALTIES} from './referral.js';
-import {guessLine,lineFromSpecialty,LINE_LABEL} from './lines.js';
+import {LINE_LABEL} from './lines.js';
 import {notifyOwner,linkOwner,isOwnerChat,sendDigest,setupStatus} from './alerts.js';
 const STALE=20*60000; // an unfinished wizard or team question is dropped after 20 idle minutes
 
@@ -26,7 +26,7 @@ const run=(db,sql,...a)=>db.prepare(sql).bind(...a).run();
 const all=async(db,sql,...a)=>(await db.prepare(sql).bind(...a).all()).results;
 const J=(v,s=200)=>new Response(JSON.stringify(v),{status:s,headers:{'Content-Type':'application/json;charset=utf-8','Cache-Control':'no-store'}});
 const parse=s=>{try{return JSON.parse(s||'{}')}catch{return {}}};
-const CATEGORIES=['بالیاژ','آمبره','هایلایت','لایت','مش','رنگ','کوتاهی','کراتین','شینیون','فر','صافی','براشینگ'];
+const CATEGORIES=['ساده','پفی','ماهی','پوشیده','دانتل','دنباله‌دار','سنگ‌دوزی'];
 
 export const PLATFORMS={
  telegram:{name:'telegram',label:'تلگرام',api:'https://api.telegram.org',col:'telegram_chat_id',html:true,token:e=>e?.TELEGRAM_BOT_TOKEN,user:e=>(e?.TELEGRAM_BOT_USERNAME||'').replace(/^@/,''),link:(u,c)=>'https://t.me/'+u+'?start='+c},
@@ -96,7 +96,7 @@ const staffHelp=(t,salon,origin,sms)=>'<b>'+esc(t.name)+' — تیم «'+esc(sal
  '<b>🔗 لینک اختصاصی تو</b>\n'+refUrl(origin,salon,t)+'\n'+
  'این لینک را برای مشتری‌ها و دوستانت بفرست (تلگرام، واتساپ، استوری…). هر کس با این لینک بیاید، و هر کس که او لینک را برایش بفرستد، برای همیشه مشتری تو حساب می‌شود و درخواستش فقط به خودت می‌رسد.\n\n'+
  '<b>📥 درخواست مشتری‌هایت</b>\nهمین‌جا با عکس قبل و بعد، اسم و شماره می‌آید. بعد از تماس یکی از دکمه‌ها را بزن («📞 تماس گرفتم»، «✅ نوبت دادم»، «🚫 قابل اجرا نیست») تا مشتری خبردار شود.\n\n'+
- '<b>🖼 نمونه‌کار</b>\nعکس کارت را بفرست و زیرش اسم کار را بنویس (مثلاً «کوتاهی پروانه‌ای»). با اسم تو روی صفحهٔ مزون می‌نشیند و مشتری‌هایت اول کارهای تو را می‌بینند. برای حذف، /list را بزن.\n\n'+
+ '<b>🖼 نمونه‌کار</b>\nعکس کارت را بفرست و زیرش اسم کار را بنویس (مثلاً «پرنسسی پفی دانتل»). با اسم تو روی صفحهٔ مزون می‌نشیند و مشتری‌هایت اول کارهای تو را می‌بینند. برای حذف، /list را بزن.\n\n'+
  '<b>📲 فرستادن لینک برای مشتری</b>\nشمارهٔ موبایل مشتری را بنویس (تا ۵ شماره با فاصله)'+(sms?' تا لینک اختصاصی تو برایش پیامک شود.':'. دکمه‌هایی می‌آید که لینک اختصاصی‌ات را با واتساپ، تلگرام، پیامک از گوشی خودت، بله یا دایرکت اینستاگرام برایش بفرستی.')+'\n\n'+
  '/share فرستادن لینک با پیام‌رسان\n/link لینک اختصاصی من\n/list نمونه‌کارهای من و حذف\n/help همین راهنما';
 // One-time invite for a member (same code format as the salon link, kept on the member's row).
@@ -207,7 +207,7 @@ const WIZ=[
  {k:'name',type:'text',ask:'اسم مزون چیست؟ همان اسمی که مشتری‌ها می‌شناسند. فقط اسم را بنویسید، مثلاً «مزون زیبایی ساناز».'},
  {k:'logo',type:'photo',ask:'لوگوی مزون را به‌صورت عکس بفرستید (📎 ← عکس). مربعی بهتر است.'},
  {k:'cover',type:'photo',ask:'یک عکس خوب برای بالای صفحه بفرستید: داخل مزون یا یکی از بهترین کارهایتان. عکس عمودی بهتر می‌نشیند.'},
- {k:'bio',type:'text',ask:'یکی دو خط دربارهٔ مزون بنویسید. تخصصتان چیست؟ مثلاً «تخصص ما رنگ و بالیاژ طبیعی است.»'},
+ {k:'bio',type:'text',ask:'یکی دو خط دربارهٔ مزون بنویسید. تخصصتان چیست؟ مثلاً «تخصص ما لباس‌های ساده و دانتل است.»'},
  {k:'address',type:'text',ask:'آدرس مزون را در یک خط بنویسید، مثلاً «تهران، سعادت‌آباد، خیابان سرو، پلاک ۲۴».'},
  {k:'map',type:'location',ask:'اگر می‌خواهید مشتری بتواند مسیریابی کند، موقعیت مزون را بفرستید (📎 ← Location / موقعیت مکانی).'},
  {k:'hours',type:'text',ask:'ساعت کاری؟ مثلاً «شنبه تا پنج‌شنبه ۱۰ تا ۲۰».'},
@@ -333,7 +333,7 @@ async function finishStaff(ctx,name,specialty){
  await showStaffLinks(ctx,t,true);
  await notifyOwner(ctx.env,{salon:ctx.salon,kind:'team',level:'info',text:'مزون‌دار «'+t.name+'» ('+(t.specialty||'بدون تخصص')+') را اضافه کرد.'});
 }
-// The manager's own member row (they cut hair too): created on first /link, tied to this chat.
+// The manager's own member row (they fit dresses too): created on first /link, tied to this chat.
 async function managerLink(ctx){
  const {db,p,salon}=ctx,P=PLATFORMS[p];
  let t=await one(db,'SELECT * FROM team WHERE salon_id=? AND is_manager=1 AND active=1',salon.id);
@@ -440,7 +440,6 @@ export function leadKeyboard(lead,p,members=[]){
  const mark=k=>(lead.salon_status===k?'✔︎ ':'')+LABEL[k];
  const rows=[[{text:mark('called'),callback_data:'ls:called:'+lead.id},{text:mark('booked'),callback_data:'ls:booked:'+lead.id}],[{text:mark('declined'),callback_data:'ls:declined:'+lead.id}]];
  // A salon customer (no member yet): the manager can hand the request to a member.
- if(!lead.staff_id&&members.length){const ln=lead.line||'hair',fit=t=>lineFromSpecialty(t.specialty)===ln||(ln==='hair'&&!lineFromSpecialty(t.specialty));members=[...members].sort((a,b)=>fit(b)-fit(a))}
  if(!lead.staff_id&&members.length)for(let i=0;i<members.length;i+=2)rows.push(members.slice(i,i+2).map(t=>({text:'👤 بده به '+t.name.slice(0,16),callback_data:'la:'+t.id+':'+lead.id})));
  if(lead.telegram&&p==='telegram')rows.push([{text:'💬 پیام به '+lead.name.slice(0,24)+' در تلگرام',url:'https://t.me/'+lead.telegram}]);
  return {inline_keyboard:rows};
@@ -454,7 +453,6 @@ async function onCallback(ctx,q){
   if(!salon)note='این گفتگو به مزونی وصل نیست';
   else if(data==='noop')note='ثبت شده';
   else if(data.startsWith('del:')){const id=data.slice(4);if(/^[a-f0-9-]{36}$/.test(id)){const r=manager?await run(db,'DELETE FROM portfolio WHERE id=? AND salon_id=?',id,salon.id):await run(db,'DELETE FROM portfolio WHERE id=? AND salon_id=? AND staff_id=?',id,salon.id,ctx.staff.id);note=r.meta.changes?'از صفحهٔ مزون حذف شد':'قبلاً حذف شده بود'}}
-  else if(data.startsWith('pfl:')){note=await portfolioLine(ctx,data,q,manager)}
   else if(data.startsWith('pl:')){ctx.role=actor.role;await sendList(ctx,Math.max(0,Number(data.slice(3))||0));note='صفحهٔ بعد'}
   else if(data.startsWith('tm:')){note=manager?await teamCallback(ctx,data,q):'فقط مدیر مزون'}
   else if(data.startsWith('la:')||data.startsWith('cf:')){note=manager?await assignCallback(ctx,data,q):'فقط مدیر مزون'}
@@ -544,31 +542,17 @@ async function addPortfolio(ctx,photo,caption,group){
  group=group?String(group).slice(0,64):null;
  // Photos sent together: the album's caption names every photo in it (it may arrive in any order).
  if(group&&!String(caption||'').trim()){const g=await one(ctx.db,"SELECT title,category,description FROM portfolio WHERE salon_id=? AND media_group=? AND title<>'نمونه‌کار' LIMIT 1",ctx.salon.id,group);if(g)caption=g.title+(g.description?'\n'+g.description:'')}
- // Which service this photo shows: from the caption, else the album, else the member's specialty,
- // else hair (the salon gets one-tap buttons to correct it).
- const groupLine=group?(await one(ctx.db,"SELECT line FROM portfolio WHERE salon_id=? AND media_group=? AND line<>'hair' LIMIT 1",ctx.salon.id,group))?.line:null;
- const guessed=guessLine(caption);
- const line=guessed||groupLine||lineFromSpecialty(t?.specialty)||'dress';
+ const line='dress';
  const media=await putImage(ctx.env,ctx.salon,null,await fileBytes(ctx.env,ctx.p,photo.file_id),'portfolio');
  const lines=String(caption).trim().split('\n').map(x=>x.trim()).filter(Boolean);
  const title=(lines[0]||'نمونه‌کار').slice(0,150);
  const category=CATEGORIES.find(c=>caption.includes(c))||'';
  const id=uid();
  await run(ctx.db,'INSERT INTO portfolio(id,salon_id,title,category,description,stylist,images,published,try_on,permission,created_at,staff_id,media_group,line) VALUES(?,?,?,?,?,?,?,1,1,1,?,?,?,?)',id,ctx.salon.id,title,category,lines.slice(1).join(' ').slice(0,500),t?t.name:'',JSON.stringify([media]),Date.now(),t?t.id:null,group,line);
- if(group&&guessed)await run(ctx.db,'UPDATE portfolio SET line=? WHERE salon_id=? AND media_group=?',guessed,ctx.salon.id,group);
  if(group&&lines.length)await run(ctx.db,"UPDATE portfolio SET title=?,category=?,description=? WHERE salon_id=? AND media_group=? AND title='نمونه‌کار'",title,category,lines.slice(1).join(' ').slice(0,500),ctx.salon.id,group);
- await ctx.say('✅ «'+esc(title)+'» '+(t?'با اسم تو ':'')+'در بخش «'+LINE_LABEL[line]+'» روی صفحهٔ مزون نشست.'+(guessed||groupLine?'':'\nاگر این کار '+(line==='hair'?'رنگ مو، ناخن یا مژه':'بخش دیگری')+' است، یکی از دکمه‌های پایین را بزنید.')+(lines.length||group?'':'\nنکته: دفعهٔ بعد زیر عکس اسم کار را بنویسید (مثلاً «ولف‌کات»، «بالیاژ عسلی»، «فرنچ» یا «مژه والیوم») تا هم مشتری بهتر بفهمد هم بخشش درست انتخاب شود.'),{parse_mode:'HTML',reply_markup:portfolioKeys(id,line)});
+ await ctx.say('✅ «'+esc(title)+'» '+(t?'با اسم تو ':'')+'در بخش «'+LINE_LABEL[line]+'» روی صفحهٔ مزون نشست.'+(lines.length||group?'':'\nنکته: دفعهٔ بعد زیر عکس اسم لباس را بنویسید (مثلاً «پرنسسی پفی»، «ماهی ساده» یا «دانتل بوهو») تا مشتری بهتر بفهمد.'),{parse_mode:'HTML',reply_markup:portfolioKeys(id,line)});
 }
 const portfolioKeys=(id,line)=>({inline_keyboard:[].concat([[{text:'🗑 حذف از صفحه',callback_data:'del:'+id}]])});
-async function portfolioLine(ctx,data,q,manager){
- const [,line,id]=data.split(':');if(!LINE_LABEL[line]||!/^[a-f0-9-]{36}$/.test(id||''))return 'انجام نشد';
- const item=await one(ctx.db,'SELECT id,media_group,staff_id FROM portfolio WHERE id=? AND salon_id=?',id,ctx.salon.id);if(!item)return 'این نمونه‌کار دیگر نیست';
- if(!manager&&item.staff_id!==ctx.staff?.id)return 'فقط کارهای خودت';
- if(item.media_group)await run(ctx.db,'UPDATE portfolio SET line=? WHERE salon_id=? AND media_group=?',line,ctx.salon.id,item.media_group);else await run(ctx.db,'UPDATE portfolio SET line=? WHERE id=?',line,id);
- try{await call(ctx.env,ctx.p,'editMessageReplyMarkup',{chat_id:ctx.chat,message_id:q.message.message_id,reply_markup:portfolioKeys(id,line)})}catch{}
- return 'در بخش «'+LINE_LABEL[line]+'» گذاشته شد';
-}
-
 async function sendList(ctx,offset=0){
  const own=ctx.role==='staff',PAGE=10;
  const items=own?await all(ctx.db,'SELECT id,title FROM portfolio WHERE salon_id=? AND staff_id=? AND published=1 ORDER BY created_at DESC LIMIT ? OFFSET ?',ctx.salon.id,ctx.staff.id,PAGE+1,offset):await all(ctx.db,'SELECT id,title FROM portfolio WHERE salon_id=? AND published=1 ORDER BY created_at DESC LIMIT ? OFFSET ?',ctx.salon.id,PAGE+1,offset);
@@ -584,12 +568,12 @@ async function sendList(ctx,offset=0){
 // when several photos carry captions, Telegram hides them all.
 export function leadText(lead,salon,photos,member=null){
  const when=new Intl.DateTimeFormat('fa-IR',{timeZone:'Asia/Tehran',dateStyle:'medium',timeStyle:'short'}).format(lead.created_at||Date.now());
- const names={original:'قبل: عکس خود مشتری',preview:'بعد: شبیه‌سازی آینه',reference:'عکس لباسی که مشتری انتخاب کرده'};
+ const names={original:'قبل: عکس خود مشتری',preview:'بعد: شبیه‌سازی لباس',reference:'عکس لباسی که مشتری انتخاب کرده'};
  const lines=[member?'👰 <b>درخواست تازه برای تو — مشتری «'+esc(salon.name)+'»</b>':'👰 <b>درخواست تازه برای '+esc(salon.name)+'</b>'+(lead.staff_id?'':'\n(مشتری خود مزون؛ می‌توانید با دکمه‌های پایین به یک نیرو بدهید)'),'',
   '👤 <b>نام:</b> '+esc(lead.name),
   '📞 <b>موبایل:</b> '+esc(local(lead.phone))+' ('+esc(lead.phone)+')',
   '✈️ <b>تلگرام:</b> '+(lead.telegram?'@'+esc(lead.telegram):'ثبت نکرده'),'',
-  '🧩 <b>خدمت:</b> '+LINE_LABEL[lead.line||'dress'],
+  '🧩 <b>خدمت:</b> '+(LINE_LABEL[lead.line]||LINE_LABEL.dress),
   '👰 <b>لباس انتخابی:</b> '+(lead.look?esc(lead.look):'مشخص نکرده'),
   '📝 <b>توضیح مشتری:</b> '+(lead.note?esc(lead.note):'ندارد'),''];
  if(photos.length)lines.push('🖼 <b>عکس‌های بالا به ترتیب:</b>',...photos.map((p,i)=>'  '+fa(i+1)+'. '+names[p]));

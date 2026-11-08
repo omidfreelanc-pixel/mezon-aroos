@@ -1,9 +1,8 @@
-import {Problem,must,phone,text,safeLink,transferPrompt,uid,token,hash,digits,limited} from './domain.js';
-import {styles} from './legacy.js';
+import {Problem,must,phone,text,safeLink,uid,token,hash,digits,limited} from './domain.js';
 import {identity,issueCookie,clearCookie,same,passwordLoginEnabled} from './auth.js';
 import {bucketFor,putImage} from './storage.js';
 import {botReady,deliverLead,deliverPending,newLinkCode,setWebhook,inboxes,followLinks,PLATFORMS,platformReady,baleSecret,staffInvite,notifyConflict,expireStates} from './telegram.js';
-import {LINE_KEYS,lineStyles,cleanOptions,linePrompt,optionText,LINE_LABEL} from './lines.js';
+import {LINE_KEYS,lineStyles,linePrompt,LINE_LABEL} from './lines.js';
 import {ownerLink,alertUnanswered,maybeDigest,setupStatus,digest,notifyOwner,setting} from './alerts.js';
 import {attribute,ownerFor,createStaff,transfer,report,team as teamOf,liveStaff,SPECIALTIES} from './referral.js';
 import {stats} from './stats.js';
@@ -19,19 +18,19 @@ const all=async(db,sql,...args)=>(await db.prepare(sql).bind(...args).all()).res
 const cookie=t=>'ayneh='+t+'; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800';
 const PROFILE_TEXT=['bio','address','hours','manager'],PROFILE_LINKS=['map','instagram','website','telegram'],PROFILE_IMAGES=['logo','cover','portrait'];
 const botInfo=env=>({token:botReady(env),secret:!!env.TELEGRAM_WEBHOOK_SECRET,username:PLATFORMS.telegram.user(env),telegram:{ready:platformReady(env,'telegram'),username:PLATFORMS.telegram.user(env)},bale:{ready:platformReady(env,'bale'),username:PLATFORMS.bale.user(env),secret:!!baleSecret(env)}});
-// The salon's own work is tryable on customers by default; an owner may switch it off.
+// The boutique's own dresses is tryable on customers by default; an owner may switch it off.
 const refOn=cfg=>cfg.reference_verified!==false;
-// Output shape follows the customer's photo (a hand or an eye close-up is rarely 3:4).
+// Output shape follows the customer's photo (a full-length photo is rarely 3:4).
 const RATIOS=['1:1','2:3','3:2','3:4','4:3','4:5','5:4','9:16','16:9'];
-// Each person gets a few images per service (trial and demo pages have their own budgets) (hairstyle, hair colour, nails, lashes) on a salon page,
+// Each person gets a few dress images on a boutique page (trial and demo pages have their own budgets),
 // so a test day cannot run up the image bill. A person is this session, this browser id and, once
-// verified, this mobile. Failed images do not count; the 360 view counts as a hairstyle image.
+// verified, this mobile. Failed images do not count; the three-angle view counts as a dress image.
 // Images a salon page may make per day across all its customers (owner setting; 0 = no cap).
 export const DAILY_LIMIT=0;
 const dailyLimit=cfg=>Number.isInteger(cfg?.daily_limit)?cfg.daily_limit:DAILY_LIMIT;
-// The 360 view: the front is her own result photo; only her left profile, the back of her head and
-// her right profile are made, three large tiles in one row, so no face is redrawn from the front.
-export const VIEWS_PROMPT='Hair consultation turnaround of the SAME woman as photo 1. Exactly 3 equal tiles side by side in one row, no gaps, borders, labels or numbers: tile 1 = exact side profile with her nose pointing to the LEFT edge of the image, tile 2 = the BACK of her head (180 degrees) showing the whole hairstyle from behind, tile 3 = exact side profile with her nose pointing to the RIGHT edge of the image. The two profiles face opposite directions, like a turntable. Each tile: head and shoulders, the same scale and framing, the same plain light background and soft even light. HAIR: in every tile the haircut, length, layers, parting, volume, texture, styling and hair COLOUR, roots and highlights are exactly as in photo 1, seen from that side. FACE: in the profiles keep her real nose, lips, chin, jawline, ear and skin tone from photo 1, natural and unretouched; never beautify, slim or change her face; same clothing neckline as photo 1. Photorealistic, high detail. No text, watermark or collage frame.';
+// The three-angle view: one generated row of three equal tiles (front 3/4, side profile, back) of the
+// same bride in the same dress, made from her result photo.
+export const VIEWS_PROMPT='Wedding-dress turnaround of the SAME bride as photo 1, wearing the SAME dress. Exactly 3 equal tiles side by side in one row, no gaps, borders, labels or numbers: tile 1 = front 3/4 view (turned about 45 degrees), tile 2 = exact side profile with her nose pointing to the LEFT edge of the tile, tile 3 = back view showing the back of the dress and the train. Each tile: the whole figure from head to floor, the same scale and framing, the same plain light background and soft even light. DRESS: in every tile the dress design, neckline, sleeves, bodice, waist, skirt shape and volume, length, train, fabric, lace, beading and colour are exactly as in photo 1, seen from that side; the back view shows the real back, closure and train of this same dress. BRIDE: her face, skin tone, hair and hairstyle, headscarf if she wears one, and her body size and proportions stay exactly as in photo 1; never beautify, slim or change her face or body. Photorealistic, high detail. No text, watermark or collage frame.';
 export const QUOTA_PER_LINE=1000 /* TEMP: limits off while testing; the plan is 8 */;
 async function quotaUsed(db,salon,s,visitor){
  const rows=await all(db,"SELECT line,COUNT(*) n FROM generations WHERE salon_id=? AND state<>'fail' AND (session_id=? OR (?<>'' AND visitor=?) OR (? IS NOT NULL AND session_id IN (SELECT id FROM sessions WHERE salon_id=? AND verified_phone=?))) GROUP BY line",salon.id,s.id,visitor,visitor,s.verified_phone||null,salon.id,s.verified_phone||null);
@@ -52,7 +51,7 @@ const visitorOf=b=>/^[a-f0-9]{16,32}$/.test(String(b?.v||''))?String(b.v):'';
 const refLink=(env,origin,salon,t)=>(env.APP_ORIGIN||origin)+'/s/'+salon.slug+'?r='+t.ref_code;
 async function teamView(db,env,salon,origin){return (await teamOf(db,salon.id)).map(t=>({id:t.id,name:t.name,specialty:t.specialty,telegram:!!t.telegram_chat_id,bale:!!t.bale_chat_id,invite_pending:!!t.invite_hash&&t.invite_expires>Date.now(),ref:refLink(env,origin,salon,t)}))}
 // Anonymous usage events for the dashboard. The visitor id is random and made by the browser.
-export const TRACK_KINDS=['view','tour_start','tour_done','tour_skip','about','photo','look','color','generate','result','gen_fail','view360','send_open','sent','follow','rating','demo','share_open','share','line','color_on_hair','save'];
+export const TRACK_KINDS=['view','tour_start','tour_done','tour_skip','about','photo','look','generate','result','gen_fail','view360','send_open','sent','follow','rating','demo','share_open','share','save'];
 export async function logEvent(db,salonId,kind,visitor='',meta=''){await run(db,'INSERT INTO events_log(id,salon_id,visitor,kind,meta,created_at) VALUES(?,?,?,?,?,?)',uid(),salonId,/^[a-f0-9]{16,32}$/.test(visitor)?visitor:'',kind,String(meta||'').slice(0,80),Date.now())}
 function publicSalon(s){return {id:s.id,slug:s.slug,name:s.name,profile:parse(s.profile)};}
 
@@ -115,7 +114,7 @@ export async function api(req,env){const u=new URL(req.url),path=u.pathname;must
  if(path==='/api/logout'&&req.method==='POST')return J({ok:true},200,{'Set-Cookie':clearCookie(u.protocol==='https:')});
  if(path==='/api/owner'&&req.method==='GET'){await owner(req,env);const rows=await all(db,"SELECT id,slug,name,profile,telegram_chat_id IS NOT NULL AS telegram,bale_chat_id IS NOT NULL AS bale,(SELECT count(*) FROM portfolio p WHERE p.salon_id=salons.id AND p.published=1) AS portfolio,(SELECT count(*) FROM leads l WHERE l.salon_id=salons.id) AS leads,(SELECT count(*) FROM team t WHERE t.salon_id=salons.id AND t.active=1) AS team,(SELECT count(*) FROM team t WHERE t.salon_id=salons.id AND t.active=1 AND (t.telegram_chat_id IS NOT NULL OR t.bale_chat_id IS NOT NULL)) AS team_linked,(SELECT count(*) FROM leads l WHERE l.salon_id=salons.id AND l.waiting=1) AS waiting,(SELECT count(*) FROM leads l WHERE l.salon_id=salons.id AND l.status='sent' AND l.salon_status='new' AND l.created_at<"+(Date.now()-86400000)+") AS overdue FROM salons ORDER BY created_at DESC");
   return J({salons:rows.map(r=>{const st=setupStatus(r);const {profile,...rest}=r;return {...rest,setup:{filled:st.filled.length,total:st.total,missing:st.missing}}}),alerts:{chats:(await all(db,'SELECT platform FROM owner_chats')).map(x=>x.platform)},activity:await all(db,'SELECT a.kind,a.level,a.text,a.created_at FROM activity a ORDER BY a.created_at DESC LIMIT 60'),bot:botInfo(env),image:!!env.KIE_API_KEY,sms:{otp:smsReady(env),invite:inviteReady(env)}});}
- if(path==='/api/owner/stats'&&req.method==='GET'){await owner(req,env);const days=[7,30,90].includes(Number(u.searchParams.get('days')))?Number(u.searchParams.get('days')):30;const slug=u.searchParams.get('salon')||'';let sid=null;if(slug){const x=await one(db,'SELECT id FROM salons WHERE slug=?',slug);must(x,'مزون پیدا نشد',404);sid=x.id}return J(await stats(db,{days,salonId:sid,styles}));}
+ if(path==='/api/owner/stats'&&req.method==='GET'){await owner(req,env);const days=[7,30,90].includes(Number(u.searchParams.get('days')))?Number(u.searchParams.get('days')):30;const slug=u.searchParams.get('salon')||'';let sid=null;if(slug){const x=await one(db,'SELECT id FROM salons WHERE slug=?',slug);must(x,'مزون پیدا نشد',404);sid=x.id}return J(await stats(db,{days,salonId:sid}));}
  if(path==='/api/owner/referrals'&&req.method==='GET'){await owner(req,env);const slug=u.searchParams.get('salon')||'';let sid=null;if(slug){const x=await one(db,'SELECT id FROM salons WHERE slug=?',slug);must(x,'مزون پیدا نشد',404);sid=x.id}return J(await report(db,{salonId:sid}));}
  if(path==='/api/owner/alerts-link'&&req.method==='POST'){await owner(req,env);return J({links:await ownerLink(db,env)});}
  if(path==='/api/owner/alerts-unlink'&&req.method==='POST'){await owner(req,env);await run(db,'DELETE FROM owner_chats');return J({ok:true});}
@@ -146,7 +145,7 @@ export async function api(req,env){const u=new URL(req.url),path=u.pathname;must
   if(r==='team/link'){const t=await one(db,'SELECT * FROM team WHERE id=? AND salon_id=? AND active=1',String(b.id||''),salon.id);must(t,'نیرو پیدا نشد',404);return J({links:await staffInvite(db,env,t),ref:refLink(env,u.origin,salon,t)});}
   if(r==='team/remove'){const ids=await transfer(db,salon.id,String(b.id||''),b.to?String(b.to):null);for(const id of ids){const l=await one(db,'SELECT * FROM leads WHERE id=?',id);if(l)await deliverLead(env,l)}return J({ok:true,moved:ids.length});}
   // Portfolio added from the owner console (same row the bot makes): a photo uploaded with
-  // upload?kind=portfolio, its title and its service line. Published and usable for try-on.
+  // upload?kind=portfolio, its title. Published and usable for try-on.
   if(r==='portfolio/add'){
    const media=String(b.media_id||''),line=LINE_KEYS.includes(b.line)?b.line:'dress';
    must(await one(db,"SELECT 1 FROM media WHERE id=? AND salon_id=? AND kind='portfolio'",media,salon.id),'عکس نمونه‌کار معتبر نیست');
@@ -156,7 +155,6 @@ export async function api(req,env){const u=new URL(req.url),path=u.pathname;must
    return J({id});
   }
   if(r==='portfolio/look'){await run(db,'UPDATE portfolio SET look=? WHERE id=? AND salon_id=?',text(String(b.look||'').slice(0,600),600),String(b.id||''),salon.id);return J({ok:true});}
-  if(r==='portfolio/line'){must(LINE_KEYS.includes(b.line),'خدمت معتبر نیست');await run(db,'UPDATE portfolio SET line=? WHERE id=? AND salon_id=?',b.line,b.id,salon.id);return J({ok:true});}
   if(r==='portfolio/delete'){await run(db,'DELETE FROM portfolio WHERE id=? AND salon_id=?',b.id,salon.id);return J({ok:true});}
   if(r==='leads/retry'){await run(db,"UPDATE leads SET status='retry',attempts=0 WHERE id=? AND salon_id=? AND status='failed'",b.id,salon.id);const l=await one(db,'SELECT * FROM leads WHERE id=? AND salon_id=?',b.id,salon.id);must(l,'درخواست یافت نشد',404);return J({delivered:await deliverLead(env,l)});}
   throw new Problem(404,'مسیر مدیریت یافت نشد');
@@ -217,7 +215,7 @@ export async function api(req,env){const u=new URL(req.url),path=u.pathname;must
   const own=await ownerFor(db,env,salon,visitor,number);
   // The follow token lets this customer (and only her) link a bot chat for status updates.
   const follow=Array.from(crypto.getRandomValues(new Uint8Array(12)),x=>x.toString(16).padStart(2,'0')).join('');
-  await run(db,'INSERT INTO leads(id,salon_id,session_id,name,phone,telegram,original_id,reference_id,preview_id,look,color,note,idem,created_at,follow_hash,visitor,staff_id,line) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',id,salon.id,s.id,name,number,handle,b.original_id,b.reference_id||null,b.preview_id||null,text(cut(b.look,150),150),text(cut(b.color,120),120),text(cut(b.note,1000),1000),b.idem,Date.now(),await hash(follow),visitor,own.staff,LINE_KEYS.includes(b.line)?b.line:'hair');
+  await run(db,'INSERT INTO leads(id,salon_id,session_id,name,phone,telegram,original_id,reference_id,preview_id,look,color,note,idem,created_at,follow_hash,visitor,staff_id,line) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',id,salon.id,s.id,name,number,handle,b.original_id,b.reference_id||null,b.preview_id||null,text(cut(b.look,150),150),'',text(cut(b.note,1000),1000),b.idem,Date.now(),await hash(follow),visitor,own.staff,LINE_KEYS.includes(b.line)?b.line:'dress');
   if(visitor)await run(db,'UPDATE ref_visitors SET name=? WHERE salon_id=? AND visitor=?',name,salon.id,visitor);
   await logEvent(db,salon.id,'sent',visitor,b.preview_id?'sim':'plain');
   const delivered=await deliverLead(env,await one(db,'SELECT * FROM leads WHERE id=?',id));
@@ -226,7 +224,7 @@ export async function api(req,env){const u=new URL(req.url),path=u.pathname;must
   return J({id,delivered,waiting,follow:followLinks(env,follow)});
  }
  if(route==='views'&&req.method==='POST'){
-  const b=await req.json();must(!demo,'نمای ۳۶۰ در نسخهٔ نمونه نیست');must(env.KIE_API_KEY&&cfg.generation_enabled,'تولید فعال نیست',503);must(/^[a-f0-9-]{36}$/.test(b.idem));const existing=await one(db,'SELECT id,state FROM generations WHERE session_id=? AND idem=?',s.id,b.idem);if(existing)return J(existing);const base=await one(db,"SELECT * FROM generations WHERE id=? AND session_id=? AND salon_id=? AND state='success'",b.parent,s.id,salon.id);must(base?.result_id,'عکس پایه معتبر نیست');must((base.line||'hair')==='hair','نمای ۳۶۰ فقط برای مو است');const m=await ownMedia(db,s,base.result_id),id=uid(),now=Date.now();const visitor=visitorOf(b),free=await unlimited(db,s);if(!trial&&!free)await spendQuota(db,salon,s,visitor,'hair');if(dailyLimit(cfg)>0&&!free)await limited(db,'views:'+salon.id,Math.min(20,dailyLimit(cfg)));await spendTrialImage(db,trial);await run(db,"INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,created_at,updated_at,visitor) VALUES(?,?,?,?,'views','creating',?,?,?,?)",id,salon.id,s.id,b.idem,base.original_id,now,now,visitor);
+  const b=await req.json();must(!demo,'نمای سه‌زاویه در نسخهٔ نمونه نیست');must(env.KIE_API_KEY&&cfg.generation_enabled,'تولید فعال نیست',503);must(/^[a-f0-9-]{36}$/.test(b.idem));const existing=await one(db,'SELECT id,state FROM generations WHERE session_id=? AND idem=?',s.id,b.idem);if(existing)return J(existing);const base=await one(db,"SELECT * FROM generations WHERE id=? AND session_id=? AND salon_id=? AND state='success'",b.parent,s.id,salon.id);must(base?.result_id,'عکس پایه معتبر نیست');must((base.line||'dress')==='dress','نمای سه‌زاویه فقط برای لباس عروس است');const m=await ownMedia(db,s,base.result_id),id=uid(),now=Date.now();const visitor=visitorOf(b),free=await unlimited(db,s);if(!trial&&!free)await spendQuota(db,salon,s,visitor,'dress');if(dailyLimit(cfg)>0&&!free)await limited(db,'views:'+salon.id,Math.min(20,dailyLimit(cfg)));await spendTrialImage(db,trial);await run(db,"INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,created_at,updated_at,visitor) VALUES(?,?,?,?,'views','creating',?,?,?,?)",id,salon.id,s.id,b.idem,base.original_id,now,now,visitor);
   try{const img=await uploadProvider(env,m);const task=await createImageTask(env,cfg,{prompt:VIEWS_PROMPT,image_input:[img],aspect_ratio:'16:9',resolution:'2K',output_format:'jpg'});await run(db,"UPDATE generations SET state='waiting',task_id=? WHERE id=?",task.taskId,id);return J({id,state:'waiting'});}catch{await run(db,"UPDATE generations SET state='unknown' WHERE id=?",id);throw new Problem(502,'ارسال نامشخص؛ بدون بازتولید خودکار');}
  }
  if(route==='generate'&&req.method==='POST'){
@@ -237,34 +235,23 @@ export async function api(req,env){const u=new URL(req.url),path=u.pathname;must
   must(/^[a-f0-9-]{36}$/.test(b.idem));
   const old=await one(db,'SELECT * FROM generations WHERE session_id=? AND idem=?',s.id,b.idem);if(old)return J({id:old.id,state:old.state});
   const original=await ownMedia(db,s,b.original_id);must(original.kind==='original','عکس چهره لازم است');
-  const color=text(String(b.color||'').slice(0,120),120),opts=cleanOptions(line,b.opts),ratio=RATIOS.includes(b.ratio)?b.ratio:'2:3';
+  const ratio=RATIOS.includes(b.ratio)?b.ratio:'2:3';
   let reference=null;
-  // A salon work with a written look is tried on from the text alone: one photo, hers.
+  // A boutique dress with a written look is tried on from the text alone: one photo, hers.
   let look='';
   if(b.reference_id){
    look=(await one(db,"SELECT look FROM portfolio WHERE salon_id=? AND published=1 AND line=? AND look<>'' AND EXISTS(SELECT 1 FROM json_each(images) WHERE value=?)",salon.id,line,b.reference_id))?.look||'';
    if(!look){must(refOn(cfg),'انتقال عکس مرجع برای این مزون خاموش است',503);reference=await ownMedia(db,s,b.reference_id);}
   }
-  else if(line==='color'&&!Number.isInteger(b.style))must(color.length>=2,'یک رنگ انتخاب کن یا اسمش را بنویس');
-  else must(Number.isInteger(b.style)&&(line==='hair'?styles:lineStyles(line))[b.style],'مدل معتبر انتخاب کنید');
-  // Hair colour can be tried on her new hairstyle: a hair result of this session made from the same photo.
-  let base=original,baseId=null;
-  if(line==='color'&&b.base_id){
-   must(await one(db,"SELECT 1 FROM generations WHERE result_id=? AND original_id=? AND session_id=? AND salon_id=? AND state='success' AND line='hair'",b.base_id,b.original_id,s.id,salon.id),'مدل موی انتخابی معتبر نیست');
-   base=await ownMedia(db,s,b.base_id);baseId=b.base_id;
-  }
+  else must(Number.isInteger(b.style)&&lineStyles(line)[b.style],'لباس معتبر انتخاب کنید');
   const visitor=visitorOf(b),free=await unlimited(db,s);if(!trial&&!demo&&!free)await spendQuota(db,salon,s,visitor,line);
   if(dailyLimit(cfg)>0&&!free)await limited(db,'generation:'+salon.id+':'+new Date().toISOString().slice(0,10),dailyLimit(cfg));if(demo&&!free)await limited(db,'demo:'+s.verified_phone,3,'امروز ۳ تصویر نمونه ساخته‌اید؛ فردا دوباره امتحان کنید یا صفحهٔ آزمایشی مزون خودتان را بسازید');if(!free)await spendTrialImage(db,trial);
   const id=uid(),now=Date.now();
-  // Hairstyle copies only the cut from a reference photo; colour only the colour.
-  const mode=look?'salon':line==='hair'?(reference?'style':'catalog'):(reference?'reference':(line==='color'&&!Number.isInteger(b.style)?'text':'catalog'));
-  await run(db,'INSERT INTO generations(id,salon_id,session_id,idem,state,original_id,reference_id,style,transfer,color,created_at,updated_at,line,opts,base_id,visitor) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',id,salon.id,s.id,b.idem,'creating',b.original_id,b.reference_id||null,reference?null:(Number.isInteger(b.style)?b.style:null),mode,color,now,now,line,JSON.stringify(opts),baseId,visitor);
+  const mode=reference?'reference':'catalog';
+  await run(db,'INSERT INTO generations(id,salon_id,session_id,idem,state,original_id,reference_id,style,transfer,color,created_at,updated_at,line,opts,base_id,visitor) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',id,salon.id,s.id,b.idem,'creating',b.original_id,b.reference_id||null,reference?null:(Number.isInteger(b.style)?b.style:null),mode,'',now,now,line,'{}',null,visitor);
   try{
-   const images=[await uploadProvider(env,base)];if(reference)images.push(await uploadProvider(env,reference));
-   const prompt=look?(line==='hair'?transferPrompt('catalog',look,''):line==='color'?linePrompt('color','catalog',look,{},''):linePrompt(line,line==='nails'?'salon':'catalog',look,opts,color))
-    :line==='hair'?transferPrompt(reference?'style':'catalog',styles[b.style]?.[1]||'','')
-    :line==='color'?linePrompt('color',mode,mode==='catalog'?lineStyles('color')[b.style][3]:'',{},color)
-    :linePrompt(line,reference?'reference':'catalog',reference?'':lineStyles(line)[b.style][3],opts,color);
+   const images=[await uploadProvider(env,original)];if(reference)images.push(await uploadProvider(env,reference));
+   const prompt=look?linePrompt(line,'catalog',look):linePrompt(line,reference?'reference':'catalog',reference?'':lineStyles(line)[b.style][3]);
    const job=await createImageTask(env,cfg,{prompt,image_input:images,aspect_ratio:ratio,resolution:'2K',output_format:'jpg'});
    await run(db,"UPDATE generations SET state='waiting',task_id=? WHERE id=?",job.taskId,id);return J({id,state:'waiting'});
   }catch{await run(db,"UPDATE generations SET state='unknown' WHERE id=?",id);throw new Problem(502,'وضعیت ارسال نامشخص است؛ برای جلوگیری از هزینه تکراری، درخواست تازه خودکار ساخته نمی‌شود');}

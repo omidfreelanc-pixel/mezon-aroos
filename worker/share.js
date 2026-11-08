@@ -1,5 +1,5 @@
 // Salon -> customer invitations through messengers instead of SMS.
-// A shared-line SMS may not carry a link without a starred eNamad, so the stylist sends the link
+// A shared-line SMS may not carry a link without a starred eNamad, so the staff member sends the link
 // herself: the bot answers a customer's mobile number (or /share) with buttons that open WhatsApp
 // straight to that number, Telegram's contact picker, and /i/<slug>, a small page with SMS from her
 // own phone, Bale, Instagram Direct, copy and the phone's share menu. The link carries her
@@ -15,7 +15,7 @@ const intl=p=>String(p||'').replace(/^\+/,'');
 export function inviteUrl(origin,salon,member){return origin+'/s/'+salon.slug+(member?.ref_code?'?r='+member.ref_code:'')}
 export function inviteText(salon,member){
  const from=member&&!member.is_manager&&member.name?member.name+' از «'+salon.name+'»':'«'+salon.name+'»';
- return 'سلام 🌸 '+from+' هستم. مدل مو، طرح ناخن یا مژهٔ جدید رو اینجا روی عکس خودت امتحان کن؛ رایگان و بدون نصب. هر کدوم رو خواستی همون‌جا برامون بفرست 👇';
+ return 'سلام 🌸 '+from+' هستم. لباس عروس دلخواهت رو اینجا روی عکس تمام‌قد خودت امتحان کن؛ رایگان و بدون نصب. هر لباسی رو که پسندیدی همون‌جا برامون بفرست 👇';
 }
 // Everything the bot and the page need for one recipient (number optional).
 export function shareLinks(origin,salon,member,number=null){
