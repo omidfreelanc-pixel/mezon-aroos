@@ -3,6 +3,7 @@
 import {must,Problem,uid,text,limited} from './domain.js';
 import {notifyOwner} from './alerts.js';
 import {approveSalon} from './manager.js';
+import {notifyActivation} from './activate.js';
 
 export const DEFAULT_CREDITS=100,PACKS=[100,300,1000];
 const one=(db,sql,...a)=>db.prepare(sql).bind(...a).first();
@@ -37,17 +38,18 @@ export async function ensureToken(db,salon){
 export async function adminAccounts(db,origin){
  const salons=await all(db,"SELECT * FROM salons WHERE slug<>'demo' ORDER BY created_at DESC");
  const out=[];
- for(const s of salons){const c=await creditsOf(db,s),t=await ensureToken(db,s);out.push({slug:s.slug,name:s.name,approved:c.approved,used:c.used,limit:c.limit,left:c.left,panel:origin+'/m/'+t,trial:s.owner_id==='trial',subdomain:s.subdomain||'',desired:s.desired_sub||'',manager:s.mgr_user||'',host:s.subdomain?s.subdomain+'.'+new URL(origin).hostname:''})}
+ for(const s of salons){const c=await creditsOf(db,s),t=await ensureToken(db,s);out.push({slug:s.slug,name:s.name,approved:c.approved,used:c.used,limit:c.limit,left:c.left,panel:origin+'/m/'+t,trial:s.owner_id==='trial',subdomain:s.subdomain||'',desired:s.desired_sub||'',manager:s.mgr_user||'',host:s.subdomain?s.subdomain+'.'+new URL(origin).hostname:'',phone:(await one(db,'SELECT phone FROM trials WHERE salon_id=?',s.id))?.phone||'',bot:!!(s.telegram_chat_id||s.bale_chat_id),created_at:s.created_at})}
  const reqs=await all(db,"SELECT r.id,r.amount,r.note,r.created_at,s.slug,s.name FROM credit_requests r JOIN salons s ON s.id=r.salon_id WHERE r.status='pending' ORDER BY r.created_at");
  return {accounts:out,requests:reqs,packs:PACKS};
 }
-export async function adminSetAccount(db,b){
- const s=await one(db,'SELECT * FROM salons WHERE slug=?',String(b.slug||''));must(s,'مزون پیدا نشد',404);
- let subdomain=s.subdomain||null;
- if(b.approved===true)subdomain=await approveSalon(db,s,b.subdomain);
+export async function adminSetAccount(db,b,env,origin){
+ let s=await one(db,'SELECT * FROM salons WHERE slug=?',String(b.slug||''));must(s,'مزون پیدا نشد',404);
+ const was=!!s.approved;let subdomain=s.subdomain||null,notified=null;
+ if(b.approved===true){subdomain=await approveSalon(db,s,b.subdomain);
+  if(!was){s=await one(db,'SELECT * FROM salons WHERE id=?',s.id);notified=await notifyActivation(db,env,origin,s).catch(e=>({bot:[],sms:false,errors:[String(e.message||e)]}))}}
  else if(b.approved===false)await run(db,'UPDATE salons SET approved=0 WHERE id=?',s.id);
  if(b.add!==undefined){const n=Number(b.add);must(Number.isInteger(n)&&n>=-10000&&n<=100000&&n!==0,'مقدار اعتبار معتبر نیست');await run(db,'UPDATE salons SET credit_limit=MAX(0,credit_limit+?) WHERE id=?',n,s.id)}
- return {...await creditsOf(db,await one(db,'SELECT * FROM salons WHERE id=?',s.id)),subdomain};
+ return {...await creditsOf(db,await one(db,'SELECT * FROM salons WHERE id=?',s.id)),subdomain,notified};
 }
 export async function adminHandleRequest(db,b){
  const r=await one(db,"SELECT * FROM credit_requests WHERE id=? AND status='pending'",String(b.id||''));must(r,'درخواست پیدا نشد یا قبلاً رسیدگی شده',404);

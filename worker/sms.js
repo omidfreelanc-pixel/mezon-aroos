@@ -67,3 +67,12 @@ export async function sendInvite(env,phone,args){
  if(mock(env)){console.log('[sms mock] invite ->',localNumber(phone),JSON.stringify(args));return {recId:'mock'};}
  return shared(env,phone,Number(String(env.MELIPAYAMAK_BODY_ID).trim()),args);
 }
+
+// "Your page is live" text from an approved ready-made message (MELIPAYAMAK_APPROVE_BODY_ID,
+// variables in order: salon name, site host). Returns null when that text is not configured.
+export async function sendApproved(env,phone,args){
+ const id=String(env?.MELIPAYAMAK_APPROVE_BODY_ID||'').trim();
+ if(!smsReady(env)||!/^\d+$/.test(id))return null;
+ if(mock(env)){console.log('[sms mock] approved ->',localNumber(phone),JSON.stringify(args));return {recId:'mock'};}
+ return shared(env,phone,Number(id),args);
+}

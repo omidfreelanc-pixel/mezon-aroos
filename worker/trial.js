@@ -2,6 +2,7 @@ import {must,phone,text,uid,digits,hash,limited} from './domain.js';
 import {notifyOwner} from './alerts.js';
 import {smsReady,sendOtp} from './sms.js';
 import {newToken} from './credits.js';
+import {newLinkCode} from './telegram.js';
 import {cleanUser,checkCreds,pwHash,subLabel,checkSub} from './manager.js';
 
 // Free trial salon page: a salon owner builds it from the landing form and can use it for a short
@@ -63,6 +64,7 @@ export async function createTrial(db,env,origin,b){
   db.prepare('INSERT INTO inquiries(id,name,salon,city,phone,note,chosen,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(uid(),name,salon,city,tel,note,'صفحهٔ آزمایشی '+slug+(chosen?' · '+chosen:''),now)
  ]);
  const url=(env.APP_ORIGIN||origin)+'/s/'+slug;
+ const bot=(await newLinkCode(db,{id:salonId},env).catch(()=>({links:{}}))).links||{};
  await notifyOwner(env,{kind:'trial',level:'good',text:'صفحهٔ آزمایشی «'+salon+'»'+(city?' ('+city+')':'')+' ساخته شد',detail:'👤 '+name+'\n📞 '+tel+'\n🔗 '+url+'\n👤 نام کاربری: '+username+(wantSub?'\n🌐 زیردامنهٔ درخواستی: '+wantSub:'')+'\n🛠 پنل مزون‌دار: '+(env.APP_ORIGIN||origin)+'/m/'+token+'\n⏳ ساخت تصویر تا تأیید شما بسته است'+'\n⏳ '+TRIAL_HOURS+' ساعت · '+TRIAL_IMAGES+' تصویر'+(chosen?'\n✨ '+chosen:'')+(note?'\n📝 '+note:'')});
- return {ok:true,path:'/s/'+slug,url,panel:(env.APP_ORIGIN||origin)+'/m/'+token,expires_at:expires,images:TRIAL_IMAGES,hours:TRIAL_HOURS};
+ return {ok:true,bot,path:'/s/'+slug,url,panel:(env.APP_ORIGIN||origin)+'/m/'+token,expires_at:expires,images:TRIAL_IMAGES,hours:TRIAL_HOURS};
 }

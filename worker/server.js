@@ -158,7 +158,7 @@ export async function api(req,env){const u=new URL(req.url),path=u.pathname;must
  if(path==='/api/owner/digest'&&req.method==='GET'){await owner(req,env);return J({text:await digest(env)});}
  if(path==='/api/owner/webhook'&&req.method==='POST'){await owner(req,env);return J(await setWebhook(env,env.APP_ORIGIN||u.origin));}
  if(path==='/api/owner/accounts'&&req.method==='GET'){await owner(req,env);return J(await adminAccounts(db,env.APP_ORIGIN||u.origin));}
- if(path==='/api/owner/account'&&req.method==='POST'){await owner(req,env);return J(await adminSetAccount(db,await req.json().catch(()=>({}))));}
+ if(path==='/api/owner/account'&&req.method==='POST'){await owner(req,env);return J(await adminSetAccount(db,await req.json().catch(()=>({})),env,u.origin));}
  if(path==='/api/owner/manager'&&req.method==='POST'){await owner(req,env);const b=await req.json().catch(()=>({}));const sl=await one(db,'SELECT id FROM salons WHERE slug=?',String(b.slug||''));must(sl,'مزون پیدا نشد',404);await setManager(db,sl.id,b.username,b.password);return J({ok:true});}
  if(path==='/api/owner/recharge'&&req.method==='POST'){await owner(req,env);return J(await adminHandleRequest(db,await req.json().catch(()=>({}))));}
  if(path.startsWith('/api/m/'))return await panelApi(req,env,u);

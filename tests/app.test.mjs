@@ -1035,12 +1035,15 @@ test('manager accounts: chosen at registration, panel opens after approval on th
   const r=await call(e,'/api/trial',body);assert.equal(r.status,200,JSON.stringify(r));const slug=r.data.path.slice(3);
   const row=()=>e.DB.sql.prepare('SELECT * FROM salons WHERE slug=?').get(slug);
   assert.equal(row().mgr_user,'sara.rose');assert.notEqual(row().mgr_hash,'Passw0rd!x');assert.equal(row().desired_sub,'rose');assert.equal(row().subdomain,null);
+  assert.match(r.data.bot.telegram,/t\.me\/ayneh_bot\?start=[a-f0-9]{24}/,'registration returns the bot start link');
+  await hook(e,{message:{chat:{id:777,type:'private'},text:'/start '+r.data.bot.telegram.split('start=')[1]}});
   const f=(host,path,init={})=>app.fetch(new Request('https://'+host+path,{...init,headers:{origin:'https://'+host,'content-type':'application/json',...(init.headers||{})}}),e);
   // before approval: no subdomain, no manager login
   assert.equal((await f('rose.ayneh.test','/')).status,404);
   assert.equal((await f('t-x.ayneh.test','/api/s/'+slug+'/manager/login',{method:'POST',body:JSON.stringify({username:'sara.rose',password:'Passw0rd!x'})})).status,403);
   // owner approves: subdomain is created
-  const ap=await call(e,'/api/owner/account',{slug,approved:true,subdomain:'Rose'},OWNER);assert.equal(ap.status,200,JSON.stringify(ap));assert.equal(ap.data.subdomain,'rose');assert.equal(row().subdomain,'rose');
+  const ap=await call(e,'/api/owner/account',{slug,approved:true,subdomain:'Rose'},OWNER);assert.equal(ap.status,200,JSON.stringify(ap));assert.equal(ap.data.subdomain,'rose');
+  assert.deepEqual(ap.data.notified.bot,['telegram']);assert.equal(ap.data.notified.sms,'off');const said=toOwner(tg,777).join('\n');assert.match(said,/rose\.ayneh\.test\/manager/);assert.match(said,/sara\.rose/);assert.equal(row().subdomain,'rose');
   const other=await salon(e,'other-salon');assert.equal((await call(e,'/api/owner/account',{slug:other.slug,approved:true,subdomain:'rose'},OWNER)).status,409,'subdomain is unique');
   const home=await f('rose.ayneh.test','/');assert.equal(home.status,200);assert.match(await home.text(),new RegExp('window.__SLUG="'+slug+'"'));
   const mp=await f('rose.ayneh.test','/manager');assert.equal(mp.status,200);assert.match(await mp.text(),new RegExp('window.__MGR="'+slug+'"'));

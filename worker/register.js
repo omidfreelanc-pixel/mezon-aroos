@@ -30,7 +30,7 @@ h2{font:700 17px/1.6 "Estedad","Vazirmatn",sans-serif;margin:0}
 <label class="chk"><input type="checkbox" id="consent"><span>با ثبت این فرم موافقم که مزون آینه برای فعال‌سازی حساب با من تماس بگیرد.</span></label>
 <input id="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;width:1px;height:1px" aria-hidden="true">
 <button class="btn" id="go" type="submit">ساخت صفحهٔ مزون</button><div class="msg bad" id="err" hidden></div></form>
-<section class="card" id="done" hidden><h2>صفحهٔ شما ساخته شد 🎉</h2><p>تا وقتی مدیر مزون آینه حساب را تأیید نکند، صفحهٔ شما و همهٔ بخش‌ها کار می‌کند اما ساخت تصویر بسته است. بعد از تأیید، پنل مدیریت و زیردامنهٔ اختصاصی شما فعال می‌شود و با همان نام کاربری و رمز وارد می‌شوید.</p><p class="links">صفحهٔ مشتری: <a id="l1" href="#"></a></p><p class="links">پنل اعتبار و شارژ (این لینک را نگه دارید): <a id="l2" href="#"></a></p></section>
+<section class="card" id="done" hidden><h2>صفحهٔ شما ساخته شد 🎉</h2><div class="msg good" id="botbox" style="margin:12px 0" hidden><b>مرحلهٔ مهم:</b> ربات را باز کنید و دکمهٔ <b>Start</b> را بزنید تا خبر فعال‌شدن صفحه و درخواست‌های مشتری‌ها به همان‌جا برسد.<br><a id="botl" class="btn" style="display:block;text-align:center;margin-top:10px" target="_blank" rel="noopener">باز کردن ربات و Start</a><a id="botl2" hidden></a></div><p>تا وقتی مدیر مزون آینه حساب را تأیید نکند، صفحهٔ شما و همهٔ بخش‌ها کار می‌کند اما ساخت تصویر بسته است. بعد از تأیید، پنل مدیریت و زیردامنهٔ اختصاصی شما فعال می‌شود و با همان نام کاربری و رمز وارد می‌شوید.</p><p class="links">صفحهٔ مشتری: <a id="l1" href="#"></a></p><p class="links">پنل اعتبار و شارژ (این لینک را نگه دارید): <a id="l2" href="#"></a></p></section>
 </main>
 <script>
 var $=function(i){return document.getElementById(i)},base=location.hostname.replace(/^www\./,"");$("base").textContent="."+base;
@@ -41,6 +41,6 @@ $("f").addEventListener("submit",function(e){e.preventDefault();var err=$("err")
  fetch("/api/trial",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||"خطا");return d})}).then(function(d){
   if(d.code_sent){$("codebox").hidden=false;err.hidden=false;err.className="msg good";err.textContent="کد تأیید به موبایلت پیامک شد؛ آن را وارد کن و دوباره دکمه را بزن.";return}
   if(!d.path){return}
-  $("f").hidden=true;$("done").hidden=false;$("l1").href=$("l1").textContent=d.url;$("l2").href=$("l2").textContent=d.panel;
+  $("f").hidden=true;$("done").hidden=false;var bl=(d.bot&&(d.bot.telegram||d.bot.bale))||"";if(bl){$("botbox").hidden=false;$("botl").href=bl}$("l1").href=$("l1").textContent=d.url;$("l2").href=$("l2").textContent=d.panel;
  }).catch(function(x){err.hidden=false;err.className="msg bad";err.textContent=x.message}).then(function(){b.disabled=false})});
 </script></body></html>`;

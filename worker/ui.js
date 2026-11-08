@@ -408,6 +408,31 @@ function accountsCard(){
  load().catch(function(e){body.append(h('p',e.message,'empty-note'))});
  return box;
 }
+function pendingCard(){
+ var box=el('section',{class:'card'},[h('h2','درخواست‌های ثبت‌نام مزون'),h('p','مزون‌دارهایی که ثبت‌نام کرده‌اند و منتظر تأیید شما هستند. با تأیید، زیردامنه ساخته می‌شود، پنل مدیریت باز می‌شود و برای مدیر پیامک و پیام ربات می‌رود.','lead')]),body=el('div',{class:'stack'});box.hidden=true;box.append(body);
+ function report(a,r){
+  var n=r.notified||{},bits=[];
+  bits.push((n.bot&&n.bot.length)?'✅ پیام ربات ('+n.bot.join('، ')+') فرستاده شد':'⚠️ ربات مدیر وصل نیست؛ پیام ربات نرفت');
+  bits.push(n.sms===true?'✅ پیامک فرستاده شد':n.sms===false?'❌ پیامک نرفت':'ℹ️ پیامک فعال نیست (متن تأییدشدهٔ پیامک تنظیم نشده)');
+  (n.errors||[]).forEach(function(x){bits.push('⚠️ '+x)});
+  return el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong','✅ '+a.name+' فعال شد'),h('small','https://'+r.subdomain+'.'+location.hostname.replace(/^www\./,'')+'  ·  /manager'),h('small',bits.join(' | '))])])
+ }
+ function load(){return api('/api/owner/accounts').then(function(d){
+  var list=d.accounts.filter(function(a){return !a.approved});
+  box.hidden=!list.length&&!body.children.length;
+  Array.prototype.slice.call(body.querySelectorAll('.pend')).forEach(function(n){n.remove()});
+  list.forEach(function(a){
+   var sub=el('input',{type:'text',value:a.desired||'',placeholder:'زیردامنه، مثلاً rose'});sub.setAttribute('dir','ltr');sub.setAttribute('autocapitalize','off');
+   sub.addEventListener('input',function(){sub.value=sub.value.toLowerCase().replace(/[^a-z0-9-]/g,'')});
+   var row=el('div',{class:'salon pend'},[el('div',{class:'grow'},[h('strong',a.name),h('small',(a.phone?'📞 '+a.phone+' · ':'')+(a.manager?'کاربر: '+a.manager:'بدون نام کاربری')),badge(a.bot?'ربات مدیر وصل است':'ربات مدیر هنوز وصل نشده',a.bot?'ok':'warn'),sub]),
+    el('button',{class:'btn btn--primary btn--sm',type:'button',text:'تأیید و فعال‌سازی',onclick:act(function(){
+     var v=sub.value.trim();if(!v)throw new Error('زیردامنه را بنویسید');
+     return api('/api/owner/account',{slug:a.slug,approved:true,subdomain:v}).then(function(r){toast('مزون فعال شد');row.replaceWith(report(a,r));return load()})})})]);
+   body.append(row)});
+ })}
+ load().catch(function(e){box.hidden=false;body.append(h('p',e.message,'empty-note'))});
+ return box;
+}
 function home(){return api('/api/owner').then(function(d){
  var head=el('div',{class:'page-head'},[el('div',{},[h('h1','داشبورد'),h('p','مشتری‌ها چطور از صفحه‌ها استفاده می‌کنند و مزون‌ها چقدر جواب می‌دهند. پایین صفحه، فهرست مزون‌ها و تنظیمات ربات است.')])]);
  var list=el('div',{class:'salons'});
@@ -419,7 +444,7 @@ function home(){return api('/api/owner').then(function(d){
   var prev=el('span',{class:'hint slug-preview'});si.closest('.field').append(prev);
   function show(){var v=si.value;prev.textContent=v?'صفحهٔ مشتری: '+location.host+'/s/'+v:''}
   si.addEventListener('input',function(){var c=si.value.toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9-]/g,'').replace(/-+/g,'-');if(c!==si.value)si.value=c;show()});show()})();
- $('#app').replaceChildren(head,dashboard(d.salons),el('h2',{class:'section-title',text:'مزون‌ها'}),el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[list,create]),el('div',{class:'stack'},[accountsCard(),alertsCard(d),botCard(d.bot),smsCard(d.sms||{}),imageCard(d.image)])]));
+ $('#app').replaceChildren(head,pendingCard(),dashboard(d.salons),el('h2',{class:'section-title',text:'مزون‌ها'}),el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[list,create]),el('div',{class:'stack'},[accountsCard(),alertsCard(d),botCard(d.bot),smsCard(d.sms||{}),imageCard(d.image)])]));
 })}
 function smsCard(sms){
  var st=function(ok,on,off){return el('li',{class:ok?'on':'off'},[h('span',ok?'✓':'–','dot'),h('span',ok?on:off)])};
