@@ -412,7 +412,14 @@ body.is-touring{overflow:hidden}
 .about__quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px}
 .sidecard__lead{font-size:13px;color:var(--muted);margin:-8px 0 14px}
 .style-card{padding:0;overflow:hidden;min-height:0}
-.style-card__art{display:block;aspect-ratio:4/5;background:linear-gradient(170deg,#eef2f0,#d6dfdb);overflow:hidden}
+.style-card__art{display:block;aspect-ratio:4/5;background:linear-gradient(170deg,#eef2f0,#d6dfdb);overflow:hidden;position:relative}
+.angle-badge{position:absolute;inset-block-end:8px;inset-inline-start:8px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;padding:2px 8px;border-radius:999px}
+.dress-stage{display:flex;justify-content:center;background:#f3f1ee;border-radius:14px;overflow:hidden}
+.dress-big{max-width:100%;max-height:58vh;object-fit:contain;display:block}
+.dress-thumbs{display:flex;gap:8px;justify-content:center;margin:10px 0}
+.dress-th{border:2px solid transparent;border-radius:10px;padding:0;background:none;width:64px;cursor:pointer;font:inherit;font-size:11px;color:inherit}
+.dress-th img{width:100%;height:80px;object-fit:cover;border-radius:8px;display:block}
+.dress-th.is-on{border-color:var(--ink)}
 .style-card__art img{width:100%;height:100%;object-fit:cover;transition:transform .3s var(--ease)}
 .style-card:hover .style-card__art img{transform:scale(1.03)}
 .style-card__art.is-missing{aspect-ratio:auto;height:6px}
@@ -855,7 +862,9 @@ function stepModel(){
      art0,
      el('span',{class:'style-card__body'},[el('span',{class:'style-card__name',text:p.title}),el('span',{class:'style-card__tag',text:p.stylist?'کار '+p.stylist:(p.category||'کار مزون')}),dressInfo(p)])
     ]);
-    card.addEventListener('click',function(){track('look','s:'+p.title);chooseLook(function(){state.reference=imgs[0];state.refTitle=p.title;state.style=null})});
+    if(imgs.length>1)art0.append(el('span',{class:'angle-badge',text:fa(imgs.length)+' نما'}));
+    function pickIt(){track('look','s:'+p.title);chooseLook(function(){state.reference=imgs[0];state.refTitle=p.title;state.style=null})}
+    card.addEventListener('click',function(){if(imgs.length>1)openDress(p,imgs,pickIt);else pickIt()});
     grid0.append(card);
    });
    box.append(grid0);
@@ -2164,6 +2173,21 @@ function openSpin(){
    }).catch(function(){setTimeout(check,6000)});
   })();
  }).catch(function(e){body.replaceChildren(notice('danger',(e&&e.message)||'ساخت ویدیو ممکن نشد'))});
+}
+// Big preview of every angle of one dress; the customer looks first, then chooses it to try on.
+var ANGLE_NAMES=['جلو','کنار','پشت','جزئیات'];
+function openDress(p,imgs,pick){
+ var panel=el('div',{class:'sheet__panel dress-panel'}),cur=0;
+ panel.append(el('div',{class:'sheet__head'},[h('h2',p.title),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
+ var big=el('img',{class:'dress-big',alt:p.title,src:media(imgs[0])}),thumbs=el('div',{class:'dress-thumbs'});
+ var tb=imgs.map(function(id,i){var b=el('button',{type:'button',class:'dress-th'+(i===0?' is-on':''),'aria-label':'نمای '+(ANGLE_NAMES[i]||i+1)},[el('img',{src:media(id),alt:'',loading:'lazy'}),el('span',{text:ANGLE_NAMES[i]||''})]);b.addEventListener('click',function(){show(i)});thumbs.append(b);return b});
+ function show(i){cur=(i+imgs.length)%imgs.length;big.src=media(imgs[cur]);tb.forEach(function(b,k){b.classList.toggle('is-on',k===cur)})}
+ var sx=0;big.addEventListener('touchstart',function(e){sx=e.touches[0].clientX},{passive:true});
+ big.addEventListener('touchend',function(e){var d=e.changedTouches[0].clientX-sx;if(Math.abs(d)>40)show(cur+(d<0?1:-1))});
+ var prev=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'▶',onclick:function(){show(cur-1)},'aria-label':'قبلی'}),nxt=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'◀',onclick:function(){show(cur+1)},'aria-label':'بعدی'});
+ var go=el('button',{class:'btn btn--primary',type:'button',text:'این لباس را انتخاب کن و بساز'});go.addEventListener('click',function(){closeSheet();pick()});
+ panel.append(el('div',{class:'dress-stage',dir:'ltr'},[big]),el('div',{class:'spin__row'},[nxt,prev]),thumbs,h('p',[p.stylist?'کار '+p.stylist:'',p.category||''].filter(Boolean).join(' · '),'spin__tip'),go);
+ openSheet(panel);
 }
 function openSheet(node){
  var d=$('#sheet');
