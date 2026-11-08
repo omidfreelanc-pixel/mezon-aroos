@@ -803,7 +803,7 @@ function bgRow(){
  var wrap=el('div',{class:'bgrow'},[el('b',{text:'کجا ایستاده باشی؟ یک تالار انتخاب کن'})]),strip=el('div',{class:'bgstrip',role:'radiogroup'});
  [{id:'',name:'همان پس‌زمینهٔ عکس خودم'}].concat(list).forEach(function(x){
   var b=el('button',{class:'bgchip'+(state.bg===x.id?' is-on':''),type:'button',role:'radio','aria-checked':state.bg===x.id?'true':'false'},[x.id?el('img',{src:'/bg/'+x.id+'.jpg',alt:'',loading:'lazy'}):el('span',{class:'bgchip__own',html:ICO.camera}),el('span',{text:x.name})]);
-  b.addEventListener('click',function(){state.bg=x.id;state.idem=null;strip.querySelectorAll('.bgchip').forEach(function(c){c.classList.remove('is-on');c.setAttribute('aria-checked','false')});b.classList.add('is-on');b.setAttribute('aria-checked','true')});
+  b.addEventListener('click',function(){state.bg=x.id;state.idem=null;var mk=document.getElementById('mk');if(mk)mk.checked=x.id?state.makeup===true:state.makeup!==false;strip.querySelectorAll('.bgchip').forEach(function(c){c.classList.remove('is-on');c.setAttribute('aria-checked','false')});b.classList.add('is-on');b.setAttribute('aria-checked','true')});
   strip.append(b);
  });
  wrap.append(strip,el('p',{class:'bgnote',text:'برای نتیجهٔ طبیعی در تالار، عکس تمام‌قد (از سر تا کفش، ایستاده) لازم است؛ با عکس نیم‌تنه یا سلفی، بدن ساختگی می‌شود.'}));return wrap;
