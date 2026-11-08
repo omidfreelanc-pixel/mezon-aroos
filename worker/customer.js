@@ -369,7 +369,7 @@ body.is-touring{overflow:hidden}
 .bgrow{margin:14px 0 6px}.bgrow>b{display:block;margin-bottom:8px}
 .bgstrip{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x proximity}
 .bgchip{flex:none;width:104px;scroll-snap-align:start;border:2px solid var(--line);border-radius:16px;background:#fff;padding:0;overflow:hidden;cursor:pointer;display:grid;text-align:center;font:inherit;transition:border-color .15s,box-shadow .15s}
-.bgchip img,.bgchip__own{width:100%;aspect-ratio:2/3;object-fit:cover;display:grid;place-items:center;background:var(--surface-2)}.bgchip__own svg{width:30px;height:30px;color:var(--accent)}
+.bgnote{margin:8px 2px 0;font-size:12px;line-height:1.8;color:var(--muted)}.bgchip img,.bgchip__own{width:100%;aspect-ratio:2/3;object-fit:cover;display:grid;place-items:center;background:var(--surface-2)}.bgchip__own svg{width:30px;height:30px;color:var(--accent)}
 .bgchip>span:last-child{font-size:12px;line-height:1.5;padding:6px 4px;color:var(--ink-2)}
 .bgchip.is-on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}.bgchip.is-on>span:last-child{color:var(--accent-ink);font-weight:700}
 .vspin{display:grid;gap:12px;justify-items:center;padding:4px 2px 14px}.vspin__stage{position:relative;width:min(100%,380px);overflow:hidden;border-radius:18px;background:#e9e5df;touch-action:none;cursor:grab;box-shadow:var(--lift)}.vspin__stage video{display:block;width:100%;height:auto;transform-origin:center;will-change:transform;pointer-events:none}.vspin__wait{display:grid;gap:12px;justify-items:center;text-align:center}.vspin__wait img{width:min(60%,220px);border-radius:16px;animation:sway 3.2s ease-in-out infinite;box-shadow:var(--float)}
@@ -806,7 +806,7 @@ function bgRow(){
   b.addEventListener('click',function(){state.bg=x.id;state.idem=null;strip.querySelectorAll('.bgchip').forEach(function(c){c.classList.remove('is-on');c.setAttribute('aria-checked','false')});b.classList.add('is-on');b.setAttribute('aria-checked','true')});
   strip.append(b);
  });
- wrap.append(strip);return wrap;
+ wrap.append(strip,el('p',{class:'bgnote',text:'برای نتیجهٔ طبیعی در تالار، عکس تمام‌قد (از سر تا کفش، ایستاده) لازم است؛ با عکس نیم‌تنه یا سلفی، بدن ساختگی می‌شود.'}));return wrap;
 }
 function makeupRow(){
  var cb=el('input',{type:'checkbox',id:'mk'});cb.checked=state.bg?state.makeup===true:state.makeup!==false;
