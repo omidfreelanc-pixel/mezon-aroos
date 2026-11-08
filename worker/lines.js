@@ -35,7 +35,7 @@ export function dressPrompt(mode,style){
   :'DRESS: '+style+'.';
  return 'Professional bridal boutique virtual fitting. Photo 1 is the bride in a full-body photo. Replace ONLY her current clothing with the wedding dress; nothing else changes.\n'+
   DRESS_BODY+'\n'+what+
-  '\nFIT: the dress follows her real body: it sits on her real shoulders, bust, waist and hips, the skirt starts at her real waist and falls to the floor in front of her real legs and feet. Floor-length hems reach the floor and hide or touch her shoes; a train lies on the floor behind her. If a dress has sleeves or straps they sit on her real arms. Natural fabric folds, weight and drape, shadows matching the photo\'s light direction and colour temperature, correct perspective, clean seamless edges around her neck, arms and hands, no halo or pasted look.'+DRESS_OUT;
+  '\nFIT: the dress follows her real body: it sits on her real shoulders, bust, waist and hips, MODESTY: if she wears a headscarf or covered clothing in photo 1, keep her at least as covered: give the dress matching sheer long sleeves and a high illusion neckline in the same fabric, never exposing shoulders, arms, back or chest that photo 1 does not show. The skirt starts at her real waist and falls to the floor in front of her real legs and feet. Floor-length hems reach the floor and hide or touch her shoes; a train lies on the floor behind her. If a dress has sleeves or straps they sit on her real arms. Natural fabric folds, weight and drape, shadows matching the photo\'s light direction and colour temperature, correct perspective, clean seamless edges around her neck, arms and hands, no halo or pasted look.'+DRESS_OUT;
 }
 export const linePrompt=(line,mode,style)=>line==='dress'?dressPrompt(mode,style):'';
 
