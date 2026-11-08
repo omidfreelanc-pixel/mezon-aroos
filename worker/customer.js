@@ -693,7 +693,7 @@ function stepPhoto(){
    el('div',{class:'shoot__btns'},[
     el('button',{class:'btn btn--primary',type:'button',onclick:pickNow,html:ICO.gallery+'<span>انتخاب از گالری</span>'}),
     el('button',{class:'btn btn--ghost',type:'button',onclick:openCamera,html:ICO.camera+'<span>عکس با دوربین</span>'}),
-    KIOSK?el('button',{class:'btn btn--ghost',type:'button',onclick:openPhonePair,html:ICO.send+'<span>ارسال از گوشی خودم</span>'}):null
+    (KIOSK||(window.matchMedia&&matchMedia('(min-width:900px) and (hover:hover)').matches))?el('button',{class:'btn btn--ghost',type:'button',onclick:openPhonePair,html:ICO.send+'<span>ارسال از گوشی خودم</span>'}):null
    ]),
    el('details',{class:'collapse'},[
     el('summary',{html:ICO.lock+'<span>عکسم کجا نگه‌داری می‌شود؟</span>'}),
