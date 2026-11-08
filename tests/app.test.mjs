@@ -647,7 +647,7 @@ test('mezon: landing is public and the customer page is dress-only (limits tempo
  const home=await app.fetch(new Request(origin+'/'),e);assert.equal(home.status,200);assert.match(await home.text(),/مزون آینه/);
  const page=await app.fetch(new Request(origin+'/s/'+s.slug),e);const html=await page.text();
  assert.equal(page.status,200);assert.match(html,/لباس‌های مزون/);
- const v='ab'.repeat(16);assert.deepEqual((await call(e,'/api/s/'+s.slug+'/session?v='+v,undefined,g)).data.quota.left,{dress:1000});
+ const v='ab'.repeat(16);assert.deepEqual((await call(e,'/api/s/'+s.slug+'/session?v='+v,undefined,g)).data.quota.left,{dress:4});
 });
 
 test.skip('mezon: 8 tries per person, the ninth is refused before anything is paid; failures are given back',async()=>{
