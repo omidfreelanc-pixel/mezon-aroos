@@ -1,7 +1,8 @@
 import {appHTML} from './ui.js';
 import {customerHTML} from './customer.js';
 import {api,errorResponse,tick} from './server.js';
-import {must} from './domain.js';
+import {must,hash} from './domain.js';
+import {setting,setSetting} from './alerts.js';
 import {fontResponse} from './fonts.js';
 import {webhook,baleWebhook,setWebhook} from './telegram.js';
 import {favicon,baseCSS} from './design.js';
@@ -27,8 +28,17 @@ async function salonPage(u,env){
  return customerHTML.replace(/<meta name="description"[^>]*>\n?/,'').replace(/<meta property="og:[a-z:]+"[^>]*>\n?/g,'').replace(/<title>[^<]*<\/title>/,tags);
 }
 const homeHTML='<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#e8edeb"><title>مزون عروس | لباس عروس را روی اندام خودت ببین</title><meta name="description" content="پرو مجازی لباس عروس روی عکس تمام‌قد خودت، با حفظ سایز و فرم بدن."><link rel="icon" href="/favicon.svg"><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#e8edeb;color:#2b2118;font:16px/1.9 Vazirmatn,Tahoma,sans-serif}main{max-width:460px;padding:32px 24px;text-align:center}h1{font-size:28px;margin:0 0 8px}p{margin:0 0 20px;color:#5b5148}a{display:inline-block;padding:14px 26px;border-radius:999px;background:#1f6f6b;color:#fff;text-decoration:none;font-weight:700}</style></head><body><main><h1>مزون عروس</h1><p>لباس عروس را روی اندام خودت ببین؛ قد و سایز بدنت همان می‌ماند. مزون‌داران لباس‌هایشان را در تلگرام می‌گذارند و عروس‌ها در یک دقیقه پرو می‌کنند.</p><a href="/s/demo">نمونه را ببین</a></main></body></html>';
+// Registers the bot webhook once per (origin, secret, token) so a fresh deploy or rotated secret
+// needs no manual step. Failures are swallowed; the admin button and /api/internal/webhook still work.
+async function ensureWebhook(env,origin){try{
+ if(!env.DB||!env.TELEGRAM_BOT_TOKEN||!env.TELEGRAM_WEBHOOK_SECRET)return;
+ const sig=await hash((env.APP_ORIGIN||origin)+'|'+env.TELEGRAM_WEBHOOK_SECRET+'|'+env.TELEGRAM_BOT_TOKEN);
+ if(await setting(env.DB,'webhook_sig')===sig)return;
+ await setWebhook(env,env.APP_ORIGIN||origin);
+ await setSetting(env.DB,'webhook_sig',sig);
+}catch{}}
 export default {
- async fetch(request,env){try{const u=new URL(request.url);
+ async fetch(request,env,ctx){try{const u=new URL(request.url);
   if(u.pathname==='/api/internal/webhook'){must(request.method==='POST','متد مجاز نیست',405);must(env.JOB_TOKEN&&request.headers.get('Authorization')==='Bearer '+env.JOB_TOKEN,'دسترسی مجاز نیست',403);return Response.json(await setWebhook(env,env.APP_ORIGIN||u.origin));}
   if(u.pathname==='/api/internal/tick'){must(request.method==='POST','متد مجاز نیست',405);must(env.JOB_TOKEN&&request.headers.get('Authorization')==='Bearer '+env.JOB_TOKEN,'دسترسی مجاز نیست',403);return Response.json(await tick(env,u.origin));}
   if(u.pathname==='/api/telegram/webhook')return await webhook(request,env);
@@ -37,7 +47,7 @@ export default {
   if(u.pathname==='/favicon.ico')return new Response(null,{status:204,headers:{'Cache-Control':'public,max-age=86400'}});
   if(u.pathname==='/favicon.svg')return new Response(favicon,{headers:{'Content-Type':'image/svg+xml','Cache-Control':'public,max-age=86400'}});
   if(u.pathname.startsWith('/fonts/')){const f=fontResponse(u.pathname.slice(7));if(f)return f;}
-  if(u.pathname==='/')return new Response(homeHTML,{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}});
+  if(u.pathname==='/'){ctx?.waitUntil(ensureWebhook(env,u.origin));return new Response(homeHTML,{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}})}
   if(!pages.some(r=>r.test(u.pathname)))return new Response(notFound,{status:404,headers:htmlHeaders});
   if(/^\/i\/[a-z0-9-]{1,64}\/?$/.test(u.pathname)){const html=await sharePage(u,env);return new Response(html||notFound,{status:html?200:404,headers:htmlHeaders});}
   if(/^\/s\/[a-z0-9-]{1,64}\/?$/.test(u.pathname)){const html=await salonPage(u,env);return html?new Response(html,{headers:htmlHeaders}):new Response(notFound,{status:404,headers:htmlHeaders});}
