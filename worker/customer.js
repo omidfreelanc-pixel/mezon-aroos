@@ -306,6 +306,7 @@ body.is-touring{overflow:hidden}
 .cmpx__col .btn svg{display:none}
 .result-actions .btn{flex:1 1 auto}
 .mkrow{display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;padding:10px 12px;border-radius:14px;background:var(--glass-2);font-size:13.5px;line-height:1.7;cursor:pointer}.mkrow input{margin-top:5px;width:18px;height:18px;accent-color:var(--accent)}
+.kqrs{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;align-items:center;margin:10px 0}.kqrs p{flex-basis:100%;margin:0;font-size:15px}.kqr{display:grid;gap:6px;justify-items:center;font-weight:700}.kqr .qr__code{width:150px}
 .qr{display:grid;justify-items:center;gap:14px;padding:6px 4px 14px}.qr__code{width:min(100%,300px);background:#fff;border-radius:16px;padding:10px;box-shadow:var(--lift)}.qr__code svg{display:block;width:100%;height:auto}.qr__note{text-align:center;font-size:13.5px;color:var(--ink-2);line-height:1.9;margin:0}
 .kiosk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}.kiosk img{-webkit-user-drag:none}
 .kiosk .btn{min-height:56px;font-size:17px}
@@ -1817,6 +1818,11 @@ function kioskWarn(){
  document.body.append(kioskWarnEl);
  kioskWarnT=setInterval(function(){left--;num.textContent=fa(Math.max(left,0));if(left<=0){clearInterval(kioskWarnT);kioskReset()}},1000);
 }
+// On the boutique screen: a code that opens the bot already tied to this boutique, so a bride can send her photo from her own phone.
+function botQrBlock(){
+ var bot=(state.pub&&state.pub.bot)||{},ks=Object.keys(bot);if(!ks.length||typeof qrcode==='undefined')return null;
+ return el('div',{class:'kqrs'},ks.map(function(k){return el('div',{class:'kqr'},[el('div',{class:'qr__code',dir:'ltr',html:qrSvg(bot[k])}),h('span',k==='bale'?'بله':'تلگرام')])}).concat([h('p','یا با گوشی خودت اسکن کن، عکس تمام‌قدت را برای ربات بفرست و نتیجه را همان‌جا بگیر.')]));
+}
 function kioskBoot(){
  document.documentElement.classList.add('kiosk');
  document.addEventListener('contextmenu',function(e){e.preventDefault()});
@@ -1827,7 +1833,7 @@ function kioskBoot(){
  }});
  document.body.append(end);
  var name=(document.title||'').split('|')[0].trim();
- var att=el('div',{class:'kov kov--attract'},[el('div',{class:'kov__card'},[h('h1',name||'مزون'),h('p','لباس عروس را روی اندام خودت ببین؛ قد و سایز بدنت همان می‌ماند.'),h('p','عکس تمام‌قدت فقط برای ساخت همین شبیه‌سازی استفاده می‌شود و با «پایان» یا بعد از چند دقیقه بی‌حرکتی از روی این دستگاه پاک می‌شود.','kov__fine'),el('button',{class:'btn btn--primary btn--lg',type:'button',text:'برای شروع لمس کن',onclick:function(){
+ var att=el('div',{class:'kov kov--attract'},[el('div',{class:'kov__card'},[h('h1',name||'مزون'),h('p','لباس عروس را روی اندام خودت ببین؛ قد و سایز بدنت همان می‌ماند.'),h('p','عکس تمام‌قدت فقط برای ساخت همین شبیه‌سازی استفاده می‌شود و با «پایان» یا بعد از چند دقیقه بی‌حرکتی از روی این دستگاه پاک می‌شود.','kov__fine'),botQrBlock(),el('button',{class:'btn btn--primary btn--lg',type:'button',text:'برای شروع لمس کن',onclick:function(){
   kioskStarted=true;att.remove();kioskActivity();try{if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen()}catch(e){}
  }})])]);
  document.body.append(att);

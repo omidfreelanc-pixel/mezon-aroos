@@ -838,3 +838,49 @@ test('kiosk page: ?kiosk=1 is the same page, QR library and camera guide are shi
  const html=await (await app.fetch(new Request(origin+'/s/'+s.slug+'?kiosk=1'),e)).text();
  assert.match(html,/function kioskBoot/);assert.match(html,/var qrcode=/);assert.match(html,/آرایش ملایم عروس/);
 });
+
+test('a result becomes a shareable post: likes, comments, the bride is told, social consent is kept',async()=>{
+  const e=tgEnv(fixture()),s=await salon(e,'post-a'),g=await guest(e,s),original=await upload(e,s,g);
+  const tg=mockTelegram(),calls=tg.calls;
+  try{
+    const sess=e.DB.sql.prepare('SELECT id FROM sessions').get().id;
+    e.DB.sql.prepare("UPDATE sessions SET bot_platform='telegram',bot_chat='555',bot_name='مریم' WHERE id=?").run(sess);
+    const gid=crypto.randomUUID();
+    e.DB.sql.prepare("INSERT INTO generations(id,salon_id,session_id,idem,state,original_id,result_id,style,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)").run(gid,e.DB.sql.prepare('SELECT id FROM salons').get().id,sess,crypto.randomUUID(),'success',original,original,3,Date.now(),Date.now());
+    // not yours -> no post
+    assert.equal((await call(e,'/api/s/post-a/share',{gen:crypto.randomUUID()},g)).status,404);
+    const sh=await call(e,'/api/s/post-a/share',{gen:gid,name:'مریم'},g);assert.equal(sh.status,200,JSON.stringify(sh));
+    assert.match(sh.data.url,/\/p\/[a-f0-9]{32}$/);assert.ok(sh.data.text.includes('مزون post-a')&&sh.data.text.includes('فیت'));
+    const t=sh.data.token,pub=await app.fetch(new Request(origin+'/p/'+t),e);assert.equal(pub.status,200);assert.ok((await pub.text()).includes('مریم'));
+    assert.equal((await app.fetch(new Request(origin+'/api/p/'+t+'/image'),e)).status,200);
+    assert.equal((await app.fetch(new Request(origin+'/p/'+'0'.repeat(32)),e)).status,404);
+    const post=(path,body)=>app.fetch(new Request(origin+'/api/p/'+t+path,{method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)}),e);
+    assert.equal((await post('/like',{v:'a'.repeat(20)})).status,200);
+    assert.equal((await (await post('/like',{v:'a'.repeat(20)})).json()).likes,1); // same visitor counts once
+    assert.equal((await post('/comment',{name:'سارا',body:'خیلی بهت میاد'})).status,200);
+    assert.equal((await post('/comment',{name:'س',body:''})).status,400);
+    assert.ok(calls.some(c=>c.method==='sendMessage'&&String(c.body.chat_id)==='555'&&String(c.body.text).includes('سارا')),'the bride is told about the comment');
+    const rx=await call(e,'/api/s/post-a/reactions/'+gid,undefined,g);assert.equal(rx.data.likes,1);assert.equal(rx.data.comments[0].name,'سارا');assert.equal(rx.data.consent,0);
+    assert.equal((await call(e,'/api/s/post-a/social',{gen:gid,consent:true},g)).status,200);
+    assert.equal((await call(e,'/api/s/post-a/reactions/'+gid,undefined,g)).data.consent,1);
+    const list=await call(e,'/api/s/post-a/owner/social',undefined,OWNER);assert.equal(list.data.items.length,1);assert.equal(list.data.items[0].dress.length>0,true);
+  }finally{tg.restore()}
+});
+
+test('a bride messages the bot from the boutique link: photo in, personal link out, consent answered by button',async()=>{
+  const e=tgEnv(fixture()),s=await salon(e,'bot-a'),tg=mockTelegram();
+  try{
+    let id=1;const send=m=>hook(e,{update_id:id++,message:{chat:{id:9001,type:'private'},from:{id:9001,first_name:'مریم'},...m}});
+    assert.equal((await send({text:'/start c_bot-a'})).status,200);
+    assert.ok(tg.calls.some(c=>c.method==='sendMessage'&&String(c.body.text).includes('تمام‌قد')),'asks for a full-length photo');
+    await send({photo:[{file_id:'p1',file_size:2000}]});
+    const link=tg.calls.filter(c=>c.method==='sendMessage').map(c=>c.body.reply_markup?.inline_keyboard?.[0]?.[0]?.url).find(Boolean);
+    assert.match(link,/\/s\/bot-a\?c=[a-f0-9]{64}$/);
+    // the personal link opens her session with the photo already in it
+    const key=link.split('?c=')[1],claim=await call(e,'/api/s/bot-a/session/claim',{t:key});assert.equal(claim.status,200);
+    const me=await call(e,'/api/s/bot-a/session',undefined,{cookie:claim.cookie});assert.equal(me.data.bot,true);assert.ok(me.data.original);
+    assert.equal((await call(e,'/api/s/bot-a/session/claim',{t:'0'.repeat(64)})).status,410);
+    // unknown boutique
+    await send({text:'/start c_nope'});assert.ok(tg.calls.some(c=>String(c.body.text||'').includes('پیدا نشد')));
+  }finally{tg.restore()}
+});
