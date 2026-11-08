@@ -64,6 +64,7 @@ export async function panelApi(req,env,u){
  const db=env.DB,salon=await one(db,'SELECT * FROM salons WHERE manage_token=?',m[1]);must(salon,'پنل پیدا نشد',404);
  const route=m[2]||'',J=(d,c=200)=>new Response(JSON.stringify(d),{status:c,headers:{'Content-Type':'application/json;charset=utf-8','Cache-Control':'no-store'}});
  if(route===''&&req.method==='GET')return J(await creditStatus(db,salon));
+ if(route==='bot'&&req.method==='GET')return J({linked:!!(salon.telegram_chat_id||salon.bale_chat_id)});
  if(route==='recharge'&&req.method==='POST')return J(await requestRecharge(db,env,salon,await req.json().catch(()=>({}))));
  must(false,'پیدا نشد',404);
 }
