@@ -297,6 +297,19 @@ function referrals(r){
 
 // Leads of one boutique: status filter, a status select per request (same effect as the bot buttons),
 // delivery state with a retry for failed ones, and a CSV export.
+// Pictures brides allowed the boutique to post on its social media (answered "yes" on the page or in the bot).
+function socialCard(slug){
+ var box=el('section',{class:'card'},[h('h2','تصاویر مجاز برای سوشال'),h('p','عروس‌هایی که اجازه دادند تصویرشان در سوشال مزون منتشر شود. این عکس‌ها پاک نمی‌شوند؛ دانلود کنید و با ذکر اسم عروس منتشر کنید.','lead')]),list=el('div',{class:'grid grid--3'});
+ box.append(list);
+ api('/api/s/'+slug+'/owner/social').then(function(r){
+  if(!r.items.length){list.replaceWith(h('p','هنوز کسی اجازه نداده.','lead'));return}
+  r.items.forEach(function(x){
+   var src='/api/s/'+slug+'/media/'+x.media;
+   list.append(el('figure',{class:'sc'},[el('img',{src:src,alt:x.name||'عروس',loading:'lazy',style:'width:100%;border-radius:12px;aspect-ratio:2/3;object-fit:cover'}),el('figcaption',{style:'font-size:13px;line-height:1.8'},[document.createTextNode((x.name||'عروس')+(x.dress?' · '+x.dress:'')+' ')]),el('a',{class:'btn btn--ghost btn--sm',href:src,download:'bride-'+x.id.slice(0,8)+'.jpg',text:'دانلود'})]));
+  });
+ }).catch(function(){list.replaceWith(h('p','بارگیری نشد.','lead'))});
+ return box;
+}
 var LSTATUS=[['new','جدید'],['called','تماس گرفته شد'],['booked','رزرو شد'],['cancelled','لغو'],['declined','قابل اجرا نیست']];
 function leadsCard(slug){
  var box=el('section',{class:'card'},[h('h2','درخواست‌ها و مشتریان علاقه‌مند'),h('p','هر کس «این لباس را می‌خواهم» یا فرستادن را زده اینجاست. وضعیت را از اینجا یا از دکمه‌های ربات عوض کنید؛ مشتری هم خبردار می‌شود.','lead')]);
@@ -453,9 +466,9 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  var add=el('div',{class:'port-add'},[h('b','افزودن نمونه‌کار از همین‌جا'),el('label',{class:'field'},[el('span',{class:'lbl',text:'عکس‌ها'}),addFiles]),addList,addBtn]);
  var port=el('section',{class:'card'},[h('h2','نمونه‌کارها'),h('p','مزون عکس را برای ربات تلگرام می‌فرستد و همان لحظه اینجا و روی صفحهٔ مشتری می‌نشیند. از همین‌جا هم می‌توانید اضافه کنید.','lead'),d.portfolio.length?ports:h('p','هنوز نمونه‌کاری نیامده.','empty-note'),add]);
 
- var leads=leadsCard(slug);
+ var leads=leadsCard(slug),social=socialCard(slug);
 
- $('#app').replaceChildren(head,el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[prof,port]),el('div',{class:'stack'},[tg,teamC,set,leads])]));
+ $('#app').replaceChildren(head,el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[prof,port]),el('div',{class:'stack'},[tg,teamC,set,leads,social])]));
 })}
 $('#logout').addEventListener('click',function(){api('/api/logout',{}).then(function(){location.href='/'})});
 `;
