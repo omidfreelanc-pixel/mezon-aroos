@@ -661,3 +661,18 @@ test.skip('mezon: 8 tries per person, the ninth is refused before anything is pa
   assert.equal((await gen(9)).status,200);
  }finally{globalThis.fetch=previous}
 });
+
+test('step 2: landing page has the sections, meta tags, caching and no external resources',async()=>{
+ const r=await app.fetch(new Request(origin+'/'),fixture());const html=await r.text();
+ assert.equal(r.status,200);assert.equal(r.headers.get('cache-control'),'public,max-age=300');
+ assert.match(html,/<html lang="fa" dir="rtl">/);assert.match(html,/<title>[^<]+<\/title>/);assert.match(html,/name="description"/);assert.match(html,/property="og:title"/);
+ for(const needle of ['href="/s/demo"','demo-before.webp','demo-after.webp','https://t.me/mezon_aynehbot','<details>','<footer','id="owners"','type="range"'])assert(html.includes(needle),needle);
+ assert(!/(src|href)="https?:\/\/(?!t\.me)/.test(html),'no external resources');
+ new Function(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
+});
+test('step 2: customer page paints the boutique name in the skeleton and offers save and compare',async()=>{
+ const e=fixture(),s=await salon(e);
+ const html=await(await app.fetch(new Request(origin+'/s/'+s.slug),e)).text();
+ assert.match(html,/class="hero__name" style="height:auto">[^<]+</);
+ for(const needle of ['function openSaved','memSaved','data-save','تلاش دوباره','مقایسهٔ لباس‌های ذخیره‌شده','ارتباط برقرار نشد'])assert(html.includes(needle),needle);
+});
