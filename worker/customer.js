@@ -308,6 +308,7 @@ body.is-touring{overflow:hidden}
 .cmpx__col .btn svg{display:none}
 .result-actions .btn{flex:1 1 auto}
 .mkrow{display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;padding:10px 12px;border-radius:14px;background:var(--glass-2);font-size:13.5px;line-height:1.7;cursor:pointer}.mkrow input{margin-top:5px;width:18px;height:18px;accent-color:var(--accent)}
+.react button svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;display:block}.react button.is-on svg{fill:currentColor}
 .kqrs{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;align-items:center;margin:10px 0}.kqrs p{flex-basis:100%;margin:0;font-size:15px}.kqr{display:grid;gap:6px;justify-items:center;font-weight:700}.kqr .qr__code{width:150px}
 .rev{display:grid;gap:12px;justify-items:center;padding:4px 4px 14px}.rev__img{max-height:38vh;max-width:70%;border-radius:12px;box-shadow:var(--lift)}.rev__list{display:grid;gap:8px;width:100%}.rev__bad,.rev__warn{border-radius:12px;padding:10px 14px;font-size:15px;line-height:1.7}.rev__bad{background:#fde8e8;color:#8a1c1c}.rev__warn{background:#fff3d6;color:#6b4a00}.rev__btns{display:grid;gap:8px;width:100%}.pairsteps{margin:0 0 12px;padding:0 22px;font-size:15px;color:var(--muted,#6a5d60);line-height:1.9}
 .qr{display:grid;justify-items:center;gap:14px;padding:6px 4px 14px}.qr__code{width:min(100%,300px);background:#fff;border-radius:16px;padding:10px;box-shadow:var(--lift)}.qr__code svg{display:block;width:100%;height:auto}.qr__note{text-align:center;font-size:13.5px;color:var(--ink-2);line-height:1.9;margin:0}
@@ -362,8 +363,8 @@ body.is-touring{overflow:hidden}
 /* ---------- like / dislike / send to me ---------- */
 .me-block{display:grid;gap:12px;margin:14px 0;padding:16px;border-radius:18px;background:var(--surface-2);border:1px solid var(--line-2)}
 .react{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}.react .tiny{flex-basis:100%;text-align:center}
-.react button{font-size:26px;width:60px;height:60px;border-radius:50%;border:1.5px solid var(--line);background:#fff;cursor:pointer;transition:transform .15s,border-color .15s}
-.react button.is-on{border-color:var(--accent);background:var(--accent-soft);transform:scale(1.1)}
+.react button{display:grid;place-items:center;color:#4a3f37;width:56px;height:56px;border-radius:50%;border:1.5px solid var(--line);background:#fff;cursor:pointer;transition:transform .15s,border-color .15s}
+.react button.is-on{color:var(--accent-ink,#6b4f1d);border-color:var(--accent);background:var(--accent-soft);transform:scale(1.1)}
 .me-note{margin:0;text-align:center;font-size:13.5px;color:var(--muted);line-height:1.9}
 
 .bgrow{margin:14px 0 6px}.bgrow>b{display:block;margin-bottom:8px}
@@ -529,6 +530,11 @@ var ICO={
  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.4 3.9-5.2 7.5-5.2s6.3 1.8 7.5 5.2"/></svg>',
  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>',
  gallery:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m20.5 15-4.6-4.4L7 19.5"/></svg>',
+ views:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3z"/><path d="M12 12 4 7.5M12 12l8-4.5M12 12v9"/></svg>',
+ rot360:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 13a8.2 8.2 0 1 1-2.2-6.4"/><path d="M20.5 3.5v4h-4"/><text x="12" y="15" font-size="6.4" font-weight="700" text-anchor="middle" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">360</text></svg>',
+ phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.4"/><path d="M11 18.5h2"/><path d="M9.5 8.5h2v2h-2zM12.5 8.5h2v2h-2zM9.5 11.5h2v2h-2z"/></svg>',
+ up:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10.5V20H4.2A1.2 1.2 0 0 1 3 18.8v-7.1a1.2 1.2 0 0 1 1.2-1.2H7zM7 10.5l3.4-7a2.1 2.1 0 0 1 2.1 2.2v3.6h5.1a2.1 2.1 0 0 1 2.1 2.4l-1.1 6.5A2.1 2.1 0 0 1 16.5 20H7"/></svg>',
+ down:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(180 12 12)"><path d="M7 10.5V20H4.2A1.2 1.2 0 0 1 3 18.8v-7.1a1.2 1.2 0 0 1 1.2-1.2H7zM7 10.5l3.4-7a2.1 2.1 0 0 1 2.1 2.2v3.6h5.1a2.1 2.1 0 0 1 2.1 2.4l-1.1 6.5A2.1 2.1 0 0 1 16.5 20H7"/></g></svg>',
  orbit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="9" ry="3.6"/><path d="M12 3.5c2 1.6 3.2 4.7 3.2 8.5s-1.2 6.9-3.2 8.5"/><path d="m18.6 13.8 2 1.6-2.3 1"/></svg>',
  arrow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H4M10 6l-6 6 6 6"/></svg>',};
 var state={makeup:true,ratio:'',pub:null,step:1,original:null,reference:null,refTitle:'',style:null,tab:'salon',result:null,gen:null,genState:null,busy:false,error:'',session:false,verified:false,idem:null,rating:0,me:null};
@@ -571,7 +577,7 @@ function track(kind,meta,once){if(once){if(tracked[kind+meta])return;tracked[kin
  // Both requests start together; the page paints as soon as the boutique arrives and the referral tag follows on its own.
  var pubP=api('public'),refP=api('ref',{v:VISITOR,r:refIn}).catch(function(){return null});
  try{state.pub=await pubP}catch(e){showFatal(e.message);return}
- var ft=document.getElementById('foot');if(ft&&state.pub.retention_days)ft.append(document.createElement('br'),document.createTextNode(retentionLine()))
+
  if(refIn&&history.replaceState){try{history.replaceState(null,'',location.pathname)}catch(e){}}
  document.title=state.pub.salon.name+' | مزون آینه';
  if(state.pub.trial)trialBar(state.pub.trial);else if(state.pub.brand)applyBrand({brand:state.pub.brand});
@@ -587,8 +593,7 @@ function track(kind,meta,once){if(once){if(tracked[kind+meta])return;tracked[kin
  renderAll();
  if(pending){state.gen=pending;state.step=3;state.busy=true;state.genT0=Date.now()-8000;renderFlow();renderDock();poll(pending,true)}
  track('view',refIn?'share':'',true);
- renderInvite();
- refP.then(function(rr){if(!rr)return;state.tag=rr.tag;state.mine=rr.mine||null;if(state.mine&&state.pub.portfolio){state.pub.portfolio=state.pub.portfolio.slice().sort(function(x,y){return (y.maker===state.mine)-(x.maker===state.mine)});if(state.step===2&&!state.busy)renderFlow()}});
+  refP.then(function(rr){if(!rr)return;state.tag=rr.tag;state.mine=rr.mine||null;if(state.mine&&state.pub.portfolio){state.pub.portfolio=state.pub.portfolio.slice().sort(function(x,y){return (y.maker===state.mine)-(x.maker===state.mine)});if(state.step===2&&!state.busy)renderFlow()}});
  maybeTour();
  loadMine();
 })();
@@ -1122,19 +1127,13 @@ function stepResult(){
  if(state.result){
   box.append(compareBlock());
   box.append(el('div',{class:'result-actions'},[
-   el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openViews,html:ICO.orbit+'<span>نمای سه‌زاویه</span>'}),
-   el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openSpin,html:ICO.orbit+'<span>چرخش ۳۶۰ (ویدیو)</span>'}),
-   KIOSK?el('button',{class:'btn btn--primary btn--sm',type:'button',onclick:openQR,text:'بگیر روی گوشی (QR)'}):downloadLink('btn btn--ghost btn--sm','دانلود'),
-   saveBtn(),
-   savedCount()?el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:openSaved,'data-cmp':'1',text:'مقایسه ('+fa(savedCount())+')'}):null,
+   el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openViews,html:ICO.views+'<span>نمای سه‌زاویه</span>'}),
+   el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openSpin,html:ICO.rot360+'<span>چرخش ۳۶۰</span>'}),
+   el('button',{class:'btn btn--primary btn--sm',type:'button',onclick:openQR,html:ICO.phone+'<span>ارسال برای خودم</span>'}),
    el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){state.result=null;state.gen=null;state.idem=null;state.error='';state.busy=false;go(2)},text:'یک لباس دیگر'})
   ]));
-  box.append(h('p','عکسی که دانلود می‌کنی، گوشهٔ پایینش لوگوی «'+state.pub.salon.name+'» را دارد.'+(retentionLine()?' '+retentionLine():''),'fine-print'));
   box.append(ratingBlock());
   box.append(meBlock());
-  box.append(socialBlock());
-  box.append(el('div',{class:'flow__nav flow__nav--want'},state.pub.telegram?[wantButton(),el('button',{class:'btn btn--ghost',type:'button',onclick:openRequest,html:ICO.send+'<span>فقط عکس را بفرست</span>'})]:[sendButton()]));
-  box.append(sendNote());
  }else if(!state.busy){
   if(!canGenerate()){
    box.append(notice('info',!state.pub.generation?'این مزون پیش‌نمایش تصویری را فعال نکرده. عکس و انتخابت را برای '+artist()+' بفرست تا بررسی کند.':(!hasChoice()?missingReason()+'.':'ساخت تصویر از این انتخاب هنوز فعال نیست. عکس و انتخابت را مستقیم برای '+artist()+' بفرست.')));
@@ -1182,7 +1181,7 @@ function renderDock(){
   primary=el('button',{class:'btn btn--primary',type:'button',disabled:!ready,onclick:build,html:can?ICO.spark+'<span>بساز</span>':out?ICO.send+'<span>فرستادن</span>':ICO.arrow+'<span>ادامه</span>'});
  }else{
   if(state.busy){hint='در حال ساخت…';primary=el('button',{class:'btn btn--primary',type:'button',disabled:true,text:'در حال ساخت…'})}
-  else if(state.result&&state.pub.telegram){hint='لباس را برای مزون نگه دار';primary=wantButton()}
+  else if(state.result){hint='عکس را روی گوشی‌ات بگیر';primary=el('button',{class:'btn btn--primary',type:'button',onclick:openQR,html:ICO.phone+'<span>ارسال برای خودم</span>'})}
   else if(state.result||!canGenerate()){hint='فرستادن در تلگرام برای مزون';primary=el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
   else{hint='آمادهٔ ساخت';primary=el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>بساز</span>'})}
  }
@@ -2032,23 +2031,12 @@ function saveProfile(name,phone){
 function meBlock(){
  var wrap=el('div',{class:'me-block'}),gen=state.gen;state.react=state.react||{};
  var row=el('div',{class:'react'},[h('span','از این نتیجه راضی بودی؟','tiny muted')]);
- [['up','👍'],['down','👎']].forEach(function(r){
-  var b=el('button',{type:'button','aria-label':r[0]==='up'?'خوشم آمد':'خوشم نیامد',text:r[1],class:state.react[gen]===r[0]?'is-on':''});
+ [['up',ICO.up],['down',ICO.down]].forEach(function(r){
+  var b=el('button',{type:'button','aria-label':r[0]==='up'?'خوشم آمد':'خوشم نیامد',html:r[1],class:state.react[gen]===r[0]?'is-on':''});
   b.addEventListener('click',function(){var v=state.react[gen]===r[0]?'':r[0];state.react[gen]=v;row.querySelectorAll('button').forEach(function(x){x.classList.remove('is-on')});if(v)b.classList.add('is-on');api('reaction',{v:VISITOR,gen:gen,r:v}).catch(function(){})});
   row.append(b);
  });
- var out=el('div'),send=el('button',{class:'btn btn--primary',type:'button',html:ICO.send+'<span>ارسال برای خودم</span>'});
- function go(){
-  send.disabled=true;
-  api('send-bot',{v:VISITOR,gen:gen}).then(function(r){
-   send.disabled=false;
-   if(r.sent){out.replaceChildren(notice('ok','تصویر با مشخصاتت برای '+(r.platform==='bale'?'بله':'تلگرامت')+' فرستاده شد ✅'));return}
-   var bot=(state.pub&&state.pub.bot)||{},links=Object.keys(bot).map(function(k){return el('a',{class:'btn btn--ghost btn--sm',href:bot[k],target:'_blank',rel:'noopener',text:'باز کردن ربات '+(k==='bale'?'بله':'تلگرام')})});
-   out.replaceChildren(notice('warn','ربات هنوز شمارهٔ '+(state.cphone||'تو')+' را نمی‌شناسد. ربات را باز کن، دکمهٔ «اشتراک شمارهٔ من» را بزن، بعد دوباره «ارسال برای خودم» را بزن.'),el('div',{class:'react'},links));
-  }).catch(function(e){send.disabled=false;out.replaceChildren(notice('danger',e.message||'ارسال نشد'))});
- }
- send.addEventListener('click',function(){if(!state.cphone)askProfile(go);else go()});
- wrap.append(row,send,out);var t=ttlLine();if(t)wrap.append(h('p',t,'me-note'));
+ wrap.append(row);var t=ttlLine();if(t)wrap.append(h('p',t,'me-note'));
  return wrap;
 }
 /* ---------- welcome: a full-screen preview of the boutique; a touch stops it and asks for a name, then a mobile number ---------- */
@@ -2211,7 +2199,7 @@ export const customerHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><h
   <aside class="side" id="side" hidden></aside>
  </div>
  <section id="invite" aria-label="معرفی به دوستان" hidden></section>
- <footer class="foot" id="foot" style="padding-bottom:130px">شبیه‌سازی پیشنهادی است و اجرای دقیق را تضمین نمی‌کند. عکس‌ها فقط برای همین مزون استفاده می‌شوند و نمایش عمومی ندارند.</footer>
+ <footer class="foot" id="foot" style="padding-bottom:130px"></footer>
 </main>
 <div class="dock" id="dock" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>

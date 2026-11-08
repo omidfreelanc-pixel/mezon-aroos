@@ -825,7 +825,7 @@ test('kiosk: result QR link opens only that photo, expires, and finishing wipes 
  const bad=await call(e,'/api/s/'+s.slug+'/result-link',{v,gen:crypto.randomUUID()},g);assert.equal(bad.status,404);
  const r=await call(e,'/api/s/'+s.slug+'/result-link',{v,gen:gid},g);assert.equal(r.status,200);
  assert.match(r.data.url,/\/r\/[a-f0-9]{48}$/);const token=r.data.token;
- const page=await app.fetch(new Request(origin+'/r/'+token),e);assert.equal(page.status,200);assert.match(await page.text(),/ذخیره عکس/);
+ const page=await app.fetch(new Request(origin+'/r/'+token),e);assert.equal(page.status,200);assert.match(await page.text(),/دانلود عکس[\s\S]*اشتراک‌گذاری/);
  const img=await app.fetch(new Request(origin+'/r/'+token+'/img'),e);assert.equal(img.status,200);assert.match(img.headers.get('content-type'),/^image\//);
  assert.equal((await app.fetch(new Request(origin+'/r/'+'0'.repeat(48)),e)).status,404);
  e.DB.sql.prepare('UPDATE result_links SET expires_at=1 WHERE token=?').run(token);
