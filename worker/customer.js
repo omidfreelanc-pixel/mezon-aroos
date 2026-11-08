@@ -366,6 +366,12 @@ body.is-touring{overflow:hidden}
 .react button.is-on{border-color:var(--accent);background:var(--accent-soft);transform:scale(1.1)}
 .me-note{margin:0;text-align:center;font-size:13.5px;color:var(--muted);line-height:1.9}
 
+.bgrow{margin:14px 0 6px}.bgrow>b{display:block;margin-bottom:8px}
+.bgstrip{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x proximity}
+.bgchip{flex:none;width:104px;scroll-snap-align:start;border:2px solid var(--line);border-radius:16px;background:#fff;padding:0;overflow:hidden;cursor:pointer;display:grid;text-align:center;font:inherit;transition:border-color .15s,box-shadow .15s}
+.bgchip img,.bgchip__own{width:100%;aspect-ratio:2/3;object-fit:cover;display:grid;place-items:center;background:var(--surface-2)}.bgchip__own svg{width:30px;height:30px;color:var(--accent)}
+.bgchip>span:last-child{font-size:12px;line-height:1.5;padding:6px 4px;color:var(--ink-2)}
+.bgchip.is-on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}.bgchip.is-on>span:last-child{color:var(--accent-ink);font-weight:700}
 .vspin{display:grid;gap:12px;justify-items:center;padding:4px 2px 14px}.vspin__stage{position:relative;width:min(100%,380px);overflow:hidden;border-radius:18px;background:#e9e5df;touch-action:none;cursor:grab;box-shadow:var(--lift)}.vspin__stage video{display:block;width:100%;height:auto;transform-origin:center;will-change:transform;pointer-events:none}.vspin__wait{display:grid;gap:12px;justify-items:center;text-align:center}.vspin__wait img{width:min(60%,220px);border-radius:16px;animation:sway 3.2s ease-in-out infinite;box-shadow:var(--float)}
 /* 360 viewer */
 .spin-wrap{width:min(100%,330px);margin:4px auto 0;padding:6px}
@@ -791,6 +797,17 @@ function scrollToBuild(){
   if(y!=null)window.scrollTo({top:Math.max(0,y),behavior:beh});
  });
 }
+function bgRow(){
+ var list=(state.pub&&state.pub.backgrounds)||[];if(!list.length)return null;
+ if(state.bg===undefined)state.bg=list[0].id;
+ var wrap=el('div',{class:'bgrow'},[el('b',{text:'کجا ایستاده باشی؟ یک تالار انتخاب کن'})]),strip=el('div',{class:'bgstrip',role:'radiogroup'});
+ [{id:'',name:'همان پس‌زمینهٔ عکس خودم'}].concat(list).forEach(function(x){
+  var b=el('button',{class:'bgchip'+(state.bg===x.id?' is-on':''),type:'button',role:'radio','aria-checked':state.bg===x.id?'true':'false'},[x.id?el('img',{src:'/bg/'+x.id+'.jpg',alt:'',loading:'lazy'}):el('span',{class:'bgchip__own',html:ICO.camera}),el('span',{text:x.name})]);
+  b.addEventListener('click',function(){state.bg=x.id;state.idem=null;strip.querySelectorAll('.bgchip').forEach(function(c){c.classList.remove('is-on');c.setAttribute('aria-checked','false')});b.classList.add('is-on');b.setAttribute('aria-checked','true')});
+  strip.append(b);
+ });
+ wrap.append(strip);return wrap;
+}
 function makeupRow(){
  var cb=el('input',{type:'checkbox',id:'mk'});cb.checked=state.makeup!==false;
  cb.addEventListener('change',function(){state.makeup=cb.checked;state.idem=null});
@@ -803,7 +820,7 @@ function stepModel(){
   box.append(el('div',{class:'selfie'+(fresh?' selfie--fresh':'')},[el('img',{src:state.preview||media(state.original),alt:''}),el('div',{},[el('b',{html:ICO.check+'<span>'+(fresh?'عکست ثبت شد':'عکست آماده است')+'</span>'}),el('span',{text:'لباس انتخابی روی همین عکس امتحان می‌شود.'})]),el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){changePhoto();go(1)},text:'تغییر'})]));
  }
  box.append(flowHead(MODEL_HEAD.dress[0],MODEL_HEAD.dress[1]));
- box.append(makeupRow());
+ box.append(bgRow()||document.createTextNode(''));box.append(makeupRow());
  if(quotaLeft()===0&&!state.tourDemo)box.append(notice('warn',quotaOut()));
  var seg=el('div',{class:'seg',role:'tablist'});
  var tabs=[['salon',0]];if(state.pub.catalog)tabs.push(['catalog',1]);if(state.pub.own_dress)tabs.push(['upload',2]);
@@ -1279,7 +1296,7 @@ function generate(){
  ensureSession().then(function(){
   state.idem=state.idem||uuid();
   // The page's own note under «بساز» says the photo is sent for the simulation; no extra checkbox.
-  return api('generate',{v:VISITOR,image_consent:true,makeup:state.makeup!==false,idem:state.idem,ratio:state.ratio||undefined,original_id:state.original,reference_id:state.reference||undefined,style:state.reference?undefined:(state.style===null?undefined:state.style)});
+  return api('generate',{v:VISITOR,image_consent:true,makeup:state.makeup!==false,bg:state.bg||undefined,idem:state.idem,ratio:state.ratio||undefined,original_id:state.original,reference_id:state.reference||undefined,style:state.reference?undefined:(state.style===null?undefined:state.style)});
  }).then(function(job){
   track('generate',state.reference?(state.refTitle?'salon':'upload'):'catalog');
   spentQuota();
