@@ -900,7 +900,7 @@ test('360: turntable video is requested from the result, stored as mp4 and serve
  globalThis.fetch=async(url,init)=>{url=String(url);
   if(url.includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/in.jpg'}});
   if(url.includes('createTask')){const b=JSON.parse(init.body);tasks.push(b);return Response.json({code:200,data:{taskId:'t'+tasks.length}})}
-  if(url.includes('recordInfo'))return Response.json({code:200,data:{state:'success',resultJson:JSON.stringify({resultUrls:[url.includes('taskId=t2')?'https://provider.example/out.mp4':'https://provider.example/back.jpg']})}});
+  if(url.includes('recordInfo'))return Response.json({code:200,data:{state:'success',resultJson:JSON.stringify({resultUrls:[(url.includes('taskId=t2')||url.includes('taskId=t3'))?'https://provider.example/out.mp4':'https://provider.example/back.jpg']})}});
   if(url.endsWith('out.mp4'))return new Response(mp4);
   return new Response(png())};
  try{
@@ -909,7 +909,9 @@ test('360: turntable video is requested from the result, stored as mp4 and serve
   const again=await call(e,'/api/s/'+s.slug+'/spin',{v,parent:base,idem},g);assert.equal(again.data.id,job.data.id,'same idem, same job');
   const mid=await call(e,'/api/s/'+s.slug+'/generation/'+job.data.id,undefined,g);assert.equal(mid.data.state,'waiting','back view done, video started');
   assert.equal(tasks[1].model,'kling-3.0/video');assert.equal(tasks[1].input.image_urls.length,2,'front frame + back frame');assert.match(tasks[1].input.prompt,/half-turn/);
-  const done=await call(e,'/api/s/'+s.slug+'/generation/'+job.data.id,undefined,g);assert.equal(done.data.state,'success');
+  const mid2=await call(e,'/api/s/'+s.slug+'/generation/'+job.data.id,undefined,g);assert.equal(mid2.data.state,'waiting','clip A stored, clip B started');
+  assert.equal(tasks[2].input.image_urls.length,2);assert.match(tasks[2].input.prompt,/back view.*front view/s);assert.match(tasks[2].input.prompt,/smile/,'expression in the closing second');
+  const done=await call(e,'/api/s/'+s.slug+'/generation/'+job.data.id,undefined,g);assert.equal(done.data.state,'success');assert.ok(done.data.part2,'second half of the full turn');
   const media=e.DB.sql.prepare('SELECT kind,mime FROM media WHERE id=?').get(done.data.result_id);assert.deepEqual({...media},{kind:'spin',mime:'video/mp4'});
   const url=origin+'/api/s/'+s.slug+'/media/'+done.data.result_id;
   const rl=await call(e,'/api/s/'+s.slug+'/result-link',{v,gen:job.data.id},g);assert.equal(rl.status,200);
