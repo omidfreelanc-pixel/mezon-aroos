@@ -7,7 +7,7 @@ const migrations=readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f
 function fixture(){const DB=database();for(const f of migrations)DB.sql.exec(readFileSync(new URL('../drizzle/'+f,import.meta.url),'utf8'));return {DB,BUCKET:memoryBucket(),OWNER_EMAIL:'owner@test',JOB_TOKEN:'job-test',TRUST_PLATFORM_IDENTITY:'true'};}
 const OWNER={user:'owner-a',email:'owner@test'};
 async function call(env,path,body,{cookie='',user='',email='',headers:extra={}}={}){const headers={origin,'oai-authenticated-user-id':user,'oai-authenticated-user-email':email,cookie,...extra};let payload;if(body!==undefined){if(body instanceof Uint8Array){payload=body}else{headers['content-type']='application/json';payload=JSON.stringify(body)}}const res=await app.fetch(new Request(origin+path,{method:body===undefined?'GET':'POST',headers,body:payload}),env);let d;try{d=await res.json()}catch{d=null}return {status:res.status,data:d,cookie:res.headers.get('set-cookie')?.split(';')[0]};}
-async function salon(env,slug='salon-a'){const r=await call(env,'/api/salons',{slug,name:'مزون '+slug},OWNER);assert.equal(r.status,200,JSON.stringify(r));return {id:r.data.id,slug};}
+async function salon(env,slug='salon-a'){const r=await call(env,'/api/salons',{slug,name:'مزون '+slug},OWNER);assert.equal(r.status,200,JSON.stringify(r));env.DB.sql.prepare("UPDATE salons SET settings=json_set(COALESCE(settings,'{}'),'$.catalog',json('true')) WHERE slug=?").run(slug);return {id:r.data.id,slug};}
 async function guest(env,s){const r=await call(env,'/api/s/'+s.slug+'/session',{});assert.equal(r.status,200);return {cookie:r.cookie};}
 const png=()=>{const b=new Uint8Array(150);b.set([137,80,78,71,13,10,26,10]);return b};
 async function upload(env,s,g,kind='original'){const r=await call(env,'/api/s/'+s.slug+'/upload?kind='+kind,png(),g);assert.equal(r.status,200,JSON.stringify(r));return r.data.id;}
@@ -172,9 +172,9 @@ test('salon can pick the faster model; a rejected model falls back once, network
  const original=await upload(e,s,g);let previous=globalThis.fetch,models=[],mode='ok';
  globalThis.fetch=async(url,opts)=>{const u=String(url);if(u.includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/x.jpg'}});if(u.includes('createTask')){const m=JSON.parse(opts.body).model;models.push(m);if(mode==='network')throw new Error('reset');if(mode==='reject'&&m!=='nano-banana-2')return Response.json({code:422,msg:'model not available'});return Response.json({code:200,data:{taskId:'t'+models.length}})}return new Response(png())};
  try{
-  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,image_model:'fast'},OWNER);
+  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,image_model:'fast'},OWNER);
   assert.equal((await call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:1},g)).status,200);assert.equal(models.at(-1),'nano-banana-2-1');
-  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,image_model:'pro'},OWNER);mode='reject';models=[];
+  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,image_model:'pro'},OWNER);mode='reject';models=[];
   assert.equal((await call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:1},g)).status,200);assert.deepEqual(models,['nano-banana-pro','nano-banana-2']);
   mode='network';models=[];
   assert.equal((await call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:1},g)).status,502);assert.deepEqual(models,['nano-banana-pro'],'no second paid attempt after an ambiguous failure');
@@ -505,7 +505,8 @@ test('team question: an abandoned or wrong answer never becomes a member; errors
  await hook(e,{message:{chat:{id:777,type:'private'},media_group_id:'g1',photo:[{file_id:'a1',file_size:100}]}});
  await hook(e,{message:{chat:{id:777,type:'private'},media_group_id:'g1',photo:[{file_id:'a2',file_size:100}],caption:'شینیون عروس'}});
  await hook(e,{message:{chat:{id:777,type:'private'},media_group_id:'g1',photo:[{file_id:'a3',file_size:100}]}});
- assert.equal(e.DB.sql.prepare("SELECT count(*) n FROM portfolio WHERE title='شینیون عروس'").get().n,3);
+ assert.equal(e.DB.sql.prepare("SELECT count(*) n FROM portfolio WHERE title='شینیون عروس'").get().n,1,'an album is one dress');
+ assert.equal(JSON.parse(e.DB.sql.prepare("SELECT images FROM portfolio WHERE title='شینیون عروس'").get().images).length,3,'its photos are the angles');
 }finally{tg.restore()}});
 
 
@@ -586,15 +587,15 @@ test('salon daily image cap is an owner setting: 0 removes it, a number enforces
  globalThis.fetch=async(url)=>{if(String(url).includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/'+crypto.randomUUID()+'.jpg'}});if(String(url).includes('createTask')){tasks++;return Response.json({code:200,data:{taskId:'t'+tasks}})}return new Response(png())};
  try{
   const o=await upload(e,s,g),gen=()=>call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:o,style:0},g);
-  assert.equal((await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,reference_verified:true,daily_limit:2},OWNER)).status,200);
+  assert.equal((await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true,daily_limit:2},OWNER)).status,200);
   assert.equal((await gen()).status,200);assert.equal((await gen()).status,200);
   const third=await gen();assert.equal(third.status,429);assert.match(third.data.error,/سقف استفادهٔ روزانه/);
-  assert.equal((await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,reference_verified:true,daily_limit:0},OWNER)).status,200);
+  assert.equal((await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true,daily_limit:0},OWNER)).status,200);
   assert.equal((await gen()).status,200,'no cap');
   const st=(await call(e,'/api/s/salon-a/owner',undefined,OWNER)).data.salon.settings;assert.equal(st.daily_limit,0);assert.equal(st.generation_enabled,true);
   // Saving without the field keeps the cap; flags set elsewhere survive.
   e.DB.sql.prepare("UPDATE salons SET settings=json_set(settings,'$.demo',json('true')) WHERE slug='salon-a'").run();
-  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,reference_verified:true},OWNER);
+  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true},OWNER);
   const st2=(await call(e,'/api/s/salon-a/owner',undefined,OWNER)).data.salon.settings;assert.equal(st2.daily_limit,0);assert.equal(st2.demo,true);
  }finally{globalThis.fetch=previous}
 });
@@ -603,7 +604,7 @@ test('the team\'s own verified mobiles (app_settings unlimited_phones) have no i
  const previous=globalThis.fetch;let tasks=0;
  globalThis.fetch=async(url)=>{if(String(url).includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/'+crypto.randomUUID()+'.jpg'}});if(String(url).includes('createTask')){tasks++;return Response.json({code:200,data:{taskId:'t'+tasks}})}return new Response(png())};
  try{
-  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,reference_verified:true,daily_limit:2},OWNER);
+  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true,daily_limit:2},OWNER);
   e.DB.sql.prepare("INSERT INTO app_settings(key,value,updated_at) VALUES('unlimited_phones',?,?)").run(JSON.stringify(['+989120000001']),Date.now());
   const g=await guest(e,s),sid=e.DB.sql.prepare('SELECT id FROM sessions ORDER BY created_at DESC LIMIT 1').get().id;
   e.DB.sql.prepare('UPDATE sessions SET verified_phone=? WHERE id=?').run('+989120000001',sid);
@@ -648,7 +649,7 @@ test('mezon: landing is public and the customer page is dress-only (limits tempo
 });
 
 test.skip('mezon: 8 tries per person, the ninth is refused before anything is paid; failures are given back',async()=>{
- const e=fixture(),s=await salon(e),g=await guest(e,s);e.KIE_API_KEY='mock';await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,reference_verified:true},OWNER);
+ const e=fixture(),s=await salon(e),g=await guest(e,s);e.KIE_API_KEY='mock';await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true},OWNER);
  const previous=globalThis.fetch;let tasks=0;
  globalThis.fetch=async(url)=>{if(String(url).includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/'+crypto.randomUUID()+'.jpg'}});if(String(url).includes('createTask')){tasks++;return Response.json({code:200,data:{taskId:'t'+tasks}})}return new Response(png())};
  try{
@@ -796,9 +797,9 @@ test('step 3: photo retention deletes old non-lead photos, keeps requests until 
   assert(has(portfolioMedia),'portfolio photos are never deleted');
   assert.equal(e.DB.sql.prepare('SELECT COUNT(*) n FROM leads').get().n,3,'requests themselves are kept');
   // the setting: a shorter window deletes more, 0 keeps everything, and tick() runs the job
-  assert.equal((await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,reference_verified:true,retention_days:0},OWNER)).status,200);
+  assert.equal((await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true,retention_days:0},OWNER)).status,200);
   age([fresh.original,fresh.result],60);assert.equal(await purgePhotos(e,now),0,'0 = keep everything');
-  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,reference_verified:true,retention_days:45},OWNER);
+  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true,retention_days:45},OWNER);
   assert.equal((await call(e,'/api/s/salon-a/public')).data.retention_days,45);
   const t=await tick(e,origin);assert.equal(t.purged,2);assert(!has(fresh.original));
   assert(has(lead.original),'still open');
@@ -887,7 +888,7 @@ test('a bride messages the bot from the boutique link: photo in, personal link o
 
 test('360: turntable video is requested from the result, stored as mp4 and served with byte ranges',async()=>{
  const e=fixture(),s=await salon(e),g=await guest(e,s);e.KIE_API_KEY='mock';
- await call(e,'/api/s/'+s.slug+'/owner/settings',{generation_enabled:true,reference_verified:true},OWNER);
+ await call(e,'/api/s/'+s.slug+'/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true},OWNER);
  const original=await upload(e,s,g),v='ab'.repeat(16);
  const sid=e.DB.sql.prepare('SELECT session_id FROM media WHERE id=?').get(original).session_id,salonId=e.DB.sql.prepare('SELECT salon_id FROM media WHERE id=?').get(original).salon_id;
  const base=crypto.randomUUID(),now=Date.now();
@@ -908,5 +909,27 @@ test('360: turntable video is requested from the result, stored as mp4 and serve
   const media=e.DB.sql.prepare('SELECT kind,mime FROM media WHERE id=?').get(done.data.result_id);assert.deepEqual({...media},{kind:'spin',mime:'video/mp4'});
   const url=origin+'/api/s/'+s.slug+'/media/'+done.data.result_id;
   const part=await app.fetch(new Request(url,{headers:{origin,cookie:g.cookie,Range:'bytes=100-199'}}),e);assert.equal(part.status,206);assert.equal(part.headers.get('content-range'),'bytes 100-199/5000');assert.equal((await part.arrayBuffer()).byteLength,100);
+ }finally{globalThis.fetch=previous}
+});
+
+test('boutique shows only its own dresses: catalog and own-photo are opt-in, all angles of the owner dress reach the model',async()=>{
+ const e=fixture(),s=await salon(e),g=await guest(e,s);e.KIE_API_KEY='mock';
+ e.DB.sql.prepare("UPDATE salons SET settings=json_set(settings,'$.catalog',json('false'),'$.generation_enabled',json('true')) WHERE slug='salon-a'").run();
+ const pub=(await call(e,'/api/s/salon-a/public')).data;assert.equal(pub.catalog,false);assert.equal(pub.own_dress,false);
+ const original=await upload(e,s,g),front=await upload(e,s,g),back=await upload(e,s,g);
+ e.DB.sql.prepare("INSERT INTO portfolio(id,salon_id,title,category,description,stylist,images,published,try_on,permission,created_at,line) VALUES('d1',?,'پرنسسی','','','',?,1,1,1,?,'dress')").run(e.DB.sql.prepare("SELECT id FROM salons WHERE slug='salon-a'").get().id,JSON.stringify([front,back]),Date.now());
+ const gen=b=>call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,...b},g);
+ assert.equal((await gen({style:1})).status,403,'sample catalog is closed');
+ const own=await upload(e,s,g);
+ const previous=globalThis.fetch,sent=[];
+ globalThis.fetch=async(url,opts)=>{const u=String(url);if(u.includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/'+sent.length+'.jpg'}});if(u.includes('createTask')){sent.push(JSON.parse(opts.body));return Response.json({code:200,data:{taskId:'t1'}})}return previous(url,opts)};
+ try{
+  assert.equal((await gen({reference_id:own})).status,403,'a customer-uploaded dress photo is closed');
+  assert.equal((await gen({reference_id:front})).status,200);
+  assert.equal(sent.at(-1).input.image_input.length,3,'her photo + both angles');
+  assert.match(sent.at(-1).input.prompt,/different angles/);
+  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,allow_own_dress:true},OWNER);
+  const p2=(await call(e,'/api/s/salon-a/public')).data;assert.equal(p2.catalog,true);assert.equal(p2.own_dress,true);
+  assert.equal((await gen({style:1})).status,200);
  }finally{globalThis.fetch=previous}
 });

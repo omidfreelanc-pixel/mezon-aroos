@@ -53,7 +53,7 @@ export async function createTrial(db,env,origin,b){
  }
  const id=uid(),salonId=uid(),slug='t-'+rand(),now=Date.now(),expires=now+TRIAL_HOURS*3600000;
  await db.batch([
-  db.prepare('INSERT INTO salons(id,slug,owner_id,name,created_at,profile,settings) VALUES(?,?,?,?,?,?,?)').bind(salonId,slug,'trial',salon,now,JSON.stringify(city?{address:city}:{}),JSON.stringify({generation_enabled:true,reference_verified:true,trial:true})),
+  db.prepare('INSERT INTO salons(id,slug,owner_id,name,created_at,profile,settings) VALUES(?,?,?,?,?,?,?)').bind(salonId,slug,'trial',salon,now,JSON.stringify(city?{address:city}:{}),JSON.stringify({generation_enabled:true,catalog:true,reference_verified:true,trial:true})),
   db.prepare('INSERT INTO trials(id,salon_id,name,phone,brand,created_at,expires_at,images_limit) VALUES(?,?,?,?,?,?,?,?)').bind(id,salonId,name,tel,brand,now,expires,TRIAL_IMAGES),
   db.prepare('INSERT INTO inquiries(id,name,salon,city,phone,note,chosen,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(uid(),name,salon,city,tel,note,'صفحهٔ آزمایشی '+slug+(chosen?' · '+chosen:''),now)
  ]);

@@ -749,15 +749,17 @@ function stepModel(){
  box.append(makeupRow());
  if(quotaLeft()===0&&!state.tourDemo)box.append(notice('warn',quotaOut()));
  var seg=el('div',{class:'seg',role:'tablist'});
- [['salon',0],['catalog',1],['upload',2]].forEach(function(x){
+ var tabs=[['salon',0]];if(state.pub.catalog)tabs.push(['catalog',1]);if(state.pub.own_dress)tabs.push(['upload',2]);
+ if(!tabs.some(function(x){return x[0]===state.tab}))state.tab='salon';
+ tabs.forEach(function(x){
   var b=el('button',{type:'button',role:'tab','data-tab':x[0],'aria-selected':state.tab===x[0]?'true':'false',text:TAB_LABEL.dress[x[1]]});
   b.addEventListener('click',function(){state.tab=x[0];renderFlow()});
   seg.append(b);
  });
- box.append(seg);
+ if(tabs.length>1)box.append(seg);
  if(state.tab==='salon'){
   var items=(state.pub.portfolio||[]).filter(function(p){return (p.published||p.try_on)&&(p.line||'dress')==='dress'});
-  if(!items.length)box.append(notice('info','مزون هنوز لباسی نگذاشته. از «'+TAB_LABEL.dress[1]+'» یا «'+TAB_LABEL.dress[2]+'» استفاده کن.'));
+  if(!items.length)box.append(notice('info',state.pub.catalog||state.pub.own_dress?'مزون هنوز لباسی نگذاشته. از «'+TAB_LABEL.dress[1]+'» یا «'+TAB_LABEL.dress[2]+'» استفاده کن.':'هنوز لباسی در این مزون ثبت نشده. از مزون‌دار بخواه لباس‌ها را اضافه کند.'));
   else{
    // Same vertical grid as the ready-made looks.
    var grid0=el('div',{class:'looks looks--salon'});
