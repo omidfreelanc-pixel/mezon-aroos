@@ -18,6 +18,7 @@ import {shareLinks,shareKeyboard} from './share.js';
 import {bucketFor,putImage} from './storage.js';
 import {createStaff,transfer,assign,team as teamOf,SPECIALTIES} from './referral.js';
 import {LINE_LABEL} from './lines.js';
+import {setLeadStatus} from './dresses.js';
 import {notifyOwner,linkOwner,isOwnerChat,sendDigest,setupStatus} from './alerts.js';
 const STALE=20*60000; // an unfinished wizard or team question is dropped after 20 idle minutes
 
@@ -416,7 +417,7 @@ export async function expireStates(env,now=Date.now()){
 }
 
 /* ---------- customer follow: she taps "خبرم کن" on the page and starts the bot ---------- */
-const STATUS={new:'هنوز منتظر تماس مزون',called:'مزون با شما تماس گرفته',booked:'نوبت هماهنگ شد',declined:'مزون گفت این مدل قابل اجرا نیست'};
+const STATUS={new:'هنوز منتظر تماس مزون',called:'مزون با شما تماس گرفته',booked:'نوبت هماهنگ شد',cancelled:'درخواست بسته شد',declined:'مزون گفت این مدل قابل اجرا نیست'};
 async function follow(ctx,token){
  const lead=await one(ctx.db,'SELECT l.*,s.name AS salon_name FROM leads l JOIN salons s ON s.id=l.salon_id WHERE l.follow_hash=?',await hash(token));
  if(!lead){await ctx.say('این لینک پیگیری منقضی شده یا درست نیست.');return}
@@ -430,15 +431,23 @@ async function notifyCustomer(env,lead,salon,textOut){
 const customerText=(status,salon,origin)=>{const prof=parse(salon.profile),tel=prof.phone?'\n📞 شمارهٔ مزون: '+local(prof.phone):'';
  if(status==='called')return '📞 «'+salon.name+'» اعلام کرد که با شما تماس گرفته است. اگر تماسی نداشتید، خودتان زنگ بزنید.'+tel;
  if(status==='booked')return '✅ «'+salon.name+'» نوبت شما را هماهنگ کرد. منتظر دیدنتان هستند!';
+ if(status==='cancelled')return '«'+salon.name+'» درخواستت را بست. اگر هنوز لباسی می‌خواهی، مدل دیگری را امتحان کن یا با مزون تماس بگیر'+(origin?':\n'+origin+'/s/'+salon.slug:'.')+tel;
  if(status==='declined')return '«'+salon.name+'» گفت مدلی که انتخاب کردید در مزون قابل اجرا نیست. می‌توانید مدل دیگری را امتحان کنید'+(origin?':\n'+origin+'/s/'+salon.slug:'.')+tel;
  return '⏳ «'+salon.name+'» هنوز درخواستت را جواب نداده. اگر عجله داری، مستقیم تماس بگیر.'+tel;
 };
 
+// The admin panel changes a status the same way the bot buttons do (and tells a following customer).
+export async function applyLeadStatus(env,salon,lead,status,origin=''){
+ const {changed}=await setLeadStatus(env.DB,lead,status);
+ if(changed&&status!=='new')await notifyCustomer(env,{...lead,salon_status:status},salon,customerText(status,salon,origin));
+ return changed;
+}
+
 /* ---------- salon buttons under each submission ---------- */
-const LABEL={called:'📞 تماس گرفتم',booked:'✅ نوبت دادم',declined:'🚫 قابل اجرا نیست'};
+const LABEL={new:'🆕 جدید',called:'📞 تماس گرفته شد',booked:'✅ رزرو شد',cancelled:'🚫 لغو',declined:'🚫 قابل اجرا نیست'};
 export function leadKeyboard(lead,p,members=[]){
  const mark=k=>(lead.salon_status===k?'✔︎ ':'')+LABEL[k];
- const rows=[[{text:mark('called'),callback_data:'ls:called:'+lead.id},{text:mark('booked'),callback_data:'ls:booked:'+lead.id}],[{text:mark('declined'),callback_data:'ls:declined:'+lead.id}]];
+ const rows=[[{text:mark('called'),callback_data:'ls:called:'+lead.id},{text:mark('booked'),callback_data:'ls:booked:'+lead.id}],[{text:mark('cancelled'),callback_data:'ls:cancelled:'+lead.id},{text:mark('new'),callback_data:'ls:new:'+lead.id}]];
  // A salon customer (no member yet): the manager can hand the request to a member.
  if(!lead.staff_id&&members.length)for(let i=0;i<members.length;i+=2)rows.push(members.slice(i,i+2).map(t=>({text:'👤 بده به '+t.name.slice(0,16),callback_data:'la:'+t.id+':'+lead.id})));
  if(lead.telegram&&p==='telegram')rows.push([{text:'💬 پیام به '+lead.name.slice(0,24)+' در تلگرام',url:'https://t.me/'+lead.telegram}]);
@@ -465,11 +474,10 @@ async function onCallback(ctx,q){
     if(!lead)note='این درخواست دیگر در سیستم نیست';
     else if(!mayAct)note='این درخواست مال نیروی دیگری است';
     else{
-     const changed=lead.salon_status!==status;
-     await run(db,'UPDATE leads SET salon_status=?,handled_at=COALESCE(handled_at,?) WHERE id=?',status,Date.now(),lead.id);
+     const {changed}=await setLeadStatus(db,lead,status);
      const fresh={...lead,salon_status:status};
      try{await call(env,p,'editMessageReplyMarkup',{chat_id:chat,message_id:q.message.message_id,reply_markup:leadKeyboard(fresh,p,fresh.staff_id?[]:await teamOf(db,salon.id))})}catch{}
-     if(changed)await notifyCustomer(env,fresh,salon,customerText(status,salon,ctx.origin));
+     if(changed&&status!=='new')await notifyCustomer(env,fresh,salon,customerText(status,salon,ctx.origin));
      note=lead.follow_chat?'ثبت شد و به مشتری خبر دادیم':'ثبت شد';
     }
    }
@@ -569,9 +577,12 @@ async function sendList(ctx,offset=0){
 export function leadText(lead,salon,photos,member=null){
  const when=new Intl.DateTimeFormat('fa-IR',{timeZone:'Asia/Tehran',dateStyle:'medium',timeStyle:'short'}).format(lead.created_at||Date.now());
  const names={original:'قبل: عکس خود مشتری',preview:'بعد: شبیه‌سازی لباس',reference:'عکس لباسی که مشتری انتخاب کرده'};
- const lines=[member?'👰 <b>درخواست تازه برای تو — مشتری «'+esc(salon.name)+'»</b>':'👰 <b>درخواست تازه برای '+esc(salon.name)+'</b>'+(lead.staff_id?'':'\n(مشتری خود مزون؛ می‌توانید با دکمه‌های پایین به یک نیرو بدهید)'),'',
-  '👤 <b>نام:</b> '+esc(lead.name),
+ const want=lead.intent==='want';
+ const head=want?'💍 <b>«این لباس را می‌خواهم»</b> — '+esc(lead.look||'لباس انتخابی'):member?'👰 <b>درخواست تازه برای تو — مشتری «'+esc(salon.name)+'»</b>':'👰 <b>درخواست تازه برای '+esc(salon.name)+'</b>';
+ const lines=[head+(want&&member?' (مشتری «'+esc(salon.name)+'»)':''),...(lead.staff_id||member?[]:['(مشتری خود مزون؛ می‌توانید با دکمه‌های پایین به یک نیرو بدهید)']),'',
+  '👤 <b>'+(want?'عروس':'نام')+':</b> '+esc(lead.name),
   '📞 <b>موبایل:</b> '+esc(local(lead.phone))+' ('+esc(lead.phone)+')',
+  '👆 برای تماس، روی شماره بزنید',...(lead.visit_note?['🗓 <b>روز/ساعت دلخواه:</b> '+esc(lead.visit_note)]:[]),
   '✈️ <b>تلگرام:</b> '+(lead.telegram?'@'+esc(lead.telegram):'ثبت نکرده'),'',
   '🧩 <b>خدمت:</b> '+(LINE_LABEL[lead.line]||LINE_LABEL.dress),
   '👰 <b>لباس انتخابی:</b> '+(lead.look?esc(lead.look):'مشخص نکرده'),

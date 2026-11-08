@@ -397,6 +397,7 @@ img[loading="lazy"].is-in{opacity:1}
 .selfie--fresh{animation:fresh 1.6s var(--ease) both}
 .selfie--fresh img{animation:pop .55s var(--ease) both}
 @keyframes fresh{0%{background:var(--ok-soft);box-shadow:0 0 0 3px rgba(43,106,64,.25)}100%{background:var(--glass);box-shadow:0 0 0 0 rgba(43,106,64,0)}}
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.8;color:var(--ink-2);margin:2px 0 16px;flex-wrap:wrap}.consent input{width:22px;height:22px;flex:none;margin-top:3px;accent-color:var(--accent-ink)}.consent span:not(.err){flex:1;min-width:0}.consent .err{display:none;flex-basis:100%;font-size:12.5px;color:var(--danger);font-weight:600}.consent[data-invalid="true"] .err{display:block}.consent[data-invalid="true"] input{outline:2px solid var(--danger);outline-offset:2px}.flow__nav--want{flex-direction:column;align-items:stretch}.flow__nav--want .btn{width:100%}
 .fine-print{font-size:12px;color:var(--muted);line-height:1.85;margin-top:10px;text-align:center}
 .upload--ref{aspect-ratio:auto;min-height:220px;border-radius:var(--r-lg)}
 .looks .style-card__art{position:relative}
@@ -442,6 +443,7 @@ var ICO={
  camera:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.2a2 2 0 0 0 1.7-.9l.6-1a2 2 0 0 1 1.7-.9h2.6a2 2 0 0 1 1.7.9l.6 1a2 2 0 0 0 1.7.9h1.2A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg>',
  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4.5" y="10" width="15" height="10" rx="2.6"/><path d="M8.5 10V7.8a3.5 3.5 0 0 1 7 0V10"/></svg>',
  phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h2.2l1.6 4-2 1.3a12 12 0 0 0 6.4 6.4l1.3-2 4 1.6v2.2a2.5 2.5 0 0 1-2.7 2.5A16.5 16.5 0 0 1 4 6.2 2.5 2.5 0 0 1 6.5 3.5z"/></svg>',
+ heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
  pin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s6.5-6 6.5-11a6.5 6.5 0 1 0-13 0C5.5 15 12 21 12 21z"/><circle cx="12" cy="10" r="2.4"/></svg>',
  clock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v5l3.2 2"/></svg>',
  instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17" cy="7" r="1"/></svg>',
@@ -496,6 +498,7 @@ function track(kind,meta,once){if(once){if(tracked[kind+meta])return;tracked[kin
  // Both requests start together; the page paints as soon as the boutique arrives and the referral tag follows on its own.
  var pubP=api('public'),refP=api('ref',{v:VISITOR,r:refIn}).catch(function(){return null});
  try{state.pub=await pubP}catch(e){showFatal(e.message);return}
+ var ft=document.getElementById('foot');if(ft&&state.pub.retention_days)ft.append(document.createElement('br'),document.createTextNode(retentionLine()))
  if(refIn&&history.replaceState){try{history.replaceState(null,'',location.pathname)}catch(e){}}
  document.title=state.pub.salon.name+' | مزون عروس';
  if(state.pub.trial)trialBar(state.pub.trial);
@@ -888,6 +891,14 @@ function lookName(){
  return state.style!==null?lineCat().styles[state.style][0]:'';
 }
 function artist(){return 'مزون‌دار'}
+// What happens to photos that are never sent to the boutique (a boutique setting, 30 days by default).
+function retentionLine(){var d=state.pub&&state.pub.retention_days;return d?'عکس و نتیجه‌ای که برای مزون نفرستی، بعد از '+fa(d)+' روز خودکار پاک می‌شود.':''}
+// The dress behind the current choice, for the save counter: a boutique dress ('p:id') or a catalogue one ('d:n').
+function dressKey(){
+ if(state.reference){var hit=(state.pub.portfolio||[]).filter(function(x){try{return JSON.parse(x.images||'[]').indexOf(state.reference)>-1}catch(e){return false}})[0];return hit?'p:'+hit.id:''}
+ return state.style!==null&&state.style!==undefined?'d:'+state.style:'';
+}
+function wantButton(cls){return el('button',{class:cls||'btn btn--primary',type:'button','data-want':'1',onclick:function(){openWant()},html:ICO.heart+'<span>این لباس را می‌خواهم</span>'})}
 function sendButton(){return el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
 // Building: a playful scene in the mirror, the stage it is at and a live percentage.
 var BUILD={title:'در حال پرو کردن لباس…',steps:['آماده‌سازی عکس','پیدا کردن اندام و قد','اندازه کردن لباس','نشاندن لباس روی بدنت','چین و دنباله']};
@@ -975,9 +986,9 @@ function stepResult(){
    savedCount()?el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:openSaved,'data-cmp':'1',text:'مقایسه ('+fa(savedCount())+')'}):null,
    el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){state.result=null;state.gen=null;state.idem=null;state.error='';state.busy=false;go(2)},text:'یک لباس دیگر'})
   ]));
-  box.append(h('p','عکسی که دانلود می‌کنی، گوشهٔ پایینش لوگوی «'+state.pub.salon.name+'» را دارد.','fine-print'));
+  box.append(h('p','عکسی که دانلود می‌کنی، گوشهٔ پایینش لوگوی «'+state.pub.salon.name+'» را دارد.'+(retentionLine()?' '+retentionLine():''),'fine-print'));
   box.append(ratingBlock());
-  box.append(el('div',{class:'flow__nav'},[sendButton()]));
+  box.append(el('div',{class:'flow__nav flow__nav--want'},state.pub.telegram?[wantButton(),el('button',{class:'btn btn--ghost',type:'button',onclick:openRequest,html:ICO.send+'<span>فقط عکس را بفرست</span>'})]:[sendButton()]));
   box.append(sendNote());
  }else if(!state.busy){
   if(!canGenerate()){
@@ -1026,6 +1037,7 @@ function renderDock(){
   primary=el('button',{class:'btn btn--primary',type:'button',disabled:!ready,onclick:build,html:can?ICO.spark+'<span>بساز</span>':out?ICO.send+'<span>فرستادن</span>':ICO.arrow+'<span>ادامه</span>'});
  }else{
   if(state.busy){hint='در حال ساخت…';primary=el('button',{class:'btn btn--primary',type:'button',disabled:true,text:'در حال ساخت…'})}
+  else if(state.result&&state.pub.telegram){hint='لباس را برای مزون نگه دار';primary=wantButton()}
   else if(state.result||!canGenerate()){hint='فرستادن در تلگرام برای مزون';primary=el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
   else{hint='آمادهٔ ساخت';primary=el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>بساز</span>'})}
  }
@@ -1238,7 +1250,7 @@ function demoCompare(cls){
 }
 
 /* ---------- "your request" card: what the salon did with it ---------- */
-var MINE={new:['⏳','فرستاده شد؛ منتظر تماس مزون باش','sent'],called:['📞','مزون گفته با تو تماس گرفته','called'],booked:['🎉','نوبتت هماهنگ شد','booked'],declined:['✋','مزون گفت این مدل در مزون اجرا نمی‌شود','declined']};
+var MINE={new:['⏳','فرستاده شد؛ منتظر تماس مزون باش','sent'],called:['📞','مزون گفته با تو تماس گرفته','called'],booked:['🎉','نوبتت هماهنگ شد','booked'],declined:['✋','مزون گفت این مدل در مزون اجرا نمی‌شود','declined'],cancelled:['🚫','مزون درخواستت را بست','declined']};
 function loadMine(){
  var flag=null;try{flag=localStorage.getItem('ayneh-sent-'+SLUG)}catch(e){}
  if(!flag&&!state.sentOnce)return;
@@ -1252,7 +1264,7 @@ function renderMine(d){
  var tel=d.phone?String(d.phone).replace(/^\+98/,'0'):'';
  var actions=el('div',{class:'mine__actions'});
  if((late||r.salon_status==='called')&&tel)actions.append(el('a',{class:'btn btn--primary btn--sm',href:'tel:'+tel,html:ICO.phone+'<span>تماس با مزون</span>'}));
- if(r.salon_status==='declined')actions.append(el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:function(){go(state.original?2:1)},text:'امتحان یک مدل دیگر'}));
+ if(r.salon_status==='declined'||r.salon_status==='cancelled')actions.append(el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:function(){go(state.original?2:1)},text:'امتحان یک مدل دیگر'}));
  if(!r.followed&&follow&&r.salon_status==='new'){if(follow.telegram)actions.append(el('a',{class:'btn btn--ghost btn--sm',href:follow.telegram,target:'_blank',rel:'noopener',onclick:function(){track('follow','telegram')},text:'خبرم کن در تلگرام'}));if(follow.bale)actions.append(el('a',{class:'btn btn--ghost btn--sm',href:follow.bale,target:'_blank',rel:'noopener',onclick:function(){track('follow','bale')},text:'خبرم کن در بله'}))}
  box.replaceChildren(el('div',{class:'panel mine mine--'+st[2]},[
   el('div',{class:'mine__head'},[el('span',{class:'mine__icon','aria-hidden':'true',text:st[0]}),el('div',{},[h('b',late?'مزون هنوز جواب نداده':st[1]),h('span',(r.look?r.look+'، ':'')+fmt(r.created_at),'mine__meta')])]),
@@ -1514,6 +1526,68 @@ function openRequest(){
  openSheet(panel);
 }
 
+/* ---------- «این لباس را می‌خواهم»: a short reservation request for one dress ---------- */
+function openWant(it){
+ it=it||{result:state.result,original:state.original,look:lookName()};
+ if(!it.result||!it.original){toast('اول نتیجهٔ لباس را بساز');return}
+ if(!state.pub.telegram){openRequest();return}
+ var s=state.pub.salon,p=s.profile||{};
+ var panel=el('div',{class:'sheet__panel want'});
+ panel.append(el('div',{class:'sheet__head'},[h('h2','این لباس را می‌خواهم'),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
+ panel.append(el('div',{class:'outbox'},[el('div',{class:'outbox__thumbs'},[el('img',{src:media(it.original),alt:'عکس تو'}),el('img',{src:media(it.result),alt:'نتیجه'})]),el('div',{},[
+  h('b',it.look||'لباس انتخابی'),h('p','«'+s.name+'» این لباس را با عکس و نتیجه‌ات می‌بیند و برای هماهنگی با تو تماس می‌گیرد.')])]));
+ var nameWrap=wrapField('wname','نام عروس','text',state.me&&state.me.name||'','',{autocomplete:'name'});
+ var phoneWrap=wrapField('wphone','شمارهٔ موبایل','tel',state.me&&state.me.phone||'','۰۹۱۲۱۲۳۴۵۶۷',{inputmode:'tel',autocomplete:'tel'});
+ phoneWrap.querySelector('input').setAttribute('dir','ltr');
+ if(state.verified){nameWrap.querySelector('input').readOnly=true;phoneWrap.querySelector('input').readOnly=true}
+ var visit=el('input',{id:'wvisit',type:'text',maxlength:'120',placeholder:'مثلاً پنجشنبه عصر، یا هر روز بعد از ظهر'});
+ var msg=el('textarea',{id:'wnote',maxlength:'500',placeholder:'اگر چیزی هست که مزون باید بداند، بنویس'});
+ var consent=el('input',{type:'checkbox',id:'wconsent'});
+ var consentErr=el('span',{class:'err',text:'برای ارسال، این تأیید لازم است'});
+ var consentWrap=el('label',{class:'consent','data-invalid':'false'},[consent,el('span',{text:'قبول دارم عکس من و نتیجهٔ این لباس فقط برای «'+s.name+'» فرستاده شود.'}),consentErr]);
+ var submit=el('button',{class:'btn btn--primary btn--block',type:'submit',html:ICO.heart+'<span>ثبت درخواست</span>'});
+ var form=el('form',{novalidate:'true'},[nameWrap,phoneWrap,
+  el('label',{class:'field'},[el('span',{class:'lbl',text:'روز و ساعت دلخواه برای بازدید (اختیاری)'}),visit]),
+  el('label',{class:'field'},[el('span',{class:'lbl',text:'پیام برای مزون (اختیاری)'}),msg]),
+  consentWrap,submit,h('p',['با ثبت، مزون شمارهٔ تو را می‌بیند و تماس می‌گیرد.',retentionLine()?' '+retentionLine():''].join(''),'fine-print')]);
+ consent.addEventListener('change',function(){consentWrap.setAttribute('data-invalid','false')});
+ form.addEventListener('submit',function(e){
+  e.preventDefault();
+  var okName=validate(nameWrap,function(){return nameWrap.querySelector('input').value.trim().length>=2},'نام عروس را بنویس');
+  var num=normalizePhone(phoneWrap.querySelector('input').value);
+  var okPhone=validate(phoneWrap,function(){return /^\+989\d{9}$/.test(num)},'شمارهٔ موبایل درست نیست؛ مثل ۰۹۱۲۱۲۳۴۵۶۷');
+  var okConsent=consent.checked;consentWrap.setAttribute('data-invalid',okConsent?'false':'true');
+  if(!okName||!okPhone||!okConsent)return;
+  submit.disabled=true;submit.textContent='در حال ثبت…';
+  state.me=Object.assign({},state.me||{},{name:nameWrap.querySelector('input').value.trim(),phone:phoneWrap.querySelector('input').value.trim()});
+  try{localStorage.setItem('ayneh-me',JSON.stringify(state.me))}catch(err){}
+  ensureSession().then(function(){
+   state.wantIdem=state.wantIdem||uuid();
+   return api('leads',{intent:'want',data_consent:true,idem:state.wantIdem,name:state.me.name,phone:num,visit_note:visit.value.trim(),note:msg.value.trim(),original_id:it.original,preview_id:it.result,look:it.look||'',v:VISITOR});
+  }).then(function(d){
+   state.wantIdem=null;state.sentOnce=true;
+   var follow=d.follow||{},fl=[];try{localStorage.setItem('ayneh-sent-'+SLUG,'1');if(d.follow)localStorage.setItem('ayneh-follow-'+SLUG,JSON.stringify(follow))}catch(err){}
+   if(follow.telegram)fl.push(el('a',{class:'btn btn--soft btn--block',href:follow.telegram,target:'_blank',rel:'noopener',onclick:function(){track('follow','telegram')},html:ICO.send+'<span>خبرم کن در تلگرام</span>'}));
+   if(follow.bale)fl.push(el('a',{class:'btn btn--soft btn--block',href:follow.bale,target:'_blank',rel:'noopener',onclick:function(){track('follow','bale')},html:ICO.send+'<span>خبرم کن در بله</span>'}));
+   var tel=p.phone||'';
+   setTimeout(loadMine,600);
+   panel.replaceChildren.apply(panel,[el('div',{class:'sent'},[
+    el('span',{class:'sent__mark',html:ICO.check}),
+    h('h2',d.duplicate?'قبلاً ثبت شده بود':'درخواستت ثبت شد'),
+    h('p',d.duplicate?'برای همین لباس درخواست بازِ تو پیش مزون است؛ دوباره نفرستادیم.':'«'+s.name+'» درخواست «'+(it.look||'این لباس')+'» را'+(d.delivered?' همین الان':'')+' دریافت کرد.')]),
+    el('ol',{class:'how'},[
+     el('li',{text:'مزون عکس و لباس انتخابی‌ات را می‌بیند.'}),
+     el('li',{text:'با شمارهٔ '+fa0(num)+' تماس می‌گیرد و زمان بازدید و پرو را هماهنگ می‌کند'+(visit.value.trim()?' (تو نوشتی: '+visit.value.trim()+').':'.')}),
+     el('li',{text:'تا آن موقع می‌توانی لباس‌های دیگر را هم امتحان کنی.'})]),
+    fl.length?el('div',{class:'sent__follow'},[h('p','می‌خواهی وقتی مزون جواب داد خبردار شوی؟ یک بار ربات را باز کن و Start بزن.','sent__hint')].concat(fl)):null,
+    tel?el('a',{class:'btn btn--ghost btn--block',href:'tel:'+tel,html:ICO.phone+'<span>تماس مستقیم با مزون</span>'}):null,
+    el('button',{class:'btn btn--primary btn--block',type:'button',onclick:closeSheet,text:'باشه'})].filter(Boolean));
+  }).catch(function(err){submit.disabled=false;submit.innerHTML=ICO.heart+'<span>ثبت درخواست</span>';if(needsVerify(err.message)){state.verified=false;closeSheet();openOtp(function(){openWant(it)});return}toast(err.message,'error')});
+ });
+ panel.append(form);
+ openSheet(panel);
+}
+
 function wrapField(id,label,type,value,placeholder,extra){
  var input=el('input',{id:id,type:type,value:value||'',placeholder:placeholder||'',autocomplete:extra&&extra.autocomplete||'off',inputmode:extra&&extra.inputmode||null,maxlength:id==='tgid'?'40':id==='phone'?'20':'100'});
  var err=el('span',{class:'err',text:''});
@@ -1601,7 +1675,7 @@ function saveBtn(){
  b.addEventListener('click',function(){
   var l=loadSaved(),id=state.result;
   if(isSaved(id)){writeSaved(l.filter(function(x){return x.r!==id}));toast('از ذخیره‌ها برداشته شد')}
-  else{l.push({r:id,o:state.original,look:lookName()||'',t:Date.now()});if(l.length>MAXSAVE)l=l.slice(l.length-MAXSAVE);writeSaved(l);toast('ذخیره شد؛ با «مقایسه» کنار هم ببینشان');track('save_look')}
+  else{l.push({r:id,o:state.original,look:lookName()||'',t:Date.now()});if(l.length>MAXSAVE)l=l.slice(l.length-MAXSAVE);writeSaved(l);toast('ذخیره شد؛ با «مقایسه» کنار هم ببینشان');track('save_look',dressKey())}
   paint();refreshCmp();
  });
  paint();return b;
@@ -1630,7 +1704,7 @@ function openSaved(){
   var items=sel.map(function(id){return l.filter(function(x){return x.r===id})[0]}).filter(Boolean);
   grid.style.gridTemplateColumns='repeat('+Math.max(1,items.length)+',minmax(0,1fr))';
   grid.replaceChildren.apply(grid,items.map(function(x){
-   var send=el('button',{class:'btn btn--primary btn--sm btn--block',type:'button',text:'ارسال برای مزون',onclick:function(){state.result=x.r;if(x.o)state.original=x.o;if(state.step===3)renderFlow();openRequest()}});
+   var send=el('button',{class:'btn btn--primary btn--sm btn--block',type:'button',text:'این لباس را می‌خواهم',onclick:function(){openWant({result:x.r,original:x.o,look:x.look||''})}});
    var rm=el('button',{class:'btn btn--ghost btn--sm btn--block',type:'button',text:'حذف',onclick:function(){writeSaved(loadSaved().filter(function(y){return y.r!==x.r}));l=loadSaved();sel=sel.filter(function(i){return i!==x.r});refreshCmp();if(!l.length){closeSheet();return}if(!sel.length)sel=l.slice(-3).map(function(y){return y.r});draw()}});
    return el('figure',{class:'cmpx__col'},[
     x.o?el('div',{class:'cmpx__img cmpx__img--before'},[el('img',{src:media(x.o),alt:'عکس تو، قبل',loading:'lazy'}),el('span',{text:'قبل'})]):null,

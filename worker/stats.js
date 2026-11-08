@@ -1,4 +1,5 @@
 import {DRESS_STYLES} from './lines.js';
+import {dressStats} from './dresses.js';
 // Numbers for the owner dashboard. Everything comes from anonymous events (events_log), the
 // generations table and, for the salon response figures, the last 30 days of submissions.
 // Days are Tehran calendar days.
@@ -26,9 +27,10 @@ export async function stats(db,{days=30,salonId=null,now=Date.now()}={}){
  const byDay=Object.fromEntries(dayRows.map(r=>[r.d,r]));const daily=[];
  for(let t=from+DAY;t<=now+1;t+=DAY){const d=dayOf(t);daily.push({day:d,visitors:Number(byDay[d]?.visitors||0),sent:Number(byDay[d]?.sent||0)})}
 
- const lookRows=await all(db,"SELECT meta,COUNT(*) n FROM events_log WHERE kind='look' AND "+w()+" GROUP BY meta ORDER BY n DESC LIMIT 12",...args(from,now));
- const lookName=m=>{const s=String(m||'');if(s.startsWith('d:')){const i=Number(s.slice(2));return DRESS_STYLES[i]?.[0]||'لباس آماده'}if(s.startsWith('s:'))return 'لباس مزون: '+s.slice(2);if(s==='u')return 'عکس لباس دلخواه';return s||'نامشخص'};
- const lookMap={};for(const r of lookRows){const k=lookName(r.meta);lookMap[k]=(lookMap[k]||0)+Number(r.n)}
+ const lookRows=await all(db,"SELECT meta,COUNT(*) n FROM events_log WHERE kind='look' AND "+w()+" GROUP BY meta ORDER BY n DESC LIMIT 60",...args(from,now));
+ // Older events carry prefixes from the retired hair/nail/lash lines (c: n: r: l:); they mean nothing now and are ignored.
+ const lookName=m=>{const s=String(m||'');if(/^[cnrl]:/.test(s))return null;if(s.startsWith('d:')){const i=Number(s.slice(2));return DRESS_STYLES[i]?.[0]||'لباس آماده'}if(s.startsWith('s:'))return 'لباس مزون: '+s.slice(2);if(s==='u')return 'عکس لباس دلخواه';return null};
+ const lookMap={};for(const r of lookRows){const k=lookName(r.meta);if(!k)continue;lookMap[k]=(lookMap[k]||0)+Number(r.n)}
  const looks=Object.entries(lookMap).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([label,n])=>({label,count:n}));
 
  const ratingRows=await all(db,"SELECT substr(meta,1,1) v,COUNT(*) n FROM events_log WHERE kind='rating' AND "+w()+" GROUP BY v",...args(from,now));
@@ -42,7 +44,7 @@ export async function stats(db,{days=30,salonId=null,now=Date.now()}={}){
  const leads=await all(db,'SELECT salon_status,created_at,handled_at FROM leads WHERE '+w()+" AND status='sent'",...args(respFrom,now));
  const durations=leads.filter(l=>l.handled_at).map(l=>(l.handled_at-l.created_at)/60000).sort((a,b)=>a-b);
  const st=k=>leads.filter(l=>l.salon_status===k).length;
- const response={total:leads.length,handled:durations.length,called:st('called'),booked:st('booked'),declined:st('declined'),waiting:st('new'),overdue:leads.filter(l=>l.salon_status==='new'&&l.created_at<now-DAY).length,medianMinutes:durations.length?durations[Math.floor(durations.length/2)]:null,windowDays:Math.round((now-respFrom)/DAY)};
+ const response={total:leads.length,handled:durations.length,called:st('called'),booked:st('booked'),declined:st('declined')+st('cancelled'),waiting:st('new'),overdue:leads.filter(l=>l.salon_status==='new'&&l.created_at<now-DAY).length,medianMinutes:durations.length?durations[Math.floor(durations.length/2)]:null,windowDays:Math.round((now-respFrom)/DAY)};
 
  const extra={tourStart:await count('tour_start',from,now),tourDone:await count('tour_done',from,now),tourSkip:await count('tour_skip',from,now),view360:await count('view360',from,now),about:await count('about',from,now),follow:await count('follow',from,now),demo:await count('demo',from,now)};
  const byLine=(await all(db,'SELECT line,COUNT(*) n FROM leads WHERE '+w()+' GROUP BY line',...args(from,now))).reduce((o,r)=>(o[r.line||'dress']=Number(r.n),o),{dress:0});
@@ -59,5 +61,6 @@ export async function stats(db,{days=30,salonId=null,now=Date.now()}={}){
   }
   salons.sort((a,b)=>b.visitors-a.visitors||b.sent-a.sent);
  }
- return {days,kpi:cur,prev,funnel:funnel.map(([key,label,count])=>({key,label,count})),daily,looks,rating,generation,response,extra,share,lines:{requests:byLine},salons};
+ const dresses=await dressStats(db,{salonId,from,to:now});
+ return {days,dresses,kpi:cur,prev,funnel:funnel.map(([key,label,count])=>({key,label,count})),daily,looks,rating,generation,response,extra,share,lines:{requests:byLine},salons};
 }

@@ -4,6 +4,7 @@
 // failed delivery), requests unanswered for 24 hours, and bot errors. No customer mobiles or photos.
 import {hash} from './domain.js';
 import {call,PLATFORMS,platformReady} from './telegram.js';
+import {dressStats} from './dresses.js';
 
 const one=(db,sql,...a)=>db.prepare(sql).bind(...a).first();
 const run=(db,sql,...a)=>db.prepare(sql).bind(...a).run();
@@ -80,13 +81,18 @@ export async function digest(env,now=Date.now()){
  let tv=0,tl=0;
  for(const s of salons){
   const visitors=Number((await one(db,"SELECT COUNT(DISTINCT visitor) n FROM events_log WHERE salon_id=? AND kind='view' AND visitor<>'' AND created_at>=?",s.id,start))?.n||0);
-  const today=await all(db,'SELECT salon_status,staff_id FROM leads WHERE salon_id=? AND created_at>=?',s.id,start);
+  const today=await all(db,'SELECT salon_status,staff_id,intent FROM leads WHERE salon_id=? AND created_at>=?',s.id,start);
   const open=Number((await one(db,"SELECT COUNT(*) n FROM leads WHERE salon_id=? AND status='sent' AND salon_status='new' AND created_at<?",s.id,now-DAY))?.n||0);
   const waiting=Number((await one(db,'SELECT COUNT(*) n FROM leads WHERE salon_id=? AND waiting=1',s.id))?.n||0);
   const failed=Number((await one(db,"SELECT COUNT(*) n FROM leads WHERE salon_id=? AND status='failed'",s.id))?.n||0);
   tv+=visitors;tl+=today.length;
   const st=setupStatus(s),manager=!!(s.telegram_chat_id||s.bale_chat_id);
   lines.push('🏠 '+s.name+': '+fa(visitors)+' بازدیدکننده، '+fa(today.length)+' درخواست'+(today.length?' ('+fa(today.filter(l=>l.salon_status!=='new').length)+' جواب گرفت)':''));
+  const wants=today.filter(l=>l.intent==='want').length;
+  if(wants)lines.push('   💍 '+fa(wants)+' بار «این لباس را می‌خواهم»');
+  // Top dresses today: tries, saves and requests, and how many tries ended in a request.
+  const top=await dressStats(db,{salonId:s.id,from:start,to:now+1,limit:3});
+  if(top.length)lines.push('   👗 لباس‌های امروز: '+top.map(d=>d.name+' ('+fa(d.tryons)+' امتحان، '+fa(d.saves)+' ذخیره، '+fa(d.wants)+' می‌خواهم'+(d.tryons&&d.wants?'، تبدیل '+fa(Math.round(d.conversion*100))+'٪':'')+')').join(' · '));
   const warn=[];
   if(!manager)warn.push('مدیر ربات را وصل نکرده');
   if(open)warn.push(fa(open)+' درخواست بیش از ۲۴ ساعت بی‌جواب');

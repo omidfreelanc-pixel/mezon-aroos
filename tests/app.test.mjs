@@ -676,3 +676,137 @@ test('step 2: customer page paints the boutique name in the skeleton and offers 
  assert.match(html,/class="hero__name" style="height:auto">[^<]+</);
  for(const needle of ['function openSaved','memSaved','data-save','تلاش دوباره','مقایسهٔ لباس‌های ذخیره‌شده','ارتباط برقرار نشد'])assert(html.includes(needle),needle);
 });
+
+/* ---------- Step 3: leads, reservation, per-dress analytics, photo retention ---------- */
+import {putImage} from '../worker/server.js';
+import {dressStats,purgePhotos} from '../worker/dresses.js';
+import {stats} from '../worker/stats.js';
+import {digest} from '../worker/alerts.js';
+// A finished try-on made without the image provider: an original, a result and the generation row.
+async function tryOn(e,s,g,{style=null,reference=null}={}){
+ const original=await upload(e,s,g);const sid=e.DB.sql.prepare('SELECT s.id FROM sessions s WHERE s.token_hash=?').get(await sha(g.cookie.match(/ayneh=([a-f0-9]{64})/)[1])).id;
+ const result=await putImage(e,{id:s.id},{id:sid},png(),'simulation');
+ e.DB.sql.prepare("INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,reference_id,result_id,style,created_at,updated_at,line) VALUES(?,?,?,?,'single','success',?,?,?,?,?,?,'dress')").run(crypto.randomUUID(),s.id,sid,crypto.randomUUID(),original,reference,result,style,Date.now(),Date.now());
+ return {original,result,sid};
+}
+const sha=async t=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t))),x=>x.toString(16).padStart(2,'0')).join('');
+const want=(t,extra={})=>({intent:'want',data_consent:true,idem:crypto.randomUUID(),name:'نیلوفر کریمی',phone:'۰۹۱۲۳۴۵۶۷۸۹',original_id:t.original,preview_id:t.result,visit_note:'پنجشنبه عصر',note:'سایز ۳۸',v:'b'.repeat(32),...extra});
+
+test('step 3: «می‌خواهم» validates, ties the request to the dress server-side and reaches the boutique with status buttons',async()=>{
+ const e=tgEnv(fixture()),s=await salon(e),g=await guest(e,s);const tg=mockTelegram();try{
+  await linkSalon(e,s,777);
+  const t=await tryOn(e,s,g,{style:2});
+  const post=(b,gg=g)=>call(e,'/api/s/salon-a/leads',b,gg);
+  assert.equal((await post(want(t,{data_consent:false}))).status,400,'consent is required');
+  assert.equal((await post(want(t,{phone:'0912'}))).status,400,'bad mobile');
+  assert.equal((await post(want(t,{phone:'09351234567'.replace('09','۰۹')}))).status,200,'Persian digits are accepted');
+  assert.equal((await post(want(t,{preview_id:undefined}))).status,400,'a result is needed');
+  assert.equal((await post(want(t,{preview_id:crypto.randomUUID()}))).status,400,'an unknown result is refused');
+  const g2=await guest(e,s);assert.equal((await post(want(t),g2)).status,400,'another visitor cannot use this result');
+  const r=await post(want(t));assert.equal(r.status,200,JSON.stringify(r));assert.equal(r.data.delivered,true);
+  const row=e.DB.sql.prepare("SELECT * FROM leads WHERE id=?").get(r.data.id);
+  assert.equal(row.intent,'want');assert.equal(row.phone,'+989123456789');assert.equal(row.dress_key,'d:2');assert.equal(row.visit_note,'پنجشنبه عصر');assert.equal(row.look,DRESS_NAME(2));
+  const msg=tg.calls.filter(c=>c.method==='sendMessage'&&c.body.chat_id==='777').at(-1).body;
+  assert.match(msg.text,/این لباس را می‌خواهم/);assert.match(msg.text,/نیلوفر کریمی/);assert.match(msg.text,/09123456789/);assert.match(msg.text,/پنجشنبه عصر/);assert.match(msg.text,/روی شماره بزنید/);
+  const labels=msg.reply_markup.inline_keyboard.flat().map(b=>b.text.replace('✔︎ ',''));
+  for(const l of ['جدید','تماس گرفته شد','رزرو شد','لغو'])assert(labels.some(x=>x.includes(l)),l);
+  assert(tg.calls.some(c=>c.method==='sendPhoto'||c.method==='sendMediaGroup'),'before/after photos are sent');
+  const again=await post(want(t));assert.equal(again.data.duplicate,true,'the same bride and dress is not sent twice while open');assert.equal(again.data.id,r.data.id);
+ }finally{tg.restore()}});
+function DRESS_NAME(i){return DRESS_STYLES[i][0]}
+
+test('step 3: want requests are rate limited per mobile',async()=>{
+ const e=tgEnv(fixture()),s=await salon(e),g=await guest(e,s);const tg=mockTelegram();try{
+  await linkSalon(e,s,777);
+  let last=0;for(let i=0;i<8;i++){const t=await tryOn(e,s,g,{style:i});last=(await call(e,'/api/s/salon-a/leads',want(t),g)).status;if(last===429)break}
+  assert.equal(last,429);
+ }finally{tg.restore()}});
+
+test('step 3: status buttons and the admin panel update a request, closing and reopening it; list filter and CSV work',async()=>{
+ const e=tgEnv(fixture()),s=await salon(e),g=await guest(e,s);const tg=mockTelegram();try{
+  await linkSalon(e,s,777);const t=await tryOn(e,s,g,{style:1});
+  const d=(await call(e,'/api/s/salon-a/leads',want(t,{name:'=SUM(A1)'}),g)).data;
+  const tap=async(st,chat=777)=>hook(e,{callback_query:{id:'q'+Math.random(),data:'ls:'+st+':'+d.id,message:{chat:{id:chat},message_id:9}}});
+  const get=()=>e.DB.sql.prepare('SELECT salon_status s,closed_at c,handled_at h FROM leads WHERE id=?').get(d.id);
+  await tap('called',888);assert.equal(get().s,'new','a stranger cannot');
+  await tap('called');assert.equal(get().s,'called');assert.equal(get().c,null);
+  await tap('booked');assert.equal(get().s,'booked');assert(get().c>0,'closing sets closed_at');
+  await tap('new');assert.equal(get().s,'new');assert.equal(get().c,null,'reopening clears it');
+  await tap('cancelled');assert.equal(get().s,'cancelled');assert(get().c>0);
+  // admin API
+  assert.equal((await call(e,'/api/s/salon-a/owner/leads/status',{id:d.id,status:'booked'})).status,401);
+  assert.equal((await call(e,'/api/s/salon-a/owner/leads/status',{id:d.id,status:'nope'},OWNER)).status,400);
+  assert.equal((await call(e,'/api/s/salon-a/owner/leads/status',{id:d.id,status:'booked'},OWNER)).status,200);assert.equal(get().s,'booked');
+  const all=await call(e,'/api/s/salon-a/owner/leads',undefined,OWNER);assert.equal(all.data.leads.length,1);assert.equal(all.data.counts.booked,1);
+  assert.equal((await call(e,'/api/s/salon-a/owner/leads?status=new',undefined,OWNER)).data.leads.length,0);
+  assert.equal((await call(e,'/api/s/salon-a/owner/leads?status=booked',undefined,OWNER)).data.leads.length,1);
+  assert.equal((await call(e,'/api/s/salon-a/owner/leads?status=bogus',undefined,OWNER)).status,400);
+  const csvRes=await app.fetch(new Request(origin+'/api/s/salon-a/owner/leads.csv',{headers:{origin,'oai-authenticated-user-id':OWNER.user,'oai-authenticated-user-email':OWNER.email}}),e);
+  assert.equal(csvRes.status,200);assert.match(csvRes.headers.get('content-type'),/text\/csv/);const csv=await csvRes.text();
+  assert(csv.includes('"\'=SUM(A1)"'),'formula cells are neutralised');assert(csv.includes('09123456789'));assert(csv.includes('رزرو شد'));
+ }finally{tg.restore()}});
+
+test('step 3: per-dress try-ons, saves and requests are counted; old c:/n:/r:/l: events are ignored; the daily report lists top dresses',async()=>{
+ const e=tgEnv(fixture()),s=await salon(e),g=await guest(e,s);const tg=mockTelegram();try{
+  await linkSalon(e,s,777);
+  const p=(await call(e,'/api/s/salon-a/owner/portfolio/add',{media_id:await ownerPortfolio(e,s),title:'پرنسس مروارید'},OWNER)).data.id;
+  const pm=e.DB.sql.prepare('SELECT images FROM portfolio WHERE id=?').get(p).images;const refMedia=JSON.parse(pm)[0];
+  const a=await tryOn(e,s,g,{style:3});await tryOn(e,s,g,{style:3});await tryOn(e,s,g,{style:3});
+  const b=await tryOn(e,s,g,{reference:refMedia});
+  await tryOn(e,s,g,{reference:'customer-own-photo'}); // a customer's own dress photo is not a boutique dress
+  await call(e,'/api/s/salon-a/track',{kind:'save_look',v:'c'.repeat(32),meta:'d:3'});await call(e,'/api/s/salon-a/track',{kind:'save_look',v:'c'.repeat(32),meta:'d:3'});
+  await call(e,'/api/s/salon-a/track',{kind:'save_look',v:'c'.repeat(32),meta:'p:'+p});await call(e,'/api/s/salon-a/track',{kind:'save_look',v:'c'.repeat(32),meta:'junk<script>'});
+  assert.equal((await call(e,'/api/s/salon-a/leads',want(a),g)).status,200);
+  assert.equal((await call(e,'/api/s/salon-a/leads',want(b,{phone:'09120000002'}),g)).status,200);
+  for(const m of ['c:3','n:7','r:2','l:1','s:پرنسس مروارید','d:3'])await call(e,'/api/s/salon-a/track',{kind:'look',v:'d'.repeat(32),meta:m});
+  const st=await stats(e.DB,{days:30});
+  const by=Object.fromEntries(st.dresses.map(x=>[x.key,x]));
+  assert.deepEqual([by['d:3'].tryons,by['d:3'].saves,by['d:3'].wants],[3,2,1]);assert.equal(Math.round(by['d:3'].conversion*100),33);
+  assert.deepEqual([by['p:'+p].tryons,by['p:'+p].saves,by['p:'+p].wants],[1,1,1]);assert.equal(by['p:'+p].name,'پرنسس مروارید');
+  assert.equal(st.dresses.length,2,'own-photo dresses are not listed');
+  assert(st.looks.every(x=>!/^[cnrl]:/.test(x.label)&&x.label!=='نامشخص'),JSON.stringify(st.looks));
+  assert.equal(st.looks.length,2,'only the d: and s: events remain');
+  const api=await call(e,'/api/owner/stats?days=30',undefined,OWNER);assert.equal(api.data.dresses.length,2);
+  const report=await digest(e);assert.match(report,/لباس‌های امروز/);assert.match(report,/پرنسس مروارید/);assert.match(report,/این لباس را می‌خواهم/);
+  assert.deepEqual((await dressStats(e.DB,{salonId:s.id,from:Date.now()-1000*86400*400,to:Date.now()+1,limit:1})).length,1);
+ }finally{tg.restore()}});
+async function ownerPortfolio(e,s){const r=await app.fetch(new Request(origin+'/api/s/'+s.slug+'/upload?kind=portfolio',{method:'POST',headers:{origin,'oai-authenticated-user-id':OWNER.user,'oai-authenticated-user-email':OWNER.email},body:png()}),e);return (await r.json()).id}
+
+test('step 3: photo retention deletes old non-lead photos, keeps requests until closed plus N days, honours the setting and leaves the portfolio alone',async()=>{
+ const e=tgEnv(fixture()),s=await salon(e),g=await guest(e,s);const tg=mockTelegram();try{
+  await linkSalon(e,s,777);
+  assert.equal((await call(e,'/api/s/salon-a/public')).data.retention_days,30,'default is 30 and the customer page is told');
+  const day=86400000,now=Date.now();
+  const old=await tryOn(e,s,g,{style:1}),fresh=await tryOn(e,s,g,{style:2}),lead=await tryOn(e,s,g,{style:3}),closed=await tryOn(e,s,g,{style:4}),closedRecent=await tryOn(e,s,g,{style:5});
+  const age=(ids,days)=>{for(const id of ids)e.DB.sql.prepare('UPDATE media SET created_at=? WHERE id=?').run(now-days*day,id)};
+  age([old.original,old.result,lead.original,lead.result,closed.original,closed.result,closedRecent.original,closedRecent.result],40);
+  const mk=async t=>(await call(e,'/api/s/salon-a/leads',want(t,{phone:'0912000'+Math.floor(1000+Math.random()*8999),idem:crypto.randomUUID()}),g)).data.id;
+  const openId=await mk(lead),closedId=await mk(closed),recentId=await mk(closedRecent);
+  e.DB.sql.prepare("UPDATE leads SET salon_status='booked',closed_at=? WHERE id=?").run(now-35*day,closedId);
+  e.DB.sql.prepare("UPDATE leads SET salon_status='booked',closed_at=? WHERE id=?").run(now-5*day,recentId);
+  const portfolioMedia=await ownerPortfolio(e,s);e.DB.sql.prepare('UPDATE media SET created_at=? WHERE id=?').run(now-400*day,portfolioMedia);
+  const has=id=>e.DB.sql.prepare('SELECT COUNT(*) n FROM media WHERE id=?').get(id).n===1;
+  const n=await purgePhotos(e,now);
+  assert.equal(n,4,'old original+result and the long-closed request\'s two photos');
+  assert(!has(old.original)&&!has(old.result));assert(!e.BUCKET.objects.has(s.id+'/'+old.result),'the stored file is deleted too');
+  assert(has(fresh.original)&&has(fresh.result),'recent photos stay');
+  assert(has(lead.original)&&has(lead.result),'an open request keeps its photos');
+  assert(!has(closed.original)&&!has(closed.result),'closed more than N days ago');
+  assert(has(closedRecent.original)&&has(closedRecent.result),'closed less than N days ago');
+  assert(has(portfolioMedia),'portfolio photos are never deleted');
+  assert.equal(e.DB.sql.prepare('SELECT COUNT(*) n FROM leads').get().n,3,'requests themselves are kept');
+  // the setting: a shorter window deletes more, 0 keeps everything, and tick() runs the job
+  assert.equal((await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,reference_verified:true,retention_days:0},OWNER)).status,200);
+  age([fresh.original,fresh.result],60);assert.equal(await purgePhotos(e,now),0,'0 = keep everything');
+  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,reference_verified:true,retention_days:45},OWNER);
+  assert.equal((await call(e,'/api/s/salon-a/public')).data.retention_days,45);
+  const t=await tick(e,origin);assert.equal(t.purged,2);assert(!has(fresh.original));
+  assert(has(lead.original),'still open');
+ }finally{tg.restore()}});
+
+test('step 3: customer page has the want sheet, consent line and retention note; admin has leads filter and settings',()=>{
+ for(const needle of ['function openWant','این لباس را می‌خواهم','wconsent','retentionLine','روز و ساعت دلخواه','leads','intent:\'want\''])assert(customerHTML.includes(needle),needle);
+ for(const needle of ['leadsCard','leads.csv','عملکرد هر لباس','retention_days'])assert(appHTML.includes(needle),needle);
+ const script=customerHTML.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/)[1];
+ assert(!/fetch\(['"]https?:|XMLHttpRequest/.test(script),'no external requests in the customer script');
+});

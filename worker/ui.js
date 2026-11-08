@@ -143,6 +143,7 @@ main#app{max-width:1080px;margin:0 auto;padding:6px 20px 80px;min-height:70vh}
 .log{display:grid}
 .log__row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-2);font-size:13.5px}
 .log__row:last-child{border-bottom:0}
+.seg-ctl--wrap{display:flex;flex-wrap:wrap;gap:4px;max-width:100%}.seg-ctl--wrap button{flex:0 1 auto;white-space:nowrap;padding:7px 10px;font-size:12.5px}.log__row--lead{flex-wrap:wrap}.log__row--lead select{min-height:40px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit}.log__row--lead .tel{color:var(--accent-ink);font-weight:600;text-decoration:none}.log__row--lead .grow{min-width:60%}
 .log__row small{color:var(--muted);font-size:12px}
 .empty-note{color:var(--muted);font-size:13.5px;line-height:1.9;padding:8px 0}
 .login{max-width:420px;margin:30px auto 0}
@@ -250,6 +251,8 @@ function dashboard(salons){
   out.push(el('div',{class:'dgrid'},[
    card('لباس‌های پرطرفدار','بیشترین انتخاب مشتری‌ها.',hbars(d.looks),tableOf(['لباس','انتخاب'],d.looks.map(function(x){return [x.label,fa(x.count)]})))
   ]));
+  out.push(el('div',{class:'dgrid dgrid--1'},[card('عملکرد هر لباس','چند بار امتحان شد، ذخیره شد و «می‌خواهم» خورد؛ تبدیل یعنی از هر امتحان چند درخواست آمد.',
+   (d.dresses||[]).length?el('div',{class:'stable'},[el('table',{},[el('thead',{},[el('tr',{},['لباس'].concat((d.salons&&d.salons.length)?['مزون']:[]).concat(['امتحان','ذخیره','می‌خواهم','تبدیل']).map(function(x){return el('th',{text:x})}))]),el('tbody',{},d.dresses.map(function(x){return el('tr',{},[el('td',{text:x.name})].concat((d.salons&&d.salons.length)?[el('td',{text:x.salon||''})]:[]).concat([el('td',{text:fa(x.tryons)}),el('td',{text:fa(x.saves)}),el('td',{text:fa(x.wants)}),el('td',{text:x.tryons?pct(x.conversion):'—'})]))}))])]):h('p','هنوز لباسی امتحان نشده.','empty-note'))]));
   var r=d.rating,g=d.generation,x=d.extra;
   out.push(el('div',{class:'dgrid'},[
    card('رضایت از شبیه‌سازی',r.count?'میانگین '+fa(r.avg.toFixed(1))+' از ۵، از '+fa(r.count)+' امتیاز':'هنوز امتیازی ثبت نشده.',hbars([5,4,3,2,1].map(function(v,i){return {label:fa(v)+' ستاره',count:r.dist[i]}}),{tone:'honey'}),tableOf(['امتیاز','تعداد'],[5,4,3,2,1].map(function(v,i){return [fa(v),fa(r.dist[i])]}))),
@@ -292,6 +295,37 @@ function referrals(r){
 }
 
 
+// Leads of one boutique: status filter, a status select per request (same effect as the bot buttons),
+// delivery state with a retry for failed ones, and a CSV export.
+var LSTATUS=[['new','جدید'],['called','تماس گرفته شد'],['booked','رزرو شد'],['cancelled','لغو'],['declined','قابل اجرا نیست']];
+function leadsCard(slug){
+ var box=el('section',{class:'card'},[h('h2','درخواست‌ها و مشتریان علاقه‌مند'),h('p','هر کس «این لباس را می‌خواهم» یا فرستادن را زده اینجاست. وضعیت را از اینجا یا از دکمه‌های ربات عوض کنید؛ مشتری هم خبردار می‌شود.','lead')]);
+ var chips=el('div',{class:'seg-ctl seg-ctl--wrap',role:'group','aria-label':'فیلتر وضعیت'}),list=el('div',{class:'log'}),csv=el('a',{class:'btn btn--ghost btn--sm',href:'#',text:'خروجی CSV'});
+ var cur='all',tone={sent:'ok',queued:'',sending:'accent',retry:'warn',failed:'danger'},label={sent:'رسید',queued:'در صف',sending:'در حال ارسال',retry:'تلاش دوباره',failed:'ناموفق'};
+ function paintChips(counts){
+  var total=0;Object.keys(counts||{}).forEach(function(k){total+=counts[k]});
+  chips.replaceChildren.apply(chips,[['all','همه']].concat(LSTATUS).map(function(x){var n=x[0]==='all'?total:(counts&&counts[x[0]])||0;return el('button',{type:'button','aria-pressed':cur===x[0]?'true':'false',text:x[1]+' ('+fa(n)+')',onclick:function(){cur=x[0];load()}})}));
+ }
+ function load(){
+  csv.href='/api/s/'+slug+'/owner/leads.csv?status='+cur;
+  list.classList.add('is-refreshing');
+  return api('/api/s/'+slug+'/owner/leads?status='+cur).then(function(r){
+   list.classList.remove('is-refreshing');paintChips(r.counts);
+   if(!r.leads.length){list.replaceChildren(h('p','درخواستی با این وضعیت نیست.','empty-note'));return}
+   list.replaceChildren.apply(list,r.leads.map(function(l){
+    var sel=el('select',{'aria-label':'وضعیت '+l.name},LSTATUS.map(function(x){return el('option',{value:x[0],text:x[1]})}));sel.value=l.salon_status;
+    sel.addEventListener('change',function(){sel.disabled=true;api('/api/s/'+slug+'/owner/leads/status',{id:l.id,status:sel.value}).then(function(){toast('وضعیت عوض شد.');return load()},function(e){toast(e.message,true);sel.value=l.salon_status}).then(function(){sel.disabled=false})});
+    var tel='0'+String(l.phone).replace(/^\+98/,'');
+    return el('div',{class:'log__row log__row--lead'},[
+     el('div',{class:'grow'},[h('b',l.name),el('br'),el('a',{href:'tel:'+tel,dir:'ltr',class:'tel',text:tel.replace(/\d/g,function(c){return '۰۱۲۳۴۵۶۷۸۹'[c]})}),el('br'),h('small',[l.intent==='want'?'می‌خواهم · ':'',l.look||'بدون لباس',' · ',fmt(l.created_at),l.staff?' · '+l.staff:''].join('')),l.visit_note?el('div',{},[h('small','🗓 '+l.visit_note)]):null]),
+     l.waiting?badge('منتظر وصل شدن '+(l.staff||'نیرو'),'warn'):badge(label[l.status]||l.status,tone[l.status]),
+     l.status==='failed'?el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'ارسال دوباره',onclick:act(function(){return api('/api/s/'+slug+'/owner/leads/retry',{id:l.id}).then(load)})}):null,
+     sel]);
+   }));
+  }).catch(function(e){list.classList.remove('is-refreshing');list.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))});
+ }
+ box.append(el('div',{class:'dash__filters'},[chips,csv]),list);load();return box;
+}
 // Setup progress of a salon page: how many fields are filled and which are missing.
 function setupLine(s){var st=s.setup||{filled:0,total:11,missing:[]};var done=st.filled>=st.total;
  return el('div',{class:'setup'},[el('span',{class:'setup__bar'},[el('span',{style:'width:'+Math.round(st.filled/st.total*100)+'%'})]),h('small',(done?'صفحه کامل است':'صفحه '+fa(st.filled)+' از '+fa(st.total)+' — مانده: '+st.missing.join('، ')))])}
@@ -406,7 +440,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
 
  // Settings
  var model=el('select',{id:'s-model'},[el('option',{value:'pro',text:'بهترین کیفیت (Nano Banana Pro)'}),el('option',{value:'fast',text:'سریع‌تر و ارزان‌تر (Nano Banana 2.1)'})]);model.value=S.settings.image_model==='fast'?'fast':'pro';
- var set=el('section',{class:'card'},[h('h2','شبیه‌سازی'),el('label',{class:'field'},[el('span',{class:'lbl',text:'مدل ساخت تصویر'}),model,el('span',{class:'hint',text:'Pro طبیعی‌تر است و چهره را بهتر نگه می‌دارد، ولی هر تصویر حدود دو برابر هزینه دارد.'})]),check('s-gen','مشتری بتواند مدل را روی عکس خودش ببیند'+(d.image?'':' (کلید KIE هنوز تنظیم نشده)'),S.settings.generation_enabled),check('s-ref','انتقال از «عکس مدل من» و نمونه‌کارها آزمایش شده و کیفیتش تأیید شده است',S.settings.reference_verified),el('label',{class:'field'},[el('span',{class:'lbl',text:'سقف تصویر روزانهٔ این مزون'}),el('input',{id:'s-cap',type:'number',min:'0',step:'1',inputmode:'numeric',value:String(Number.isInteger(S.settings.daily_limit)?S.settings.daily_limit:50)}),el('span',{class:'hint',text:'جمع تصویرهایی که همهٔ مشتری‌ها در یک روز می‌سازند. ۰ یعنی بدون سقف. هر نفر جدا از این، در هر بخش ۳ تصویر دارد.'})]),el('button',{class:'btn btn--ghost',type:'button',text:'ذخیرهٔ تنظیمات',onclick:act(function(){return api('/api/s/'+slug+'/owner/settings',{daily_limit:(function(v){return isNaN(v)?50:Math.max(0,v)})(parseInt($('#s-cap').value,10)),generation_enabled:$('#s-gen').checked,reference_verified:$('#s-ref').checked,image_model:$('#s-model').value}).then(function(){toast('تنظیمات ذخیره شد.')})})})]);
+ var set=el('section',{class:'card'},[h('h2','شبیه‌سازی'),el('label',{class:'field'},[el('span',{class:'lbl',text:'مدل ساخت تصویر'}),model,el('span',{class:'hint',text:'Pro طبیعی‌تر است و چهره را بهتر نگه می‌دارد، ولی هر تصویر حدود دو برابر هزینه دارد.'})]),check('s-gen','مشتری بتواند مدل را روی عکس خودش ببیند'+(d.image?'':' (کلید KIE هنوز تنظیم نشده)'),S.settings.generation_enabled),check('s-ref','انتقال از «عکس مدل من» و نمونه‌کارها آزمایش شده و کیفیتش تأیید شده است',S.settings.reference_verified),el('label',{class:'field'},[el('span',{class:'lbl',text:'سقف تصویر روزانهٔ این مزون'}),el('input',{id:'s-cap',type:'number',min:'0',step:'1',inputmode:'numeric',value:String(Number.isInteger(S.settings.daily_limit)?S.settings.daily_limit:50)}),el('span',{class:'hint',text:'جمع تصویرهایی که همهٔ مشتری‌ها در یک روز می‌سازند. ۰ یعنی بدون سقف. هر نفر جدا از این، در هر بخش ۳ تصویر دارد.'})]),el('label',{class:'field'},[el('span',{class:'lbl',text:'پاک شدن خودکار عکس مشتری‌ها (روز)'}),el('input',{id:'s-keep',type:'number',min:'0',max:'3650',step:'1',inputmode:'numeric',value:String(Number.isInteger(S.settings.retention_days)?S.settings.retention_days:30)}),el('span',{class:'hint',text:'عکس و نتیجه‌ای که مشتری برای مزون نفرستاده بعد از این تعداد روز پاک می‌شود. عکس درخواست‌ها تا بسته شدن درخواست و این تعداد روز بعدش می‌ماند. ۰ یعنی هیچ‌وقت پاک نشود.'})]),el('button',{class:'btn btn--ghost',type:'button',text:'ذخیرهٔ تنظیمات',onclick:act(function(){return api('/api/s/'+slug+'/owner/settings',{daily_limit:(function(v){return isNaN(v)?50:Math.max(0,v)})(parseInt($('#s-cap').value,10)),generation_enabled:$('#s-gen').checked,reference_verified:$('#s-ref').checked,image_model:$('#s-model').value,retention_days:(function(v){return isNaN(v)?30:Math.max(0,v)})(parseInt($('#s-keep').value,10))}).then(function(){toast('تنظیمات ذخیره شد.')})})})]);
 
  // Portfolio
  var ports=el('div',{class:'ports'});
@@ -419,11 +453,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  var add=el('div',{class:'port-add'},[h('b','افزودن نمونه‌کار از همین‌جا'),el('label',{class:'field'},[el('span',{class:'lbl',text:'عکس‌ها'}),addFiles]),addList,addBtn]);
  var port=el('section',{class:'card'},[h('h2','نمونه‌کارها'),h('p','مزون عکس را برای ربات تلگرام می‌فرستد و همان لحظه اینجا و روی صفحهٔ مشتری می‌نشیند. از همین‌جا هم می‌توانید اضافه کنید.','lead'),d.portfolio.length?ports:h('p','هنوز نمونه‌کاری نیامده.','empty-note'),add]);
 
- // Delivery log
- var tone={sent:'ok',queued:'',sending:'accent',retry:'warn',failed:'danger'},label={sent:'رسید',queued:'در صف',sending:'در حال ارسال',retry:'تلاش دوباره',failed:'ناموفق'};
- var log=el('div',{class:'log'});
- d.leads.forEach(function(l){log.append(el('div',{class:'log__row'},[el('div',{class:'grow'},[h('b',l.name),el('br'),h('small',(l.staff?'مشتری '+l.staff+' · ':'مشتری مزون · ')+(l.look?l.look+'، ':'')+fmt(l.created_at))]),l.waiting?badge('منتظر وصل شدن '+(l.staff||'نیرو'),'warn'):badge(label[l.status]||l.status,tone[l.status]),l.status==='sent'?badge({new:'منتظر تماس',called:'تماس گرفتند',booked:'نوبت دادند',declined:'قابل اجرا نبود'}[l.salon_status]||'منتظر تماس',{called:'accent',booked:'ok',declined:'warn'}[l.salon_status]||''):null,l.status==='failed'?el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'ارسال دوباره',onclick:act(function(){return api('/api/s/'+slug+'/owner/leads/retry',{id:l.id}).then(salonPage)})}):null]))});
- var leads=el('section',{class:'card'},[h('h2','درخواست‌های فرستاده‌شده'),h('p','وضعیت ارسال و کاری که مزون کرد؛ عکس‌ها و شمارهٔ مشتری در ربات مزون یا مزون‌دار همان مشتری است.','lead'),d.leads.length?log:h('p','هنوز درخواستی نیامده.','empty-note')]);
+ var leads=leadsCard(slug);
 
  $('#app').replaceChildren(head,el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[prof,port]),el('div',{class:'stack'},[tg,teamC,set,leads])]));
 })}
