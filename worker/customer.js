@@ -809,7 +809,7 @@ function bgRow(){
  wrap.append(strip);return wrap;
 }
 function makeupRow(){
- var cb=el('input',{type:'checkbox',id:'mk'});cb.checked=state.makeup!==false;
+ var cb=el('input',{type:'checkbox',id:'mk'});cb.checked=state.bg?state.makeup===true:state.makeup!==false;
  cb.addEventListener('change',function(){state.makeup=cb.checked;state.idem=null});
  return el('label',{class:'mkrow',for:'mk'},[cb,el('span',{},[el('b',{text:'آرایش ملایم عروس'}),document.createTextNode(' — فقط روی پوست و چشم و لب؛ شکل و چهره‌ات تغییر نمی‌کند.')])]);
 }
@@ -1296,7 +1296,7 @@ function generate(){
  ensureSession().then(function(){
   state.idem=state.idem||uuid();
   // The page's own note under «بساز» says the photo is sent for the simulation; no extra checkbox.
-  return api('generate',{v:VISITOR,image_consent:true,makeup:state.makeup!==false,bg:state.bg||undefined,idem:state.idem,ratio:state.ratio||undefined,original_id:state.original,reference_id:state.reference||undefined,style:state.reference?undefined:(state.style===null?undefined:state.style)});
+  return api('generate',{v:VISITOR,image_consent:true,makeup:(state.bg?state.makeup===true:state.makeup!==false),bg:state.bg||undefined,idem:state.idem,ratio:state.ratio||undefined,original_id:state.original,reference_id:state.reference||undefined,style:state.reference?undefined:(state.style===null?undefined:state.style)});
  }).then(function(job){
   track('generate',state.reference?(state.refTitle?'salon':'upload'):'catalog');
   spentQuota();
