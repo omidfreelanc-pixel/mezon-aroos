@@ -2119,9 +2119,9 @@ function openSpin(){
    var zin=el('button',{class:'btn btn--ghost btn--sm',type:'button','aria-label':'نزدیک‌تر',text:'＋ زوم'}),zout=el('button',{class:'btn btn--ghost btn--sm',type:'button','aria-label':'دورتر',text:'－ زوم'});
    var lft=el('button',{class:'btn btn--ghost btn--sm',type:'button','aria-label':'چرخش به چپ',text:'◀'}),rgt=el('button',{class:'btn btn--ghost btn--sm',type:'button','aria-label':'چرخش به راست',text:'▶'});
    var save=el('a',{class:'btn btn--ghost btn--sm',href:media(id),download:'lebas-aroos.mp4',text:'ذخیره ویدیو'});
-   var send=el('button',{class:'btn btn--primary btn--sm',type:'button',text:KIOSK?'ارسال به گوشی (QR)':'ارسال'});
-   send.addEventListener('click',function(){if(KIOSK){openQR(job,'ویدیو')}else{shareVideo(job,send)}});
-   body.replaceChildren(stage,el('div',{class:'spin__row'},[lft,play,rgt,zout,zin]),el('div',{class:'spin__row'},[send,KIOSK?null:save]),h('p','برای چرخاندن بکش؛ برای زوم دو انگشتی بزن، دوبار لمس کن یا دکمهٔ زوم را بزن.','spin__tip'));
+   var send=el('button',{class:'btn btn--primary btn--sm',type:'button',html:ICO.phone+'<span>ارسال برای خودم</span>'});
+   send.addEventListener('click',function(){openQR(job,'ویدیو')});
+   body.replaceChildren(stage,el('div',{class:'spin__row'},[lft,play,rgt,zout,zin]),el('div',{class:'spin__row'},[send]),h('p','برای چرخاندن بکش؛ برای زوم دو انگشتی بزن، دوبار لمس کن یا دکمهٔ زوم را بزن.','spin__tip'));
    var z=1,tx=0,ty=0,pts={},pd=0,idx=-1;
    function draw(){var m=2*N-2,q=((Math.round(f)%m)+m)%m,k=q<N?q:m-q;if(k!==idx){idx=k;cx.drawImage(frames[k],0,0,d.W,d.H)}}
    function lim(){var w=stage.clientWidth,hh=stage.clientHeight;return [(z-1)*w/2,(z-1)*hh/2]}
