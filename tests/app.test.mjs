@@ -551,7 +551,7 @@ test('without SMS invites the bot offers messenger buttons and /i/ is a send pag
 test('free trial salon: built from the landing form, one per mobile, 5 images and 10 hours enforced by the server',async()=>{const e=tgEnv(fixture());e.KIE_API_KEY='mock';const tg=mockTelegram();const previous=globalThis.fetch;let tasks=0;
  const net=globalThis.fetch;globalThis.fetch=async(url,opts)=>{const u=String(url);if(u.includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/'+crypto.randomUUID()+'.jpg'}});if(u.includes('createTask')){tasks++;return Response.json({code:200,data:{taskId:'t'+tasks}})}return net(url,opts)};
  try{await linkOwnerChat(e);
-  const body={name:'سارا',salon:'مزون رز',city:'تهران',phone:'۰۹۱۲۱۲۳۴۵۶۷',brand:'#8E3050',consent:true};
+  const body={name:'سارا',salon:'مزون رز',city:'تهران',phone:'۰۹۱۲۱۲۳۴۵۶۷',brand:'#8E3050',consent:true,username:'sara.rose',password:'Passw0rd!x',subdomain:'rose'};
   assert.equal((await call(e,'/api/trial',{...body,consent:false})).status,400);
   assert.equal((await call(e,'/api/trial',{...body,website:'x'})).status,200);assert.equal(e.DB.sql.prepare('SELECT count(*) n FROM trials').get().n,0,'honeypot is dropped');
   const r=await call(e,'/api/trial',body);assert.equal(r.status,200,JSON.stringify(r));assert.match(r.data.path,/^\/s\/t-[a-f0-9]{8}$/);assert.equal(r.data.images,5);assert.equal(r.data.hours,10);
@@ -574,7 +574,7 @@ test('free trial salon: built from the landing form, one per mobile, 5 images an
 
 
 test('free trial with SMS on: the mobile is confirmed by a texted code before the page is built',async()=>{const e=smsEnv(tgEnv(fixture()));const tg=mockTelegram(),sms=mockSms();try{await linkOwnerChat(e);
- const body={salon:'مزون یاس',phone:'۰۹۱۲۷۶۵۴۳۲۱',consent:true};
+ const body={salon:'مزون یاس',phone:'۰۹۱۲۷۶۵۴۳۲۱',consent:true,username:'yas.salon',password:'Passw0rd!x'};
  const sent=await call(e,'/api/trial',body);assert.equal(sent.status,200,JSON.stringify(sent));assert.equal(sent.data.code_sent,true);assert.equal(sms.calls.length,1);
  assert.equal(e.DB.sql.prepare('SELECT count(*) n FROM trials').get().n,0,'nothing is built before the code');
  assert.equal((await call(e,'/api/trial',body)).status,429,'resend cooldown');
@@ -1024,3 +1024,40 @@ test('credits: 100 per salon by default, unapproved salons cannot generate, admi
   const page=await app.fetch(new Request(origin+'/m/'+token),e);assert.equal(page.status,200);assert.match(await page.text(),/پنل مزون/);
   assert.equal((await app.fetch(new Request(origin+'/m/'+'f'.repeat(32)),e)).status,404);
  }finally{globalThis.fetch=net;tg.restore()}});
+
+test('manager accounts: chosen at registration, panel opens after approval on the salon subdomain at /manager, scoped to its own salon',async()=>{
+ const e=tgEnv(fixture());e.SESSION_SECRET='s3cret-test';e.APP_ORIGIN='https://ayneh.test';const tg=mockTelegram();
+ try{await linkOwnerChat(e);
+  const body={name:'سارا',salon:'مزون رز',city:'تهران',phone:'۰۹۱۲۱۲۳۴۵۶۷',consent:true,username:'sara.rose',password:'Passw0rd!x',subdomain:'rose'};
+  assert.equal((await call(e,'/api/trial',{...body,username:'x'})).status,400,'short username');
+  assert.equal((await call(e,'/api/trial',{...body,password:'short'})).status,400,'short password');
+  assert.equal((await call(e,'/api/trial',{...body,subdomain:'www'})).status,400,'reserved subdomain');
+  const r=await call(e,'/api/trial',body);assert.equal(r.status,200,JSON.stringify(r));const slug=r.data.path.slice(3);
+  const row=()=>e.DB.sql.prepare('SELECT * FROM salons WHERE slug=?').get(slug);
+  assert.equal(row().mgr_user,'sara.rose');assert.notEqual(row().mgr_hash,'Passw0rd!x');assert.equal(row().desired_sub,'rose');assert.equal(row().subdomain,null);
+  const f=(host,path,init={})=>app.fetch(new Request('https://'+host+path,{...init,headers:{origin:'https://'+host,'content-type':'application/json',...(init.headers||{})}}),e);
+  // before approval: no subdomain, no manager login
+  assert.equal((await f('rose.ayneh.test','/')).status,404);
+  assert.equal((await f('t-x.ayneh.test','/api/s/'+slug+'/manager/login',{method:'POST',body:JSON.stringify({username:'sara.rose',password:'Passw0rd!x'})})).status,403);
+  // owner approves: subdomain is created
+  const ap=await call(e,'/api/owner/account',{slug,approved:true,subdomain:'Rose'},OWNER);assert.equal(ap.status,200,JSON.stringify(ap));assert.equal(ap.data.subdomain,'rose');assert.equal(row().subdomain,'rose');
+  const other=await salon(e,'other-salon');assert.equal((await call(e,'/api/owner/account',{slug:other.slug,approved:true,subdomain:'rose'},OWNER)).status,409,'subdomain is unique');
+  const home=await f('rose.ayneh.test','/');assert.equal(home.status,200);assert.match(await home.text(),new RegExp('window.__SLUG="'+slug+'"'));
+  const mp=await f('rose.ayneh.test','/manager');assert.equal(mp.status,200);assert.match(await mp.text(),new RegExp('window.__MGR="'+slug+'"'));
+  assert.equal((await f('nope.ayneh.test','/')).status,404);
+  // login: wrong password, then right one
+  const login=pw=>f('rose.ayneh.test','/api/s/'+slug+'/manager/login',{method:'POST',body:JSON.stringify({username:'sara.rose',password:pw})});
+  assert.equal((await login('wrong-password')).status,401);
+  const ok=await login('Passw0rd!x');assert.equal(ok.status,200);const cookie=ok.headers.get('set-cookie').split(';')[0];
+  const as=(path,init={})=>f('rose.ayneh.test',path,{...init,headers:{cookie,...(init.headers||{})}});
+  assert.equal((await as('/api/me')).status,200);assert.equal((await (await as('/api/me')).json()).manager,slug);
+  assert.equal((await as('/api/s/'+slug+'/owner')).status,200,'manager reads own salon');
+  assert.equal((await as('/api/s/'+slug+'/owner/profile',{method:'POST',body:JSON.stringify({profile:{bio:'سلام'}})})).status,200,'manager edits own salon');
+  assert.equal((await as('/api/s/'+slug+'/owner/credits')).status,200);
+  assert.equal((await as('/api/s/'+other.slug+'/owner')).status,401,'not another salon');
+  assert.equal((await as('/api/owner/accounts')).status,401,'not the platform admin');
+  assert.equal((await as('/api/owner/stats?salon='+slug)).status,200,'own stats');assert.equal((await as('/api/owner/stats')).status,401,'not platform-wide stats');
+  assert.equal((await f('rose.ayneh.test','/api/s/'+slug+'/owner')).status,401,'no cookie, no access');
+  // suspended salon: the cookie stops working
+  await call(e,'/api/owner/account',{slug,approved:false},OWNER);assert.equal((await as('/api/s/'+slug+'/owner')).status,401);
+ }finally{tg.restore()}});

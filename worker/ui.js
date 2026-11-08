@@ -169,15 +169,33 @@ function act(fn){return function(){var b=this;if(b&&b.disabled!==undefined)b.dis
 function field(id,label,value,type,hint){var input=type==='area'?el('textarea',{id:id}):el('input',{id:id,type:type||'text',value:value||''});if(type==='area')input.value=value||'';return el('label',{class:'field'},[el('span',{class:'lbl',text:label}),input,hint?el('span',{class:'hint',text:hint}):null])}
 function check(id,label,on){var i=el('input',{type:'checkbox',id:id});i.checked=!!on;return el('label',{class:'check'},[i,el('span',{text:label})])}
 function badge(t,tone){return el('span',{class:'badge'+(tone?' badge--'+tone:''),text:t})}
-var path=location.pathname.split('/').filter(Boolean),slug=path[0]==='admin'?path[1]||'':'';
+var path=location.pathname.split('/').filter(Boolean),MGR=window.__MGR||'',slug=MGR||(path[0]==='admin'?path[1]||'':'');
 var TG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.4 4.2 2.9 11.3c-1.2.5-1.2 1.2-.2 1.5l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.2 4.7 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.3-.5-1.9-1.4-1.5zM9.2 14.6l8.6-5.4c.4-.2.8-.1.5.2l-7.3 6.6-.3 3z"/></svg>';
 
 (function boot(){api('/api/me').then(function(me){
+ if(MGR){var br=document.querySelector('.appbar__brand');if(br)br.href='/manager';if(me.owner||me.manager===MGR){$('#logout').hidden=false;return salonPage()}return mgrLogin()}
  if(!me.owner){return login(me)}
  $('#logout').hidden=false;
  return slug?salonPage():home();
 }).catch(function(e){$('#app').replaceChildren(el('div',{class:'loading',text:e.message}))})})();
 
+// Manager's own credit card: remaining images, account status and recharge requests.
+function mgrCredits(){
+ var box=el('section',{class:'card'},[h('h2','اعتبار تصویر و شارژ')]),body=el('div',{class:'stack'}),sel=0;box.append(body);
+ function load(){return api('/api/s/'+MGR+'/owner/credits').then(function(d){
+  var packs=el('div',{class:'row'});
+  d.packs.forEach(function(n){packs.append(el('button',{class:'btn btn--soft btn--sm',type:'button',text:fa(n)+' تصویر',onclick:function(){sel=n;Array.prototype.forEach.call(packs.children,function(c){c.classList.remove('btn--primary')});this.classList.add('btn--primary')}}))});
+  var note=el('textarea',{placeholder:'توضیح یا شمارهٔ پیگیری پرداخت (اختیاری)',maxlength:'300',rows:'2'});
+  body.replaceChildren(el('p',{html:''}),h('b',fa(d.left)+' تصویر مانده — '+fa(d.used)+' از '+fa(d.limit)+' مصرف شده'),d.left<=0?h('p','اعتبار تمام شده؛ مشتری‌ها تا شارژ نمی‌توانند تصویر بسازند.','notice notice--warn'):null,h('p','بسته را انتخاب کنید و درخواست بدهید؛ هزینه و روش پرداخت را مدیر مزون آینه اعلام می‌کند و بعد از تأیید، اعتبار اضافه می‌شود.','muted'),packs,note,el('button',{class:'btn btn--primary',type:'button',text:'ثبت درخواست شارژ',onclick:act(function(){if(!sel)throw new Error('اول یک بسته را انتخاب کنید');return api('/api/s/'+MGR+'/owner/recharge',{amount:sel,note:note.value}).then(function(){toast('درخواست ثبت شد');sel=0;return load()})})}),d.requests.length?el('div',{},d.requests.map(function(r){return h('small',fa(r.amount)+' تصویر · '+(r.status==='approved'?'تأیید شد':r.status==='rejected'?'رد شد':'در انتظار'),'muted')})):null);
+ })}
+ load().catch(function(e){body.append(h('p',e.message,'empty-note'))});return box;
+}
+function mgrLogin(){
+ var u=field('mu','نام کاربری','', 'text'),pw=field('mp','رمز عبور','', 'password');u.querySelector('input').setAttribute('dir','ltr');u.querySelector('input').setAttribute('autocapitalize','off');
+ var go=el('button',{class:'btn btn--primary btn--block',type:'button',text:'ورود',onclick:act(function(){return api('/api/s/'+MGR+'/manager/login',{username:$('#mu').value,password:$('#mp').value}).then(function(){location.reload()})})});
+ pw.querySelector('input').addEventListener('keydown',function(e){if(e.key==='Enter')go.click()});
+ $('#app').replaceChildren(el('section',{class:'card login'},[el('div',{class:'mirror'},[el('div',{class:'mirror__glass'},[el('span',{html:MARK})])]),h('h1','پنل مدیریت مزون'),h('p','با نام کاربری و رمزی که هنگام ثبت‌نام انتخاب کردید وارد شوید.'),u,pw,go]));
+}
 function login(me){
  var box=el('section',{class:'card login'},[el('div',{class:'mirror'},[el('div',{class:'mirror__glass'},[el('span',{html:MARK})])]),h('h1','مدیریت مزون آینه'),h('p','اینجا فقط برای مدیر مزون آینه است. مزون‌ها با ربات تلگرام کار می‌کنند و مشتری‌ها از لینک اختصاصی مزون وارد می‌شوند.')]);
  if(me.passwordLogin){var f=field('pw','رمز مدیر','', 'password');var go=el('button',{class:'btn btn--primary btn--block',type:'button',text:'ورود',onclick:act(function(){return api('/api/login',{password:$('#pw').value}).then(function(){location.reload()})})});f.querySelector('input').addEventListener('keydown',function(e){if(e.key==='Enter')go.click()});box.append(f,go)}
@@ -228,7 +246,7 @@ function dashboard(salons){
  var root=el('section',{class:'dash','aria-label':'آمار'});
  var range=el('div',{class:'seg-ctl',role:'group','aria-label':'بازه'});
  [[7,'۷ روز'],[30,'۳۰ روز'],[90,'۹۰ روز']].forEach(function(o){range.append(el('button',{type:'button','aria-pressed':dashState.days===o[0]?'true':'false',text:o[1],onclick:function(){dashState.days=o[0];draw()}}))});
- var pick=el('select',{'aria-label':'مزون'},[el('option',{value:'',text:'همهٔ مزون‌ها'})].concat(salons.map(function(s){return el('option',{value:s.slug,text:s.name})})));pick.value=dashState.salon;pick.addEventListener('change',function(){dashState.salon=pick.value;draw()});
+ var pick=el('select',{'aria-label':'مزون'},(MGR?[]:[el('option',{value:'',text:'همهٔ مزون‌ها'})]).concat(salons.map(function(s){return el('option',{value:s.slug,text:s.name})})));pick.value=dashState.salon;pick.addEventListener('change',function(){dashState.salon=pick.value;draw()});
  var body=el('div',{class:'dash__body'},[el('div',{class:'loading',text:'در حال آوردن آمار…'})]);
  root.append(el('div',{class:'dash__filters'},[range,pick]),body);
  function draw(){
@@ -380,8 +398,8 @@ function accountsCard(){
   if(d.requests.length){body.append(h('b','درخواست‌های شارژ در انتظار'));d.requests.forEach(function(r){body.append(el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong',r.name+' · '+fa(r.amount)+' تصویر'),h('small',r.note||'بدون توضیح')]),el('button',{class:'btn btn--primary btn--sm',type:'button',text:'تأیید و شارژ',onclick:act(function(){return api('/api/owner/recharge',{id:r.id,action:'approve'}).then(function(){toast('اعتبار اضافه شد');return load()})})}),el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'رد',onclick:act(function(){return api('/api/owner/recharge',{id:r.id,action:'reject'}).then(load)})})]))})}
   d.accounts.forEach(function(a){
    var line=a.approved?(a.left>0?badge('فعال','ok'):badge('اعتبار تمام','warn')):badge('در انتظار تأیید','warn');
-   body.append(el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong',a.name+(a.trial?' (آزمایشی)':'')),h('small','/s/'+a.slug+' · '+fa(a.used)+' از '+fa(a.limit)+' تصویر')]),line,
-    el('button',{class:'btn btn--ghost btn--sm',type:'button',text:a.approved?'تعلیق':'تأیید حساب',onclick:act(function(){return api('/api/owner/account',{slug:a.slug,approved:!a.approved}).then(load)})}),
+   body.append(el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong',a.name+(a.trial?' (آزمایشی)':'')),h('small','/s/'+a.slug+' · '+fa(a.used)+' از '+fa(a.limit)+' تصویر'),h('small',(a.host?a.host+' · ':'')+(a.manager?'کاربر مدیر: '+a.manager:'مدیر هنوز نام کاربری ندارد')+(!a.subdomain&&a.desired?' · زیردامنهٔ درخواستی: '+a.desired:''))]),line,
+    el('button',{class:'btn btn--ghost btn--sm',type:'button',text:a.approved?'تعلیق':'تأیید حساب',onclick:act(function(){if(a.approved)return api('/api/owner/account',{slug:a.slug,approved:false}).then(load);var sub=a.subdomain||prompt('زیردامنهٔ انگلیسی مزون (مثلاً rose برای rose.'+location.hostname.replace(/^www\./,'')+'):',a.desired||(a.trial?'':a.slug));if(!sub)return;return api('/api/owner/account',{slug:a.slug,approved:true,subdomain:sub}).then(function(r){toast('تأیید شد'+(r.subdomain?' · زیردامنه: '+r.subdomain:''));return load()})})}),el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'نام کاربری/رمز مدیر',onclick:act(function(){var u=prompt('نام کاربری مدیر (انگلیسی):',a.manager||'');if(!u)return;var pw=prompt('رمز عبور (حداقل ۸ نویسه):');if(!pw)return;return api('/api/owner/manager',{slug:a.slug,username:u,password:pw}).then(function(){toast('اطلاعات ورود مدیر ذخیره شد');return load()})})}),
     el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'+۱۰۰ اعتبار',onclick:act(function(){return api('/api/owner/account',{slug:a.slug,add:100}).then(function(){toast('۱۰۰ تصویر اضافه شد');return load()})})}),
     el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'کپی لینک پنل',onclick:act(function(){return navigator.clipboard.writeText(a.panel).then(function(){toast('لینک پنل کپی شد')})})})]))});
    if(!d.accounts.length)body.append(h('p','هنوز مزونی نیست.','empty-note'));
@@ -425,7 +443,7 @@ function shrink(file){return createImageBitmap(file).then(function(b){var c=docu
 function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  var S=d.salon,p=S.profile||{},images={logo:p.logo,cover:p.cover,portrait:p.portrait};
  document.title=S.name+' | مدیریت مزون آینه';
- var head=el('div',{class:'page-head'},[el('div',{},[el('a',{class:'back',href:'/admin',text:'→ همهٔ مزون‌ها'}),h('h1',S.name),h('p','اطلاعاتی که اینجا وارد می‌کنید در بخش «دربارهٔ مزون» صفحهٔ مشتری دیده می‌شود.'),setupLine({setup:d.setup})]),el('div',{class:'row'},[el('a',{class:'btn btn--ghost',href:'/admin?salon='+encodeURIComponent(S.slug),text:'آمار این مزون'}),el('a',{class:'btn btn--ghost',href:'/s/'+S.slug,target:'_blank',rel:'noopener',text:'دیدن صفحهٔ مشتری'})])]);
+ var head=el('div',{class:'page-head'},[el('div',{},[MGR?null:el('a',{class:'back',href:'/admin',text:'→ همهٔ مزون‌ها'}),h('h1',S.name),h('p','اطلاعاتی که اینجا وارد می‌کنید در بخش «دربارهٔ مزون» صفحهٔ مشتری دیده می‌شود.'),setupLine({setup:d.setup})]),el('div',{class:'row'},[MGR?null:el('a',{class:'btn btn--ghost',href:'/admin?salon='+encodeURIComponent(S.slug),text:'آمار این مزون'}),el('a',{class:'btn btn--ghost',href:MGR?'/':'/s/'+S.slug,target:'_blank',rel:'noopener',text:'دیدن صفحهٔ مشتری'})])]);
 
  // Telegram
  var linked=[S.telegram?'تلگرام':'',S.bale?'بله':''].filter(Boolean),on=linked.length>0;
@@ -487,9 +505,10 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
 
  var leads=leadsCard(slug),social=socialCard(slug);
 
+ if(MGR){dashState.salon=MGR;$('#app').replaceChildren(head,mgrCredits(),dashboard([{slug:MGR,name:S.name}]),el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[prof,port]),el('div',{class:'stack'},[tg,teamC,set,leads,social])]));return}
  $('#app').replaceChildren(head,el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[prof,port]),el('div',{class:'stack'},[tg,teamC,set,leads,social])]));
 })}
-$('#logout').addEventListener('click',function(){api('/api/logout',{}).then(function(){location.href='/'})});
+$('#logout').addEventListener('click',function(){(MGR?api('/api/s/'+MGR+'/manager/logout',{}):api('/api/logout',{})).then(function(){location.href='/'})});
 `;
 
 export const appHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#e8edeb"><meta name="robots" content="noindex"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin><title>مزون آینه | مدیریت مزون‌ها</title><style>__CSS__</style></head><body>

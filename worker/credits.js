@@ -2,6 +2,7 @@
 // No online payment: the manager asks for a recharge, the project owner confirms it from the admin panel.
 import {must,Problem,uid,text,limited} from './domain.js';
 import {notifyOwner} from './alerts.js';
+import {approveSalon} from './manager.js';
 
 export const DEFAULT_CREDITS=100,PACKS=[100,300,1000];
 const one=(db,sql,...a)=>db.prepare(sql).bind(...a).first();
@@ -36,15 +37,17 @@ export async function ensureToken(db,salon){
 export async function adminAccounts(db,origin){
  const salons=await all(db,"SELECT * FROM salons WHERE slug<>'demo' ORDER BY created_at DESC");
  const out=[];
- for(const s of salons){const c=await creditsOf(db,s),t=await ensureToken(db,s);out.push({slug:s.slug,name:s.name,approved:c.approved,used:c.used,limit:c.limit,left:c.left,panel:origin+'/m/'+t,trial:s.owner_id==='trial'})}
+ for(const s of salons){const c=await creditsOf(db,s),t=await ensureToken(db,s);out.push({slug:s.slug,name:s.name,approved:c.approved,used:c.used,limit:c.limit,left:c.left,panel:origin+'/m/'+t,trial:s.owner_id==='trial',subdomain:s.subdomain||'',desired:s.desired_sub||'',manager:s.mgr_user||'',host:s.subdomain?s.subdomain+'.'+new URL(origin).hostname:''})}
  const reqs=await all(db,"SELECT r.id,r.amount,r.note,r.created_at,s.slug,s.name FROM credit_requests r JOIN salons s ON s.id=r.salon_id WHERE r.status='pending' ORDER BY r.created_at");
  return {accounts:out,requests:reqs,packs:PACKS};
 }
 export async function adminSetAccount(db,b){
  const s=await one(db,'SELECT * FROM salons WHERE slug=?',String(b.slug||''));must(s,'مزون پیدا نشد',404);
- if(b.approved!==undefined)await run(db,'UPDATE salons SET approved=? WHERE id=?',b.approved===true?1:0,s.id);
+ let subdomain=s.subdomain||null;
+ if(b.approved===true)subdomain=await approveSalon(db,s,b.subdomain);
+ else if(b.approved===false)await run(db,'UPDATE salons SET approved=0 WHERE id=?',s.id);
  if(b.add!==undefined){const n=Number(b.add);must(Number.isInteger(n)&&n>=-10000&&n<=100000&&n!==0,'مقدار اعتبار معتبر نیست');await run(db,'UPDATE salons SET credit_limit=MAX(0,credit_limit+?) WHERE id=?',n,s.id)}
- return creditsOf(db,await one(db,'SELECT * FROM salons WHERE id=?',s.id));
+ return {...await creditsOf(db,await one(db,'SELECT * FROM salons WHERE id=?',s.id)),subdomain};
 }
 export async function adminHandleRequest(db,b){
  const r=await one(db,"SELECT * FROM credit_requests WHERE id=? AND status='pending'",String(b.id||''));must(r,'درخواست پیدا نشد یا قبلاً رسیدگی شده',404);
@@ -58,19 +61,23 @@ export async function panelApi(req,env,u){
  const m=u.pathname.match(/^\/api\/m\/([a-f0-9]{32})(?:\/(.*))?$/);must(m,'پیدا نشد',404);
  const db=env.DB,salon=await one(db,'SELECT * FROM salons WHERE manage_token=?',m[1]);must(salon,'پنل پیدا نشد',404);
  const route=m[2]||'',J=(d,c=200)=>new Response(JSON.stringify(d),{status:c,headers:{'Content-Type':'application/json;charset=utf-8','Cache-Control':'no-store'}});
- const status=async()=>{const c=await creditsOf(db,salon);const reqs=await all(db,'SELECT id,amount,note,status,created_at FROM credit_requests WHERE salon_id=? ORDER BY created_at DESC LIMIT 12',salon.id);return {salon:{name:salon.name,slug:salon.slug},...c,packs:PACKS,requests:reqs}};
- if(route===''&&req.method==='GET')return J(await status());
- if(route==='recharge'&&req.method==='POST'){
-  await limited(db,'recharge:'+salon.id,10,'درخواست‌های امروز زیاد شده؛ فردا دوباره امتحان کنید');
-  const b=await req.json().catch(()=>({})),amount=Number(b.amount);
-  must(PACKS.includes(amount),'بستهٔ شارژ معتبر نیست');
-  must(Number((await one(db,"SELECT COUNT(*) n FROM credit_requests WHERE salon_id=? AND status='pending'",salon.id)).n)<3,'چند درخواست در انتظار دارید؛ تا رسیدگی صبر کنید',429);
-  const id=uid(),note=text(String(b.note||''),300);
-  await run(db,'INSERT INTO credit_requests(id,salon_id,amount,note,created_at) VALUES(?,?,?,?,?)',id,salon.id,amount,note,Date.now());
-  await notifyOwner(env,{kind:'credit',level:'info',text:'درخواست شارژ «'+salon.name+'»: '+amount+' تصویر',detail:'/s/'+salon.slug+(note?'\n📝 '+note:'')});
-  return J({ok:true,...await status()});
- }
+ if(route===''&&req.method==='GET')return J(await creditStatus(db,salon));
+ if(route==='recharge'&&req.method==='POST')return J(await requestRecharge(db,env,salon,await req.json().catch(()=>({}))));
  must(false,'پیدا نشد',404);
+}
+export async function creditStatus(db,salon){
+ const c=await creditsOf(db,salon);
+ const reqs=await all(db,'SELECT id,amount,note,status,created_at FROM credit_requests WHERE salon_id=? ORDER BY created_at DESC LIMIT 12',salon.id);
+ return {salon:{name:salon.name,slug:salon.slug},...c,packs:PACKS,requests:reqs};
+}
+export async function requestRecharge(db,env,salon,b){
+ await limited(db,'recharge:'+salon.id,10,'درخواست‌های امروز زیاد شده؛ فردا دوباره امتحان کنید');
+ const amount=Number(b.amount);must(PACKS.includes(amount),'بستهٔ شارژ معتبر نیست');
+ must(Number((await one(db,"SELECT COUNT(*) n FROM credit_requests WHERE salon_id=? AND status='pending'",salon.id)).n)<3,'چند درخواست در انتظار دارید؛ تا رسیدگی صبر کنید',429);
+ const id=uid(),note=text(String(b.note||''),300);
+ await run(db,'INSERT INTO credit_requests(id,salon_id,amount,note,created_at) VALUES(?,?,?,?,?)',id,salon.id,amount,note,Date.now());
+ await notifyOwner(env,{kind:'credit',level:'info',text:'درخواست شارژ «'+salon.name+'»: '+amount+' تصویر',detail:'/s/'+salon.slug+(note?'\n📝 '+note:'')});
+ return {ok:true,...await creditStatus(db,salon)};
 }
 
 export async function panelPage(env,token,notFound,headers){

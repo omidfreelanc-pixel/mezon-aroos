@@ -12,6 +12,8 @@ import {resultPage,resultImage} from './resultlinks.js';
 import {pairPage,pairUpload} from './pairing.js';
 import {landingHTML as homeHTML} from './landing.js';
 import {panelPage} from './credits.js';
+import {subOf} from './manager.js';
+import {registerHTML} from './register.js';
 const htmlHeaders={'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",'Permissions-Policy':'camera=(self), geolocation=(), microphone=()'};
 // Only real pages are served the app shell; everything else is a 404, never a blank app page.
 const pages=[/^\/admin\/?$/,/^\/admin\/[a-z0-9-]{1,64}\/?$/,/^\/s\/[a-z0-9-]{1,64}\/?$/,/^\/i\/[a-z0-9-]{1,64}\/?$/,/^\/p\/[a-f0-9]{32}\/?$/,/^\/m\/[a-f0-9]{32}\/?$/,/^\/signin-with-chatgpt(\/.*)?$/];
@@ -53,6 +55,14 @@ export default {
   if(u.pathname==='/favicon.ico')return new Response(null,{status:204,headers:{'Cache-Control':'public,max-age=86400'}});
   if(u.pathname==='/favicon.svg')return new Response(favicon,{headers:{'Content-Type':'image/svg+xml','Cache-Control':'public,max-age=86400'}});
   if(u.pathname.startsWith('/fonts/')){const f=fontResponse(u.pathname.slice(7));if(f)return f;}
+  {const sub=subOf(u,env);if(sub&&(u.pathname==='/'||/^\/manager\/?$/.test(u.pathname))){
+   const sl=env.DB?await env.DB.prepare('SELECT slug,approved FROM salons WHERE subdomain=?').bind(sub).first().catch(()=>null):null;
+   if(!sl||!sl.approved)return new Response(notFound,{status:404,headers:htmlHeaders});
+   const tag=v=>'<head><script>window.__'+v+'='+JSON.stringify(sl.slug)+'</script>';
+   if(u.pathname==='/'){const html=await salonPage(new URL('/s/'+sl.slug,u),{...env,APP_ORIGIN:u.origin});return new Response((html||customerHTML).replace('<head>',()=>tag('SLUG')),{headers:htmlHeaders});}
+   return new Response(appHTML.replace('<head>',()=>tag('MGR')),{headers:htmlHeaders});
+  }}
+  if(u.pathname==='/register'||u.pathname==='/register/')return new Response(registerHTML,{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}});
   if(u.pathname==='/'){ctx?.waitUntil(ensureWebhook(env,u.origin));return new Response(homeHTML,{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}})}
   {const m=/^\/u\/([a-f0-9]{12})(\/photo)?$/.exec(u.pathname);if(m){if(m[2]){if(request.method!=='POST')return new Response('Method not allowed',{status:405});return await pairUpload(env,request,m[1])}return await pairPage(env,m[1],notFound)}}
   {const m=/^\/r\/([a-f0-9]{48})(\/img)?$/.exec(u.pathname);if(m){if(m[2]){return (await resultImage(env,m[1]))||new Response('Not found',{status:404,headers:{'Cache-Control':'no-store'}})}return await resultPage(env,m[1],notFound)}}

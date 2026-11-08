@@ -2,6 +2,7 @@ import {must,phone,text,uid,digits,hash,limited} from './domain.js';
 import {notifyOwner} from './alerts.js';
 import {smsReady,sendOtp} from './sms.js';
 import {newToken} from './credits.js';
+import {cleanUser,checkCreds,pwHash,subLabel,checkSub} from './manager.js';
 
 // Free trial salon page: a salon owner builds it from the landing form and can use it for a short
 // time with a small image budget. Both limits are enforced here on the server, never in the page.
@@ -24,12 +25,15 @@ export async function spendTrialImage(db,t){
 
 const rand=()=>Array.from(crypto.getRandomValues(new Uint8Array(4)),x=>x.toString(16).padStart(2,'0')).join('');
 
-// POST /api/trial body: {name,salon,city,phone,brand,consent,note}. Creates the salon, its trial row
+// POST /api/trial body: {name,salon,city,phone,brand,consent,note,username,password,subdomain}. Creates the salon, its trial row
 // and the lead for the project owner in one go, and returns the page address.
 export async function createTrial(db,env,origin,b){
  must(b.consent===true,'برای ساخت صفحه، تأیید تماس لازم است');
  const name=text(String(b.name||''),60)||'مدیر مزون',salon=text(String(b.salon||''),80),city=text(String(b.city||''),40),note=text(String(b.note||''),300),chosen=text(String(b.chosen||''),90);
  must(salon.length>=2,'نام مزون را بنویسید');
+ // The manager's own login (chosen here), and the subdomain they would like; the owner confirms it on approval.
+ const username=cleanUser(b.username),password=String(b.password||'');checkCreds(username,password);
+ const wantSub=subLabel(b.subdomain);if(wantSub)await checkSub(db,wantSub,'');
  const tel=phone(b.phone),brand=BRANDS.includes(b.brand)?b.brand:BRANDS[0];
  must(!await one(db,'SELECT 1 FROM trials WHERE phone=?',tel),'برای این شماره قبلاً صفحهٔ آزمایشی ساخته شده است؛ با ما تماس بگیرید',409);
  // With SMS configured the mobile is confirmed first, so nobody spends a trial on someone else's number.
@@ -52,13 +56,13 @@ export async function createTrial(db,env,origin,b){
   must(await hash(o.id+':'+given)===o.code_hash,'کد درست نیست');
   await run(db,'DELETE FROM otps WHERE session_id=?',key);
  }
- const token=newToken(),id=uid(),salonId=uid(),slug='t-'+rand(),now=Date.now(),expires=now+TRIAL_HOURS*3600000;
+ const salt=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join(''),token=newToken(),id=uid(),salonId=uid(),slug='t-'+rand(),now=Date.now(),expires=now+TRIAL_HOURS*3600000;
  await db.batch([
-  db.prepare('INSERT INTO salons(id,slug,owner_id,name,created_at,profile,settings,approved,manage_token) VALUES(?,?,?,?,?,?,?,0,?)').bind(salonId,slug,'trial',salon,now,JSON.stringify(city?{address:city}:{}),JSON.stringify({generation_enabled:true,catalog:true,reference_verified:true,trial:true}),token),
+  db.prepare('INSERT INTO salons(id,slug,owner_id,name,created_at,profile,settings,approved,manage_token,desired_sub,mgr_user,mgr_salt,mgr_hash) VALUES(?,?,?,?,?,?,?,0,?,?,?,?,?)').bind(salonId,slug,'trial',salon,now,JSON.stringify(city?{address:city}:{}),JSON.stringify({generation_enabled:true,catalog:true,reference_verified:true,trial:true}),token,wantSub,username,salt,await pwHash(password,salt)),
   db.prepare('INSERT INTO trials(id,salon_id,name,phone,brand,created_at,expires_at,images_limit) VALUES(?,?,?,?,?,?,?,?)').bind(id,salonId,name,tel,brand,now,expires,TRIAL_IMAGES),
   db.prepare('INSERT INTO inquiries(id,name,salon,city,phone,note,chosen,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(uid(),name,salon,city,tel,note,'صفحهٔ آزمایشی '+slug+(chosen?' · '+chosen:''),now)
  ]);
  const url=(env.APP_ORIGIN||origin)+'/s/'+slug;
- await notifyOwner(env,{kind:'trial',level:'good',text:'صفحهٔ آزمایشی «'+salon+'»'+(city?' ('+city+')':'')+' ساخته شد',detail:'👤 '+name+'\n📞 '+tel+'\n🔗 '+url+'\n🛠 پنل مزون‌دار: '+(env.APP_ORIGIN||origin)+'/m/'+token+'\n⏳ ساخت تصویر تا تأیید شما بسته است'+'\n⏳ '+TRIAL_HOURS+' ساعت · '+TRIAL_IMAGES+' تصویر'+(chosen?'\n✨ '+chosen:'')+(note?'\n📝 '+note:'')});
+ await notifyOwner(env,{kind:'trial',level:'good',text:'صفحهٔ آزمایشی «'+salon+'»'+(city?' ('+city+')':'')+' ساخته شد',detail:'👤 '+name+'\n📞 '+tel+'\n🔗 '+url+'\n👤 نام کاربری: '+username+(wantSub?'\n🌐 زیردامنهٔ درخواستی: '+wantSub:'')+'\n🛠 پنل مزون‌دار: '+(env.APP_ORIGIN||origin)+'/m/'+token+'\n⏳ ساخت تصویر تا تأیید شما بسته است'+'\n⏳ '+TRIAL_HOURS+' ساعت · '+TRIAL_IMAGES+' تصویر'+(chosen?'\n✨ '+chosen:'')+(note?'\n📝 '+note:'')});
  return {ok:true,path:'/s/'+slug,url,panel:(env.APP_ORIGIN||origin)+'/m/'+token,expires_at:expires,images:TRIAL_IMAGES,hours:TRIAL_HOURS};
 }
