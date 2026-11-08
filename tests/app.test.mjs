@@ -933,3 +933,21 @@ test('boutique shows only its own dresses: catalog and own-photo are opt-in, all
   assert.equal((await gen({style:1})).status,200);
  }finally{globalThis.fetch=previous}
 });
+
+test('phone -> kiosk pairing: QR code, public phone page, photo lands only in the kiosk session, expires and is erased',async()=>{
+ const e=fixture(),s=await salon(e),g=await guest(e,s);
+ const p=await call(e,'/api/s/salon-a/pair',{v:'k1'},g);assert.equal(p.status,200,JSON.stringify(p));assert.match(p.data.code,/^[a-f0-9]{12}$/);assert.ok(p.data.url.endsWith('/u/'+p.data.code));
+ const page=await app.fetch(new Request(origin+'/u/'+p.data.code),e);assert.equal(page.status,200);const html=await page.text();assert.match(html,/checkPhoto/);assert.match(html,/capture="environment"/);
+ assert.equal((await app.fetch(new Request(origin+'/u/'+'0'.repeat(12)),e)).status,404);
+ {const w=await call(e,'/api/s/salon-a/pair/check?seen=',undefined,g);assert.equal(w.data.state,'waiting',JSON.stringify(w))}
+ const send=(body,code=p.data.code)=>app.fetch(new Request(origin+'/u/'+code+'/photo',{method:'POST',body}),e);
+ assert.equal((await send(new Uint8Array(300).fill(65))).status,400,'not an image');
+ assert.equal((await send(png())).status,200);
+ const st=await call(e,'/api/s/salon-a/pair/check?seen=',undefined,g);assert.equal(st.data.state,'received');
+ const row=e.DB.sql.prepare('SELECT session_id,kind FROM media WHERE id=?').get(st.data.media_id);assert.equal(row.kind,'original');
+ assert.equal((await call(e,'/api/s/salon-a/pair/check?seen='+st.data.media_id,undefined,g)).data.state,'waiting','reported once');
+ const other=await guest(e,s);assert.equal((await call(e,'/api/s/salon-a/pair/check?seen=',undefined,other)).data.state,'none','another visitor never sees it');
+ e.DB.sql.prepare('UPDATE pairings SET expires_at=1').run();assert.equal((await send(png())).status,404,'expired code');
+ assert.equal((await call(e,'/api/s/salon-a/erase',{v:'k1'},g)).status,200);assert.equal(e.DB.sql.prepare('SELECT count(*) n FROM pairings').get().n,0);
+ const cust=await app.fetch(new Request(origin+'/s/salon-a?kiosk=1'),e);const ch=await cust.text();assert.match(ch,/openPhonePair/);assert.match(ch,/function checkPhoto/);
+});

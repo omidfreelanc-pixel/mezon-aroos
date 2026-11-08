@@ -1,5 +1,6 @@
 import {DRESS_STYLES,LINE_FILTERS,LINE_PHOTO,LINE_LABEL} from './lines.js';
 import {QR_JS} from './qr.js';
+import {PHOTO_CHECK_JS} from './pairing.js';
 const lineJSON=(line,list)=>({styles:list.map(x=>[x[0],x[1],x[2]]),filters:LINE_FILTERS[line]});
 const LINES_JSON=JSON.stringify({label:LINE_LABEL,photo:{dress:LINE_PHOTO.dress},dress:lineJSON('dress',DRESS_STYLES)});
 import {baseCSS,markSVG} from './design.js';
@@ -307,6 +308,7 @@ body.is-touring{overflow:hidden}
 .result-actions .btn{flex:1 1 auto}
 .mkrow{display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;padding:10px 12px;border-radius:14px;background:var(--glass-2);font-size:13.5px;line-height:1.7;cursor:pointer}.mkrow input{margin-top:5px;width:18px;height:18px;accent-color:var(--accent)}
 .kqrs{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;align-items:center;margin:10px 0}.kqrs p{flex-basis:100%;margin:0;font-size:15px}.kqr{display:grid;gap:6px;justify-items:center;font-weight:700}.kqr .qr__code{width:150px}
+.rev{display:grid;gap:12px;justify-items:center;padding:4px 4px 14px}.rev__img{max-height:38vh;max-width:70%;border-radius:12px;box-shadow:var(--lift)}.rev__list{display:grid;gap:8px;width:100%}.rev__bad,.rev__warn{border-radius:12px;padding:10px 14px;font-size:15px;line-height:1.7}.rev__bad{background:#fde8e8;color:#8a1c1c}.rev__warn{background:#fff3d6;color:#6b4a00}.rev__btns{display:grid;gap:8px;width:100%}.pairsteps{margin:0 0 12px;padding:0 22px;font-size:15px;color:var(--muted,#6a5d60);line-height:1.9}
 .qr{display:grid;justify-items:center;gap:14px;padding:6px 4px 14px}.qr__code{width:min(100%,300px);background:#fff;border-radius:16px;padding:10px;box-shadow:var(--lift)}.qr__code svg{display:block;width:100%;height:auto}.qr__note{text-align:center;font-size:13.5px;color:var(--ink-2);line-height:1.9;margin:0}
 .kiosk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}.kiosk img{-webkit-user-drag:none}
 .kiosk .btn{min-height:56px;font-size:17px}
@@ -448,6 +450,7 @@ img[loading="lazy"].is-in{opacity:1}
 
 const clientJS=String.raw`
 /*__QR__*/
+/*__CHECK__*/
 var LINES=__LINES__;
 var MARK=__MARK__;
 var SLUG=location.pathname.split('/').filter(Boolean)[1]||'';
@@ -687,7 +690,8 @@ function stepPhoto(){
    el('ul',{class:'tips'},LP().tips.map(function(t){return el('li',{class:'tip'},[el('span',{html:ICO[t[0]]}),el('span',{},[el('b',{text:t[1]}),document.createTextNode(t[2])])])})),
    el('div',{class:'shoot__btns'},[
     el('button',{class:'btn btn--primary',type:'button',onclick:pickNow,html:ICO.gallery+'<span>انتخاب از گالری</span>'}),
-    el('button',{class:'btn btn--ghost',type:'button',onclick:openCamera,html:ICO.camera+'<span>عکس با دوربین</span>'})
+    el('button',{class:'btn btn--ghost',type:'button',onclick:openCamera,html:ICO.camera+'<span>عکس با دوربین</span>'}),
+    KIOSK?el('button',{class:'btn btn--ghost',type:'button',onclick:openPhonePair,html:ICO.send+'<span>ارسال از گوشی خودم</span>'}):null
    ]),
    el('details',{class:'collapse'},[
     el('summary',{html:ICO.lock+'<span>عکسم کجا نگه‌داری می‌شود؟</span>'}),
@@ -1113,9 +1117,10 @@ function renderDock(){
 }
 
 /* ---------- upload ---------- */
-function handleFile(file,kind){
+function handleFile(file,kind,checked){
  if(!file){toast('عکسی انتخاب نشد');return}
  if(['image/jpeg','image/png','image/webp'].indexOf(file.type)<0){toast('فقط JPG، PNG یا WebP','error');return}
+ if(kind==='original'&&!checked){precheck(file,function(){handleFile(file,kind,true)});return}
  state.busy=true;renderDock();
  if(kind==='original'){try{if(state.preview)URL.revokeObjectURL(state.preview);state.preview=URL.createObjectURL(file)}catch(e){state.preview=null}state.original=null;state.justUploaded=false;clearTimeout(state.advT);if(state.step!==1){state.step=1;renderSteps()}renderFlow();focusFlow()}
  Promise.all([compress(file),ensureSession()]).then(function(r){
@@ -1126,6 +1131,54 @@ function handleFile(file,kind){
   else{track('look','u');state.reference=d.id;state.refTitle='';state.style=null;state.result=null;state.error='';setTimeout(scrollToBuild,60)}
   renderFlow();renderSteps();renderDock();
  }).catch(function(e){if(kind==='original'&&!state.original){state.preview=null;renderFlow()}toast(e.message,'error')}).then(function(){state.busy=false;renderDock()});
+}
+
+/* ---------- photo guidelines: every full-length photo (camera, gallery, or sent from a phone) is checked before it is used ---------- */
+function precheck(file,use){
+ var url=URL.createObjectURL(file),img=new Image();
+ img.onload=function(){var r=checkPhoto(img);if(!r.hard.length&&!r.soft.length){URL.revokeObjectURL(url);use();return}photoReview(url,r,function(){URL.revokeObjectURL(url);use()})};
+ img.onerror=function(){URL.revokeObjectURL(url);use()};
+ img.src=url;
+}
+function photoReview(src,r,use){
+ var panel=el('div',{class:'sheet__panel'});
+ panel.append(el('div',{class:'sheet__head'},[h('h2',r.hard.length?'این عکس مناسب نیست':'یک نکته دربارهٔ عکس'),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
+ var list=el('div',{class:'rev__list'},r.hard.map(function(x){return el('div',{class:'rev__bad',text:'⛔ '+x})}).concat(r.soft.map(function(x){return el('div',{class:'rev__warn',text:'⚠️ '+x})})));
+ var btns=[el('button',{class:'btn btn--primary',type:'button',text:'عکس دیگر می‌گیرم',onclick:function(){closeSheet();pickNow()}})];
+ if(!r.hard.length)btns.push(el('button',{class:'btn btn--ghost',type:'button',text:'با همین عکس ادامه بده',onclick:function(){closeSheet();use()}}));
+ panel.append(el('div',{class:'rev'},[el('img',{src:src,alt:'',class:'rev__img'}),list,el('div',{class:'rev__btns'},btns)]));
+ openSheet(panel);
+}
+// A photo that arrived from the bride's phone gets the same checks before it replaces the kiosk photo.
+function acceptPhoto(id){
+ var img=new Image();
+ function use(){track('photo','phone');state.original=id;state.preview=null;state.ratio=nearestRatio(img.naturalWidth/img.naturalHeight);state.result=null;state.error='';state.idem=null;state.justUploaded=true;
+  if(state.step!==1){state.step=1;renderSteps()}clearTimeout(state.advT);state.advT=setTimeout(function(){if(state.step===1&&state.justUploaded){state.justArrived=true;go(2)}},1600);renderFlow();renderSteps();renderDock()}
+ img.onload=function(){var r=checkPhoto(img);if(r.hard.length||r.soft.length)photoReview(img.src,r,use);else use()};
+ img.onerror=use;img.src=media(id);
+}
+// The kiosk shows a QR; the bride scans it with her own phone, takes the photo there, and it appears here.
+function openPhonePair(){
+ var seen='',timer=0,stopped=false;
+ var panel=el('div',{class:'sheet__panel'});
+ function stop(){stopped=true;clearTimeout(timer)}
+ panel.append(el('div',{class:'sheet__head'},[h('h2','ارسال عکس از گوشی خودت'),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:function(){stop();closeSheet()}})]));
+ var box=el('div',{class:'qr'},[h('p','در حال ساخت کد…','qr__note')]);
+ panel.append(box,el('ol',{class:'pairsteps'},[el('li',{text:'دوربین گوشی را روی کد بگیر'}),el('li',{text:'عکس تمام‌قدت را بگیر یا از گالری بفرست'}),el('li',{text:'همین‌جا خودکار ادامه پیدا می‌کند'})]));
+ openSheet(panel);
+ function poll(){
+  if(stopped)return;
+  api('pair/check?seen='+encodeURIComponent(seen)).then(function(d){
+   if(stopped)return;
+   if(d.state==='received'){stop();closeSheet();acceptPhoto(d.media_id);return}
+   if(d.state==='expired'){box.replaceChildren(notice('warn','کد منقضی شد.'),el('button',{class:'btn btn--primary',type:'button',text:'کد تازه',onclick:function(){stop();closeSheet();openPhonePair()}}));return}
+   timer=setTimeout(poll,2000);
+  }).catch(function(){timer=setTimeout(poll,4000)});
+ }
+ ensureSession().then(function(){return api('pair',{v:VISITOR})}).then(function(d){
+  box.replaceChildren(el('div',{class:'qr__code',dir:'ltr',html:qrSvg(d.url)}),h('p','کد ۱۵ دقیقه معتبر است و فقط عکس را به همین دستگاه می‌رساند.','qr__note'));
+  poll();
+ }).catch(function(e){stop();box.replaceChildren(notice('danger',e.message||'ساخت کد ممکن نشد'))});
 }
 function changePhoto(){clearTimeout(state.advT);state.justUploaded=false;state.original=null;state.preview=null;state.result=null;renderFlow();renderSteps();renderDock()}
 function nearestRatio(r){var R=[['1:1',1],['4:5',.8],['3:4',.75],['2:3',.667],['9:16',.5625],['5:4',1.25],['4:3',1.333],['3:2',1.5],['16:9',1.778]];var best=R[0];R.forEach(function(x){if(Math.abs(Math.log(x[1]/r))<Math.abs(Math.log(best[1]/r)))best=x});return best[0]}
@@ -1863,7 +1916,7 @@ function kioskCamera(){
   shoot.disabled=true;var n=3;count.textContent=fa(n);
   var t=setInterval(function(){n--;if(n>0){count.textContent=fa(n);return}clearInterval(t);count.textContent='';
    var w=video.videoWidth,hh=video.videoHeight;if(!w){stop();toast('دوربین آماده نبود؛ دوباره امتحان کن','error');return}
-   var c=document.createElement('canvas');c.width=w;c.height=hh;c.getContext('2d').drawImage(video,0,0,w,hh);
+   var sw=Math.min(w,Math.round(hh*0.75)),sx=Math.round((w-sw)/2),c=document.createElement('canvas');c.width=sw;c.height=hh;c.getContext('2d').drawImage(video,sx,0,sw,hh,0,0,sw,hh);
    c.toBlob(function(b){stop();if(b)handleFile(new File([b],'kiosk.jpg',{type:'image/jpeg'}),'original')},'image/jpeg',0.92);
   },1000);
  });
@@ -1962,4 +2015,4 @@ export const customerHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><h
 <script>__JS__</script>
 </body></html>`
  .replace('__CSS__',()=>baseCSS+customerCSS)
- .replace('__JS__',()=>clientJS.replace('/*__QR__*/',()=>QR_JS).replace('__LINES__',()=>LINES_JSON).replace('__MARK__',()=>JSON.stringify(markSVG)));
+ .replace('__JS__',()=>clientJS.replace('/*__QR__*/',()=>QR_JS).replace('/*__CHECK__*/',()=>PHOTO_CHECK_JS).replace('__LINES__',()=>LINES_JSON).replace('__MARK__',()=>JSON.stringify(markSVG)));
