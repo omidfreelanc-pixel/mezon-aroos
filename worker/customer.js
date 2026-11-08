@@ -345,7 +345,7 @@ body.is-touring{overflow:hidden}
 .wl__shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,18,18,.55),transparent 28%,transparent 55%,rgba(5,18,18,.82))}
 .wl__brand{position:absolute;top:22px;inset-inline:26px;display:flex;align-items:center;gap:12px}
 .wl__brand img{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid rgba(243,230,207,.75);background:#fff}
-.wl__brand b{font-size:21px}
+.wl__brand b{font-size:21px}.kend{z-index:95}
 .wl__cap{position:absolute;bottom:92px;inset-inline:0;text-align:center;transition:opacity .5s}.wl__cap strong{display:block;font-size:26px;letter-spacing:.2px}.wl__cap span{opacity:.9;font-size:15px}
 .wl__tap{position:absolute;bottom:30px;inset-inline:0;text-align:center;font-size:17px;animation:wlpulse 2s ease-in-out infinite}@keyframes wlpulse{50%{opacity:.45}}
 .wl__qr{position:absolute;top:72px;inset-inline-end:20px;width:118px;padding:6px;border-radius:14px;background:rgba(255,255,255,.92)}.wl.is-paused .wl__qr,.wl.is-paused .wl__brand{display:none}.wl__qr p,.wl__qr span{display:none}.wl__qr .qr__code{width:100%}.wl__qr .kqr{margin:0}
@@ -1014,7 +1014,7 @@ function lookName(){
 }
 function artist(){return 'مزون‌دار'}
 // What happens to photos that are never sent to the boutique (a boutique setting, 30 days by default).
-function retentionLine(){var d=state.pub&&state.pub.retention_days;return d?'عکس و نتیجه‌ای که برای مزون نفرستی، بعد از '+fa(d)+' روز خودکار پاک می‌شود.':''}
+function retentionLine(){var m=state.pub&&state.pub.photo_ttl;if(m)return 'عکس و نتیجه‌ای که برای مزون نفرستی، بعد از '+(m===60?'یک ساعت':m%60===0?fa(m/60)+' ساعت':fa(m)+' دقیقه')+' خودکار پاک می‌شود.';var d=state.pub&&state.pub.retention_days;return d?'عکس و نتیجه‌ای که برای مزون نفرستی، بعد از '+fa(d)+' روز خودکار پاک می‌شود.':''}
 // The dress behind the current choice, for the save counter: a boutique dress ('p:id') or a catalogue one ('d:n').
 function dressKey(){
  if(state.reference){var hit=(state.pub.portfolio||[]).filter(function(x){try{return JSON.parse(x.images||'[]').indexOf(state.reference)>-1}catch(e){return false}})[0];return hit?'p:'+hit.id:''}
