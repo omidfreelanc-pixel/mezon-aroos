@@ -670,7 +670,7 @@ function renderFlow(){
 function flowHead(title,sub){
  return el('div',{class:'flow__head'},[h('h2',title,'flow__title'),sub?h('p',sub,'flow__sub'):null]);
 }
-function openCamera(){if(KIOSK){kioskCamera();return}var cam=el('input',{type:'file',accept:'image/*',capture:'user'});cam.style.display='none';cam.addEventListener('change',function(){handleFile(cam.files&&cam.files[0],'original');cam.remove()});document.body.append(cam);cam.click()}
+function openCamera(){if(DESK&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){kioskCamera();return}var cam=el('input',{type:'file',accept:'image/*',capture:'user'});cam.style.display='none';cam.addEventListener('change',function(){handleFile(cam.files&&cam.files[0],'original');cam.remove()});document.body.append(cam);cam.click()}
 function stepPhoto(){
  var box=el('div',{class:'panel flow'});
  if(!state.original&&state.preview){
@@ -679,11 +679,12 @@ function stepPhoto(){
  }else if(!state.original){
   box.append(flowHead(LP().head,LP().sub));
   var input=el('input',{type:'file',accept:'image/jpeg,image/png,image/webp',id:'pick',class:'sr-only'});
-  var drop=el('label',{class:'upload',for:'pick'},[
+  var drop=el('label',DESK?{class:'upload'}:{class:'upload',for:'pick'},[
    el('span',{class:'upload__icon',html:ICO.camera}),
    el('strong',{text:LP().drop}),
-   el('span',{class:'upload__hint',text:'از گالری انتخاب کن یا عکس را روی همین قاب رها کن'})
+   el('span',{class:'upload__hint',text:DESK?'برای گرفتن عکس با دوربین اینجا را بزن':'از گالری انتخاب کن یا عکس را روی همین قاب رها کن'})
   ]);
+  if(DESK)drop.addEventListener('click',function(e){e.preventDefault();openCamera()});
   input.addEventListener('change',function(){handleFile(input.files&&input.files[0],'original')});
   ['dragenter','dragover'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.add('is-drag')})});
   ['dragleave','drop'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove('is-drag')})});
@@ -691,9 +692,9 @@ function stepPhoto(){
   var side=el('div',{class:'shoot__side'},[
    el('ul',{class:'tips'},LP().tips.map(function(t){return el('li',{class:'tip'},[el('span',{html:ICO[t[0]]}),el('span',{},[el('b',{text:t[1]}),document.createTextNode(t[2])])])})),
    el('div',{class:'shoot__btns'},[
-    el('button',{class:'btn btn--primary',type:'button',onclick:pickNow,html:ICO.gallery+'<span>انتخاب از گالری</span>'}),
-    el('button',{class:'btn btn--ghost',type:'button',onclick:openCamera,html:ICO.camera+'<span>عکس با دوربین</span>'}),
-    (KIOSK||(window.matchMedia&&matchMedia('(min-width:900px) and (hover:hover)').matches))?el('button',{class:'btn btn--ghost',type:'button',onclick:openPhonePair,html:ICO.send+'<span>ارسال از گوشی خودم</span>'}):null
+    DESK?null:el('button',{class:'btn btn--primary',type:'button',onclick:pickNow,html:ICO.gallery+'<span>انتخاب از گالری</span>'}),
+    el('button',{class:DESK?'btn btn--primary':'btn btn--ghost',type:'button',onclick:openCamera,html:ICO.camera+'<span>عکس با دوربین</span>'}),
+    DESK?el('button',{class:'btn btn--ghost',type:'button',onclick:openPhonePair,html:ICO.send+'<span>ارسال از گوشی خودم</span>'}):null
    ]),
    el('details',{class:'collapse'},[
     el('summary',{html:ICO.lock+'<span>عکسم کجا نگه‌داری می‌شود؟</span>'}),
@@ -1250,7 +1251,7 @@ function friendly(msg){
  if(/درخواست را نپذیرفت/.test(msg))return 'سرویس تصویر درخواست را نپذیرفت. کمی بعد دوباره تلاش کن.';
  return msg;
 }
-function pickNow(){if(KIOSK){kioskCamera();return}var pick=$('#pick');if(pick)pick.click();else toast('اول عکس خودت را اضافه کن')}
+function pickNow(){if(DESK){kioskCamera();return}var pick=$('#pick');if(pick)pick.click();else toast('اول عکس خودت را اضافه کن')}
 function updateProgress(){
  var f=$('#flow');if(!f)return;
  var pct=buildPct(),B=BUILD;
@@ -1854,7 +1855,15 @@ function openSaved(){
 /* ---------- sheet ---------- */
 /* ---------- QR to the bride's phone, and the boutique touch-screen (kiosk) mode (?kiosk=1) ---------- */
 var KIOSK=/[?&]kiosk=1(&|$)/.test(location.search);
-function qrSvg(text){var q=qrcode(0,'M');q.addData(text);q.make();return q.createSvgTag({cellSize:7,margin:2,scalable:true})}
+var DESK=KIOSK||!!(window.matchMedia&&matchMedia('(min-width:900px) and (hover:hover)').matches);
+function qrSvg(text){
+ var logo=state.pub&&state.pub.salon&&state.pub.salon.profile&&state.pub.salon.profile.logo,q=qrcode(0,logo?'H':'M');q.addData(text);q.make();
+ var svg=q.createSvgTag({cellSize:7,margin:2,scalable:true});
+ if(!logo)return svg;
+ var m=/viewBox="0 0 (\d+) (\d+)"/.exec(svg),W=m?+m[1]:0;if(!W)return svg;
+ var d=Math.round(W*0.2),x=Math.round((W-d)/2),u=media(logo);
+ return svg.replace('</svg>','<circle cx="'+W/2+'" cy="'+W/2+'" r="'+(d/2+6)+'" fill="#fff"/><image href="'+u+'" xlink:href="'+u+'" x="'+x+'" y="'+x+'" width="'+d+'" height="'+d+'" preserveAspectRatio="xMidYMid slice" clip-path="inset(0 round '+d/2+'px)"/></svg>');
+}
 function openQR(){
  if(!state.gen){toast('اول نتیجه را بساز');return}
  var panel=el('div',{class:'sheet__panel'});
@@ -1906,22 +1915,27 @@ function kioskBoot(){
 function kioskCamera(){
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){var i=$('#pick');if(i)i.click();return}
  var video=el('video',{autoplay:'',playsinline:'',muted:''});video.muted=true;
- var count=el('div',{class:'kcam__count'}),stream=null;
+ var count=el('div',{class:'kcam__count'}),stream=null,timer=0,done=false;
  var guide=el('div',{class:'kcam__guide',html:'<svg viewBox="0 0 100 220" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round" opacity=".85"><circle cx="50" cy="20" r="13"/><path d="M38 36 L28 50 L32 112 L18 214 L82 214 L68 112 L72 50 L62 36"/></svg>'});
- var shoot=el('button',{class:'btn btn--primary btn--lg',type:'button',text:'بشمار و عکس بگیر'}),cancel=el('button',{class:'btn btn--ghost',type:'button',text:'بستن'});
- var wrap=el('div',{class:'kov kcam'},[video,guide,count,el('p',{class:'kcam__tip',text:'از سر تا کفش در قاب باش، دست‌ها کنار بدن، رو به دوربین.'}),el('div',{class:'kcam__btns'},[shoot,cancel])]);
- function stop(){if(stream)stream.getTracks().forEach(function(t){t.stop()});wrap.remove()}
+ var tip=el('p',{class:'kcam__tip',text:'دوربین را باز کردم؛ برو عقب‌تر بایست تا از سر تا کفش در قاب باشی. ۱۰ ثانیه دیگر خودکار عکس می‌گیرم.'});
+ var now=el('button',{class:'btn btn--primary btn--lg',type:'button',text:'همین الان عکس بگیر'}),cancel=el('button',{class:'btn btn--ghost',type:'button',text:'بستن'});
+ var wrap=el('div',{class:'kov kcam'},[video,guide,count,tip,el('div',{class:'kcam__btns'},[now,cancel])]);
+ function stop(){clearInterval(timer);done=true;if(stream)stream.getTracks().forEach(function(t){t.stop()});wrap.remove()}
  cancel.addEventListener('click',stop);
  document.body.append(wrap);
- navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1920}},audio:false}).then(function(s){stream=s;video.srcObject=s;video.play().catch(function(){})}).catch(function(){stop();toast('دوربین باز نشد؛ از گالری انتخاب کن','error');var i=$('#pick');if(i)i.click()});
- shoot.addEventListener('click',function(){
-  shoot.disabled=true;var n=3;count.textContent=fa(n);
-  var t=setInterval(function(){n--;if(n>0){count.textContent=fa(n);return}clearInterval(t);count.textContent='';
-   var w=video.videoWidth,hh=video.videoHeight;if(!w){stop();toast('دوربین آماده نبود؛ دوباره امتحان کن','error');return}
-   var sw=Math.min(w,Math.round(hh*0.75)),sx=Math.round((w-sw)/2),c=document.createElement('canvas');c.width=sw;c.height=hh;c.getContext('2d').drawImage(video,sx,0,sw,hh,0,0,sw,hh);
-   c.toBlob(function(b){stop();if(b)handleFile(new File([b],'kiosk.jpg',{type:'image/jpeg'}),'original')},'image/jpeg',0.92);
-  },1000);
- });
+ function snap(){
+  if(done)return;clearInterval(timer);count.textContent='';
+  var w=video.videoWidth,hh=video.videoHeight;if(!w){stop();toast('دوربین آماده نبود؛ دوباره امتحان کن','error');return}
+  var sw=Math.min(w,Math.round(hh*0.75)),sx=Math.round((w-sw)/2),c=document.createElement('canvas');c.width=sw;c.height=hh;c.getContext('2d').drawImage(video,sx,0,sw,hh,0,0,sw,hh);
+  c.toBlob(function(b){stop();if(b)handleFile(new File([b],'kiosk.jpg',{type:'image/jpeg'}),'original')},'image/jpeg',0.92);
+ }
+ function begin(){
+  if(timer||done)return;var n=10;count.textContent=fa(n);
+  timer=setInterval(function(){n--;if(n>0){count.textContent=fa(n);return}snap()},1000);
+ }
+ now.addEventListener('click',snap);
+ video.addEventListener('playing',begin);
+ navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1920}},audio:false}).then(function(s){if(done){s.getTracks().forEach(function(t){t.stop()});return}stream=s;video.srcObject=s;video.play().catch(function(){})}).catch(function(){stop();toast('دوربین باز نشد؛ اجازهٔ دوربین را بده و دوباره امتحان کن','error')});
 }
 /* ---------- true 360: a short turntable video of the bride in the dress; drag to turn it, pinch / double-tap to zoom ---------- */
 function openSpin(){
