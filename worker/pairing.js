@@ -50,11 +50,11 @@ export async function pairStatus(db,salon,session,seen){
 
 async function livePairing(db,code){
  if(!PAIR_CODE.test(code))return null;
- return await one(db,'SELECT p.*,s.name AS salon_name FROM pairings p JOIN salons s ON s.id=p.salon_id WHERE p.code=? AND p.expires_at>?',code,Date.now());
+ return await one(db,'SELECT p.*,s.name AS salon_name,s.slug AS salon_slug,s.profile AS salon_profile,(SELECT cust_name FROM sessions WHERE id=p.session_id) AS cust_name FROM pairings p JOIN salons s ON s.id=p.salon_id WHERE p.code=? AND p.expires_at>?',code,Date.now());
 }
 
 const headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex','Content-Type':'text/html;charset=utf-8'};
-const CSP="default-src 'none'; img-src 'self' blob: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'";
+const CSP="default-src 'none'; img-src 'self' blob: data:; font-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'";
 
 export async function pairUpload(env,req,code){
  const p=await livePairing(env.DB,code);
@@ -73,30 +73,42 @@ export async function pairUpload(env,req,code){
 export async function pairPage(env,code,notFound){
  const p=await livePairing(env.DB,code);
  if(!p)return new Response(notFound,{status:404,headers:{...headers,'Content-Security-Policy':CSP}});
- const html=PAGE.replace('__NAME__',esc(p.salon_name)).replace('/*__CHECK__*/',()=>PHOTO_CHECK_JS).replace('__CODE__',code);
+ let logo='';try{const id=JSON.parse(p.salon_profile||'{}').logo;if(/^[a-f0-9-]{36}$/.test(id||''))logo='<img class="logo" src="/api/s/'+esc(p.salon_slug)+'/media/'+id+'" alt="">'}catch{}
+ const who=String(p.cust_name||'').trim(),first=who.split(' ')[0];
+ const html=PAGE.split('__LOGO__').join(logo).split('__WHO__').join(esc(who||p.salon_name)).split('__FIRST__، ').join(first?esc(first)+'، ':'').split('__NAME__').join(esc(p.salon_name)).replace('/*__CHECK__*/',()=>PHOTO_CHECK_JS).replace('__CODE__',code);
  return new Response(html,{headers:{...headers,'Content-Security-Policy':CSP}});
 }
 
-const PAGE=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>عکس تمام‌قد برای __NAME__</title>
+const PAGE=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c6b6b"><title>عکس تمام‌قد برای __WHO__</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font:16px/1.7 system-ui,Tahoma,sans-serif;background:#faf6f3;color:#2a2224;padding:20px 16px 40px}
-main{max-width:460px;margin:0 auto}h1{font-size:21px;margin:.2em 0}p{margin:.4em 0;color:#5b4f52}
-.guide{display:flex;gap:16px;align-items:center;background:#fff;border-radius:16px;padding:14px;margin:14px 0;box-shadow:0 1px 6px #0001}
-.guide svg{width:64px;flex:none}.guide ul{margin:0;padding:0 18px 0 0;font-size:15px}
-.btn{display:block;width:100%;border:0;border-radius:14px;padding:16px;font:inherit;font-weight:700;margin:10px 0;cursor:pointer}
-.p{background:#8d3b56;color:#fff}.g{background:#fff;color:#8d3b56;border:2px solid #8d3b56}.btn[disabled]{opacity:.5}
-.prev{display:none;margin:14px 0;text-align:center}.prev img{max-width:60%;max-height:50vh;border-radius:12px;box-shadow:0 2px 10px #0002}
-.msg{border-radius:12px;padding:10px 14px;margin:8px 0;font-size:15px}.bad{background:#fde8e8;color:#8a1c1c}.warn{background:#fff3d6;color:#6b4a00}.ok{background:#e4f5e8;color:#1d5a2c;font-size:18px;text-align:center;padding:22px}
-small{color:#8a7d80}
-</style></head><body><main>
-<h1>عکس تمام‌قد برای «__NAME__»</h1>
-<p>عکس مستقیم به صفحهٔ مزون می‌رود و جای دیگری ذخیره نمی‌شود.</p>
-<div class="guide"><svg viewBox="0 0 100 220" fill="none" stroke="#8d3b56" stroke-width="3" stroke-dasharray="6 5" stroke-linejoin="round"><circle cx="50" cy="20" r="13"/><path d="M38 36 L28 50 L32 112 L18 214 L82 214 L68 112 L72 50 L62 36"/></svg>
-<ul><li>ایستاده و روبه‌رو، از سر تا کفش در قاب</li><li>دست‌ها کنار بدن</li><li>نور روشن، نه پشت‌به‌پنجره</li><li>گوشی عمودی؛ بهتر است کسی عکس را بگیرد</li></ul></div>
+@font-face{font-family:"Estedad";font-weight:100 900;font-display:swap;src:url(/fonts/estedad-arabic.woff2) format("woff2");unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+200C-200D,U+FB50-FDFF,U+FE70-FEFF}
+@font-face{font-family:"Vazirmatn";font-weight:100 900;font-display:swap;src:url(/fonts/vazirmatn-arabic.woff2) format("woff2");unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+200C-200D,U+FB50-FDFF,U+FE70-FEFF}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.8 "Vazirmatn",system-ui,Tahoma,sans-serif;background:linear-gradient(180deg,#e8edeb,#fafbfa 38%);color:#23170f;min-height:100vh;padding:0 0 40px}
+.top{background:linear-gradient(135deg,#0c6b6b,#074c4d);color:#fff;padding:26px 20px 64px;text-align:center;border-radius:0 0 34px 34px}
+.logo{width:68px;height:68px;border-radius:50%;object-fit:cover;border:3px solid #d9b878;background:#fff;display:block;margin:0 auto 10px}
+.top small{opacity:.85;display:block}.top h1{font:800 22px/1.5 "Estedad","Vazirmatn",sans-serif;margin:2px 0 0}
+main{max-width:460px;margin:-40px auto 0;padding:0 16px}
+.card{background:#fff;border-radius:24px;padding:18px;box-shadow:0 18px 40px -22px rgba(7,76,77,.45);margin-bottom:14px}
+.guide{display:flex;gap:16px;align-items:center}
+.arch{flex:none;width:96px;aspect-ratio:.5;border-radius:999px 999px 14px 14px;background:linear-gradient(180deg,#d3e9e6,#f2f5f4);border:2px solid #0c6b6b;position:relative;overflow:hidden}
+.arch svg{position:absolute;inset:8% 12% 3%;width:76%;height:89%}.arch .sil{fill:#0c6b6b;fill-opacity:.16;stroke:#0c6b6b;stroke-width:3;stroke-linejoin:round}
+.tips{list-style:none;margin:0;padding:0;font-size:15px}.tips li{display:flex;gap:8px;align-items:flex-start;padding:3px 0}.tips li::before{content:"";flex:none;width:18px;height:18px;margin-top:5px;border-radius:50%;background:#0c6b6b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/70% no-repeat}
+.btn{display:block;width:100%;border:0;border-radius:16px;padding:16px;font-weight:700;font-size:17px;line-height:1.3;font-family:inherit;margin:10px 0 0;cursor:pointer}
+.p{background:linear-gradient(135deg,#0c6b6b,#074c4d);color:#fff;box-shadow:0 12px 24px -14px #074c4d}.g{background:#fff;color:#074c4d;border:2px solid #0c6b6b}.btn[disabled]{opacity:.5}
+.prev{display:none;margin:14px 0 4px;text-align:center}.prev img{max-width:62%;max-height:48vh;border-radius:18px;border:3px solid #fff;box-shadow:0 14px 30px -14px #0006}
+.msg{border-radius:14px;padding:10px 14px;margin:8px 0;font-size:15px}.bad{background:#fde8e8;color:#8a1c1c}.warn{background:#fff3d6;color:#6b4a00}.ok{background:#e4f5e8;color:#1d5a2c;font-size:18px;text-align:center;padding:26px}
+small{color:#5f6763}
+</style></head><body>
+<div class="top">__LOGO__<small>__NAME__</small><h1>__FIRST__، عکس تمام‌قدت را بفرست</h1></div>
+<main>
+<div class="card"><div class="guide"><div class="arch"><svg viewBox="0 0 200 440" aria-hidden="true"><ellipse class="sil" cx="100" cy="40" rx="19" ry="23"/><path class="sil" d="M92 62 L92 74 C78 78 62 84 58 100 C55 118 66 150 76 176 C70 220 52 330 30 428 L170 428 C148 330 130 220 124 176 C134 150 145 118 142 100 C138 84 122 78 108 74 L108 62 Z"/></svg></div>
+<ul class="tips"><li>ایستاده و روبه‌رو، از سر تا کفش در قاب</li><li>دست‌ها کنار بدن</li><li>نور روشن، نه پشت‌به‌پنجره</li><li>گوشی عمودی؛ بهتر است کسی عکس را بگیرد</li></ul></div>
+<p style="margin:12px 2px 0;font-size:14px;color:#5f6763">عکس مستقیم به صفحهٔ مزون می‌رود و جای دیگری ذخیره نمی‌شود.</p></div>
 <div id="done" class="msg ok" style="display:none">عکس رسید ✅<br>به صفحهٔ مزون نگاه کن؛ می‌توانی این صفحه را ببندی.</div>
-<div id="ui">
+<div id="ui" class="card">
 <input id="cam" type="file" accept="image/*" capture="environment" hidden><input id="gal" type="file" accept="image/jpeg,image/png,image/webp" hidden>
-<button class="btn p" id="bcam" type="button">گرفتن عکس با دوربین</button><button class="btn g" id="bgal" type="button">انتخاب از گالری</button>
+<button class="btn p" id="bcam" type="button" style="margin-top:0">گرفتن عکس با دوربین</button><button class="btn g" id="bgal" type="button">انتخاب از گالری</button>
 <div class="prev" id="prev"><img id="pimg" alt=""></div><div id="issues"></div>
 <button class="btn p" id="send" type="button" style="display:none">ارسال به صفحهٔ مزون</button>
 </div></main>

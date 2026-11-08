@@ -53,6 +53,19 @@ export async function sendResultToBot(env,origin,salon,s,g){
  await sendPhoto(env,s.bot_platform,s.bot_chat,origin+'/api/p/'+t+'/image',await resultKey(db,g),caption);
  await call(env,s.bot_platform,'sendMessage',{chat_id:s.bot_chat,text:'👆 این پست مخصوص خودته؛ هر جا و برای هر کس خواستی فوروارد کن. نظر دوستانت همین‌جا برایت می‌آید.\n\n🌸 به نظر ما تصویر شما بسیار زیبا و دیدنی است. افتخار می‌دهید این تصویر در سوشال مزون «'+salon.name+'» هم منتشر شود؟',reply_markup:{inline_keyboard:[[{text:'✅ بله، افتخار می‌دهم',callback_data:'sc:1:'+g.id},{text:'نه، ممنون',callback_data:'sc:0:'+g.id}]]}});
 }
+// "Send it to me": the bride entered her mobile number on the welcome screen; if she shared the same number with the bot,
+// her picture goes to that chat with her details. Otherwise the page tells her to open the bot and share her number.
+export async function sendToMe(env,origin,salon,s,g){
+ const db=env.DB;must(g?.result_id&&g.state==='success','اول نتیجه را بساز');must(s.cust_phone,'اول شمارهٔ موبایلت را وارد کن');
+ const bc=await one(db,'SELECT platform,chat_id FROM bot_customers WHERE salon_id=? AND phone=? ORDER BY created_at DESC LIMIT 1',salon.id,s.cust_phone);
+ if(!bc||!platformReady(env,bc.platform))return {sent:false,linked:false};
+ await limited(db,'sendme:'+g.id,6,'چند بار پشت‌سرهم فرستادی؛ کمی بعد دوباره امتحان کن');
+ const t=await shareTokenOf(db,g),url=origin+'/p/'+t,dress=await dressNameOf(db,g);
+ await sendPhoto(env,bc.platform,bc.chat_id,origin+'/api/p/'+t+'/image',await resultKey(db,g),postText({name:s.cust_name,salon:salon.name,dress,url}));
+ const d=new Date().toLocaleString('fa-IR',{timeZone:'Asia/Tehran'});
+ await call(env,bc.platform,'sendMessage',{chat_id:bc.chat_id,text:'📋 مشخصات این تصویر\n👤 نام: '+(s.cust_name||'—')+'\n📞 موبایل: '+s.cust_phone+'\n🏠 مزون: '+salon.name+'\n👗 لباس: '+(dress||'—')+'\n🕒 '+d+'\n🔗 '+url});
+ return {sent:true,linked:true,platform:bc.platform};
+}
 // Her answer to the social-media question (from the page or from the bot). Tells the boutique on a yes.
 export async function setConsent(env,origin,salon,g,yes){
  const db=env.DB;must(g?.result_id,'اول نتیجه را بساز');

@@ -432,9 +432,14 @@ async function customerStart(ctx,slug){
  if(!salon){await ctx.say('این مزون پیدا نشد؛ لینک را دوباره از مزون بگیرید.');return}
  await run(ctx.db,'INSERT INTO bot_customers(platform,chat_id,salon_id,name,created_at) VALUES(?,?,?,?,?) ON CONFLICT(platform,chat_id) DO UPDATE SET salon_id=excluded.salon_id,name=excluded.name,created_at=excluded.created_at',ctx.p,ctx.chat,salon.id,ctx.name,Date.now());
  await ctx.say('سلام'+(ctx.name?' '+ctx.name:'')+' 🌸\nبه «'+salon.name+'» خوش آمدی.\nیک عکس تمام‌قد از خودت بفرست (ایستاده، از سر تا پا، با نور خوب) تا لباس عروس را روی خودت ببینی.');
+ await ctx.say('اگر می‌خواهی تصویرهایت را از روی سایت مزون برای خودت همین‌جا بفرستیم، شمارهٔ موبایلت را با دکمهٔ پایین به اشتراک بگذار 👇',{reply_markup:{keyboard:[[{text:'📱 اشتراک شمارهٔ من',request_contact:true}]],resize_keyboard:true,one_time_keyboard:true}});
 }
 async function customerMessage(ctx,bc,m){
  const {env,db,p}=ctx,photo=photoOf(m);
+ if(m.contact?.phone_number&&(!m.contact.user_id||String(m.contact.user_id)===String(m.from?.id))){
+  const d=String(m.contact.phone_number).replace(/\D/g,'').slice(-10);
+  if(/^9\d{9}$/.test(d)){await run(db,'UPDATE bot_customers SET phone=? WHERE platform=? AND chat_id=?','0'+d,p,ctx.chat);await ctx.say('ممنون ✅ شمارهٔ '+'0'+d+' ثبت شد.\nحالا روی سایت مزون «ارسال برای خودم» را بزن تا تصویرت همین‌جا برسد.',{reply_markup:{remove_keyboard:true}});return}
+ }
  if(!photo){await ctx.say('عکس تمام‌قد خودت را بفرست (📎 ← عکس) تا لباس عروس را روی خودت ببینی. 🌸');return}
  await limited(db,'botphoto:'+p+':'+ctx.chat,12,'امروز چند عکس فرستاده‌ای؛ فردا دوباره امتحان کن');
  must((photo.file_size||0)<=5*1024*1024,'عکس بزرگ‌تر از ۵ مگابایت است؛ آن را به‌صورت «عکس» بفرست نه «فایل»');
