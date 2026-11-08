@@ -4,6 +4,7 @@ import {bucketFor,putImage,putVideo} from './storage.js';
 import {customerLinks,applyLeadStatus,botReady,deliverLead,deliverPending,newLinkCode,setWebhook,inboxes,followLinks,PLATFORMS,platformReady,baleSecret,staffInvite,notifyConflict,expireStates} from './telegram.js';
 import {createPairing,pairStatus} from './pairing.js';
 import {BACKGROUNDS,bgOf} from './backgrounds.js';
+import {creditGate,creditsOf,adminAccounts,adminSetAccount,adminHandleRequest,panelApi,newToken} from './credits.js';
 import {LINE_KEYS,lineStyles,linePrompt,LINE_LABEL} from './lines.js';
 import {ownerLink,alertUnanswered,maybeDigest,setupStatus,digest,notifyOwner,setting} from './alerts.js';
 import {attribute,ownerFor,createStaff,transfer,report,team as teamOf,liveStaff,SPECIALTIES} from './referral.js';
@@ -153,11 +154,15 @@ export async function api(req,env){const u=new URL(req.url),path=u.pathname;must
  if(path==='/api/owner/alerts-unlink'&&req.method==='POST'){await owner(req,env);await run(db,'DELETE FROM owner_chats');return J({ok:true});}
  if(path==='/api/owner/digest'&&req.method==='GET'){await owner(req,env);return J({text:await digest(env)});}
  if(path==='/api/owner/webhook'&&req.method==='POST'){await owner(req,env);return J(await setWebhook(env,env.APP_ORIGIN||u.origin));}
+ if(path==='/api/owner/accounts'&&req.method==='GET'){await owner(req,env);return J(await adminAccounts(db,env.APP_ORIGIN||u.origin));}
+ if(path==='/api/owner/account'&&req.method==='POST'){await owner(req,env);return J(await adminSetAccount(db,await req.json().catch(()=>({}))));}
+ if(path==='/api/owner/recharge'&&req.method==='POST'){await owner(req,env);return J(await adminHandleRequest(db,await req.json().catch(()=>({}))));}
+ if(path.startsWith('/api/m/'))return await panelApi(req,env,u);
  if(path==='/api/salons'&&req.method==='POST'){const who=await owner(req,env);const b=await req.json(),id=uid();
   // Capitals, spaces and underscores are normalised ("Aliadli Salon" → "aliadli-salon").
   b.slug=String(b.slug||'').trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
   must(/^[a-z][a-z0-9-]{2,45}$/.test(b.slug),'نشانی صفحه فقط حروف انگلیسی، عدد و خط تیره (-) دارد، با حرف شروع می‌شود و حداقل ۳ حرف است؛ مثل aliadli-salon');
-  must(!await one(db,'SELECT 1 FROM salons WHERE slug=?',b.slug),'این نشانی را مزون دیگری گرفته؛ یک نشانی دیگر بنویسید');must(text(b.name||'',100).length>=2,'نام مزون را بنویسید');await run(db,'INSERT INTO salons(id,slug,owner_id,name,created_at,settings) VALUES(?,?,?,?,?,?)',id,b.slug,who.user||'owner',text(b.name,100),Date.now(),JSON.stringify({generation_enabled:true,reference_verified:true}));return J({id,slug:b.slug});}
+  must(!await one(db,'SELECT 1 FROM salons WHERE slug=?',b.slug),'این نشانی را مزون دیگری گرفته؛ یک نشانی دیگر بنویسید');must(text(b.name||'',100).length>=2,'نام مزون را بنویسید');await run(db,'INSERT INTO salons(id,slug,owner_id,name,created_at,settings,approved,manage_token) VALUES(?,?,?,?,?,?,1,?)',id,b.slug,who.user||'owner',text(b.name,100),Date.now(),JSON.stringify({generation_enabled:true,reference_verified:true}),newToken());return J({id,slug:b.slug});}
  if(path.startsWith('/api/p/'))return await publicApi(req,env,u);
  const match=path.match(/^\/api\/s\/([a-z0-9-]+)(?:\/(.*))?$/);must(match,'مسیر پیدا نشد',404);let salon=await one(db,'SELECT * FROM salons WHERE slug=?',match[1]);
  // The public demo salon behind the landing page is created on first visit; owner_id 'system' marks it.
@@ -313,7 +318,7 @@ return new Response(object.body,{headers:base});}
  if(route==='pair/check')return J(await pairStatus(db,salon,s,u.searchParams.get('seen')||''));
  if(route==='erase'&&req.method==='POST'){await limited(db,'erase:'+s.id,40);return J({ok:true,deleted:await eraseSession(env,db,salon,s)});}
  if(route==='views'&&req.method==='POST'){
-  const b=await req.json();must(!demo,'نمای سه‌زاویه در نسخهٔ نمونه نیست');must(env.KIE_API_KEY&&cfg.generation_enabled,'تولید فعال نیست',503);must(/^[a-f0-9-]{36}$/.test(b.idem));const existing=await one(db,'SELECT id,state FROM generations WHERE session_id=? AND idem=?',s.id,b.idem);if(existing)return J(existing);const base=await one(db,"SELECT * FROM generations WHERE id=? AND session_id=? AND salon_id=? AND state='success'",b.parent,s.id,salon.id);must(base?.result_id,'عکس پایه معتبر نیست');must((base.line||'dress')==='dress','نمای سه‌زاویه فقط برای لباس عروس است');const m=await ownMedia(db,s,base.result_id),id=uid(),now=Date.now();const visitor=visitorOf(b),free=await unlimited(db,s);if(!trial&&!free)await spendQuota(db,salon,s,visitor,'dress');if(dailyLimit(cfg)>0&&!free)await limited(db,'views:'+salon.id,Math.min(20,dailyLimit(cfg)));await spendTrialImage(db,trial);await run(db,"INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,created_at,updated_at,visitor) VALUES(?,?,?,?,'views','creating',?,?,?,?)",id,salon.id,s.id,b.idem,base.original_id,now,now,visitor);
+  const b=await req.json();must(!demo,'نمای سه‌زاویه در نسخهٔ نمونه نیست');must(env.KIE_API_KEY&&cfg.generation_enabled,'تولید فعال نیست',503);must(/^[a-f0-9-]{36}$/.test(b.idem));const existing=await one(db,'SELECT id,state FROM generations WHERE session_id=? AND idem=?',s.id,b.idem);if(existing)return J(existing);const base=await one(db,"SELECT * FROM generations WHERE id=? AND session_id=? AND salon_id=? AND state='success'",b.parent,s.id,salon.id);must(base?.result_id,'عکس پایه معتبر نیست');must((base.line||'dress')==='dress','نمای سه‌زاویه فقط برای لباس عروس است');const m=await ownMedia(db,s,base.result_id),id=uid(),now=Date.now();const visitor=visitorOf(b),free=await unlimited(db,s);if(!free)await creditGate(db,env,salon);if(!trial&&!free)await spendQuota(db,salon,s,visitor,'dress');if(dailyLimit(cfg)>0&&!free)await limited(db,'views:'+salon.id,Math.min(20,dailyLimit(cfg)));await spendTrialImage(db,trial);await run(db,"INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,created_at,updated_at,visitor) VALUES(?,?,?,?,'views','creating',?,?,?,?)",id,salon.id,s.id,b.idem,base.original_id,now,now,visitor);
   try{const img=await uploadProvider(env,m);const ang=base.reference_id?(await dressAngles(db,salon,'dress',base.reference_id)).media.slice(1):[];const extra=[];for(const x of ang)extra.push(await uploadProvider(env,x));const task=await createImageTask(env,cfg,{prompt:VIEWS_PROMPT+(extra.length?' Photos 2 to '+(extra.length+1)+' show the same dress from other angles (side, back, detail): copy the real side and back design from them for the side and back tiles.':''),image_input:[img,...extra],aspect_ratio:'16:9',resolution:'2K',output_format:'jpg'});await run(db,"UPDATE generations SET state='waiting',task_id=? WHERE id=?",task.taskId,id);return J({id,state:'waiting'});}catch{await run(db,"UPDATE generations SET state='unknown' WHERE id=?",id);throw new Problem(502,'ارسال نامشخص؛ بدون بازتولید خودکار');}
  }
  if(route==='spin'&&req.method==='POST'){
@@ -322,6 +327,7 @@ return new Response(object.body,{headers:base});}
   const base=await one(db,"SELECT * FROM generations WHERE id=? AND session_id=? AND salon_id=? AND state='success'",b.parent,s.id,salon.id);must(base?.result_id,'عکس پایه معتبر نیست');must((base.line||'dress')==='dress','چرخش ۳۶۰ فقط برای لباس عروس است');
   const m=await ownMedia(db,s,base.result_id),id=uid(),now=Date.now();const visitor=visitorOf(b),free=await unlimited(db,s);
   await limited(db,'spin:'+s.id,6);
+  if(!free)await creditGate(db,env,salon);
   if(!trial&&!free)await spendQuota(db,salon,s,visitor,'dress');
   await spendTrialImage(db,trial);
   await run(db,"INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,created_at,updated_at,visitor) VALUES(?,?,?,?,'spin','creating',?,?,?,?)",id,salon.id,s.id,b.idem,base.original_id,now,now,visitor);
@@ -343,7 +349,7 @@ return new Response(object.body,{headers:base});}
    else{must(ownDressOn(cfg),'در این مزون فقط لباس‌های خود مزون امتحان می‌شود',403);must(refOn(cfg),'انتقال عکس مرجع برای این مزون خاموش است',503);reference=await ownMedia(db,s,b.reference_id);angles=[reference];}
   }
   else{must(catalogOn(cfg),'در این مزون فقط لباس‌های خود مزون امتحان می‌شود',403);must(Number.isInteger(b.style)&&lineStyles(line)[b.style],'لباس معتبر انتخاب کنید');}
-  const visitor=visitorOf(b),free=await unlimited(db,s);if(!trial&&!demo&&!free)await spendQuota(db,salon,s,visitor,line);
+  const visitor=visitorOf(b),free=await unlimited(db,s);if(!free)await creditGate(db,env,salon);if(!trial&&!demo&&!free)await spendQuota(db,salon,s,visitor,line);
   if(dailyLimit(cfg)>0&&!free)await limited(db,'generation:'+salon.id+':'+new Date().toISOString().slice(0,10),dailyLimit(cfg));if(demo&&!free)await limited(db,'demo:'+s.verified_phone,3,'امروز ۳ تصویر نمونه ساخته‌اید؛ فردا دوباره امتحان کنید یا صفحهٔ آزمایشی مزون خودتان را بسازید');if(!free)await spendTrialImage(db,trial);
   const id=uid(),now=Date.now();
   const mode=reference?'reference':'catalog';

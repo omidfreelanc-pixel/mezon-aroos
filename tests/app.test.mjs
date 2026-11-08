@@ -561,6 +561,8 @@ test('free trial salon: built from the landing form, one per mobile, 5 images an
   const pub=await call(e,'/api/s/'+slug+'/public');assert.equal(pub.status,200);assert.equal(pub.data.trial.images_left,5);assert.equal(pub.data.trial.brand,'#8E3050');
   const g=await guest(e,{slug}),original=await upload(e,{slug},g);
   const gen=()=>call(e,'/api/s/'+slug+'/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:0},g);
+  assert.equal((await gen()).status,403,'unapproved salon cannot generate');assert.equal(tasks,0);
+  e.DB.sql.prepare('UPDATE salons SET approved=1 WHERE slug=?').run(slug);
   for(let i=0;i<5;i++)assert.equal((await gen()).status,200);assert.equal(tasks,5);
   const sixth=await gen();assert.equal(sixth.status,402);assert.equal(tasks,5,'no paid task after the budget');
   assert.equal((await call(e,'/api/s/'+slug+'/public')).data.trial.images_left,0);
@@ -988,3 +990,37 @@ test('name + mobile on the welcome screen, thumbs, and "send it to me" reaches t
     assert.equal(e.DB.sql.prepare('SELECT phone FROM bot_customers WHERE chat_id=?').get('9100').phone,'09123456789');
   }finally{tg.restore()}
 });
+
+test('credits: 100 per salon by default, unapproved salons cannot generate, admin approves and recharges, manager panel requests a pack',async()=>{
+ const e=tgEnv(fixture());e.KIE_API_KEY='mock';const tg=mockTelegram();const net=globalThis.fetch;globalThis.fetch=async(url,opts)=>{const u=String(url);if(u.includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/f.png'}});if(u.includes('createTask'))return Response.json({code:200,data:{taskId:'t'+Math.random()}});return net(url,opts)};
+ try{await linkOwnerChat(e);
+  const s=await salon(e,'credit-salon');
+  const slug=s.slug,row=()=>e.DB.sql.prepare('SELECT * FROM salons WHERE slug=?').get(slug);
+  assert.equal(row().credit_limit,100,'default credit is 100');assert.equal(row().approved,1,'owner-made salons are approved');assert.match(row().manage_token,/^[a-f0-9]{32}$/);
+  const g=await guest(e,{slug}),original=await upload(e,{slug},g);
+  const gen=()=>call(e,'/api/s/'+slug+'/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:0},g);
+  e.DB.sql.prepare('UPDATE salons SET credit_limit=2 WHERE slug=?').run(slug);
+  assert.equal((await gen()).status,200);assert.equal((await gen()).status,200);
+  const capped=await gen();assert.equal(capped.status,402);assert.match(capped.data.error,/ظرفیت/);
+  // unapproved: blocked even with credit
+  e.DB.sql.prepare('UPDATE salons SET credit_limit=100,approved=0 WHERE slug=?').run(slug);
+  assert.equal((await gen()).status,403);
+  // admin list + approve + add credit
+  assert.equal((await call(e,'/api/owner/accounts')).status,401);
+  const list=await call(e,'/api/owner/accounts',undefined,OWNER);assert.equal(list.status,200);const acc=list.data.accounts.find(a=>a.slug===slug);assert.equal(acc.approved,false);assert.equal(acc.used,2);assert.equal(acc.limit,100);assert.match(acc.panel,/\/m\/[a-f0-9]{32}$/);
+  const ok=await call(e,'/api/owner/account',{slug,approved:true,add:50},OWNER);assert.equal(ok.status,200);assert.equal(ok.data.limit,150);assert.equal(ok.data.approved,true);
+  assert.equal((await gen()).status,200);
+  // manager panel: no login, private token
+  const token=row().manage_token,pnl=await call(e,'/api/m/'+token);assert.equal(pnl.status,200);assert.equal(pnl.data.left,150-3);assert.deepEqual(pnl.data.packs,[100,300,1000]);
+  assert.equal((await call(e,'/api/m/'+'0'.repeat(32))).status,404);
+  assert.equal((await call(e,'/api/m/'+token+'/recharge',{amount:7})).status,400);
+  const rq=await call(e,'/api/m/'+token+'/recharge',{amount:300,note:'پرداخت شد'});assert.equal(rq.status,200,JSON.stringify(rq));assert.equal(rq.data.requests[0].status,'pending');
+  assert(toOwner(tg).find(t=>/درخواست شارژ/.test(t)),'owner was told about the request');
+  assert.equal(e.DB.sql.prepare('SELECT credit_limit l FROM salons WHERE slug=?').get(slug).l,150,'nothing is added before approval');
+  const pend=(await call(e,'/api/owner/accounts',undefined,OWNER)).data.requests;assert.equal(pend.length,1);
+  assert.equal((await call(e,'/api/owner/recharge',{id:pend[0].id,action:'approve'},OWNER)).status,200);
+  assert.equal(e.DB.sql.prepare('SELECT credit_limit l FROM salons WHERE slug=?').get(slug).l,450);
+  assert.equal((await call(e,'/api/owner/recharge',{id:pend[0].id,action:'approve'},OWNER)).status,404,'a request is handled once');
+  const page=await app.fetch(new Request(origin+'/m/'+token),e);assert.equal(page.status,200);assert.match(await page.text(),/پنل مزون/);
+  assert.equal((await app.fetch(new Request(origin+'/m/'+'f'.repeat(32)),e)).status,404);
+ }finally{globalThis.fetch=net;tg.restore()}});
