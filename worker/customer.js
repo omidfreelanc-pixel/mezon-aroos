@@ -144,6 +144,7 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .style-card.is-on{border-color:var(--ink);background:#fff;box-shadow:0 0 0 3px rgba(35,23,15,.08)}
 .style-card__name{font-family:var(--display);font-weight:800;font-size:19px;color:var(--ink);line-height:1.35}
 .style-card__en{font-size:11.5px;color:var(--muted);direction:ltr;text-align:end}
+.dress-info{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:4px;font-size:12px;color:var(--ink)}.dress-info:empty{display:none}.dress-info em{font-style:normal;font-weight:700;color:#8a5a00}.dress-info em.ok{color:#0a7a3c}
 .style-card__tag{font-size:12px;color:var(--accent-ink);font-weight:600;margin-top:4px}
 .rail{display:grid;grid-auto-flow:column;grid-auto-columns:138px;gap:12px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x mandatory;scrollbar-width:thin}
 .port-card{scroll-snap-align:start;border:0;background:transparent;padding:0;text-align:start}
@@ -486,6 +487,7 @@ function tehranDate(d){var p={};new Intl.DateTimeFormat('en-US',{timeZone:'Asia/
 function el(tag,attrs,children){var e=document.createElement(tag);attrs=attrs||{};Object.keys(attrs).forEach(function(k){var v=attrs[k];if(v===undefined||v===null)return;if(k==='text')e.textContent=v;else if(k==='html')e.innerHTML=v;else if(k==='class')e.className=v;else if(k.slice(0,2)==='on')e.addEventListener(k.slice(2),v);else if(k==='checked'||k==='disabled'||k==='hidden'||k==='required')e[k]=!!v;else e.setAttribute(k,v)});(children||[]).forEach(function(c){if(c!==null&&c!==undefined&&c!==false)e.append(c)});return e}
 function h(tag,text,cls){return el(tag,{class:cls||'',text:text})}
 function media(id){return '/api/s/'+SLUG+'/media/'+id}
+function dressInfo(p){var m={sale:'فروش',rent:'اجاره',both:'فروش و اجاره'}[p.mode]||'',t=[m,p.price].filter(Boolean).join(' · '),st=p.stock==='available'?'موجود':p.stock==='ask'?'موجودی: بپرسید':'';if(!t&&!st)return el('span',{class:'dress-info'});return el('span',{class:'dress-info'},[t?el('span',{text:t}):null,st?el('em',{class:p.stock==='available'?'ok':'',text:st}):null])}
 function api(path,body,raw){
  var init={};
  if(body!==undefined){init.method='POST';init.headers=raw?{}:{'Content-Type':'application/json'};init.body=raw?body:JSON.stringify(body)}
@@ -775,7 +777,7 @@ function stepModel(){
     pic0.addEventListener('error',function(){art0.classList.add('is-missing');pic0.remove()});
     var card=el('button',{class:'style-card'+(on?' is-on':''),type:'button','aria-pressed':on?'true':'false'},[
      art0,
-     el('span',{class:'style-card__body'},[el('span',{class:'style-card__name',text:p.title}),el('span',{class:'style-card__tag',text:p.stylist?'کار '+p.stylist:(p.category||'کار مزون')})])
+     el('span',{class:'style-card__body'},[el('span',{class:'style-card__name',text:p.title}),el('span',{class:'style-card__tag',text:p.stylist?'کار '+p.stylist:(p.category||'کار مزون')}),dressInfo(p)])
     ]);
     card.addEventListener('click',function(){track('look','s:'+p.title);chooseLook(function(){state.reference=imgs[0];state.refTitle=p.title;state.style=null})});
     grid0.append(card);

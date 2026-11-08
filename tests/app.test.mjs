@@ -951,3 +951,14 @@ test('phone -> kiosk pairing: QR code, public phone page, photo lands only in th
  assert.equal((await call(e,'/api/s/salon-a/erase',{v:'k1'},g)).status,200);assert.equal(e.DB.sql.prepare('SELECT count(*) n FROM pairings').get().n,0);
  const cust=await app.fetch(new Request(origin+'/s/salon-a?kiosk=1'),e);const ch=await cust.text();assert.match(ch,/openPhonePair/);assert.match(ch,/function checkPhoto/);
 });
+
+test('a salon can set sale/rent, price and stock per dress; customers see them, junk is dropped',async()=>{
+ const e=tgEnv(fixture()),s=await salon(e);
+ const id=(await call(e,'/api/s/salon-a/owner/portfolio/add',{media_id:await ownerPortfolio(e,s),title:'لباس قیمت‌دار'},OWNER)).data.id;
+ assert.equal((await call(e,'/api/s/salon-a/owner/portfolio/info',{id,mode:'rent',price:'۱۲ میلیون',stock:'available'},OWNER)).status,200);
+ let p=(await call(e,'/api/s/salon-a/public')).data.portfolio.find(x=>x.id===id);
+ assert.deepEqual([p.mode,p.price,p.stock],['rent','۱۲ میلیون','available']);
+ await call(e,'/api/s/salon-a/owner/portfolio/info',{id,mode:'x',price:'a'.repeat(200),stock:'y'},OWNER);
+ p=(await call(e,'/api/s/salon-a/public')).data.portfolio.find(x=>x.id===id);
+ assert.deepEqual([p.mode,p.price.length,p.stock],['',60,'']);
+});
