@@ -1820,8 +1820,13 @@ function kioskWarn(){
 }
 // On the boutique screen: a code that opens the bot already tied to this boutique, so a bride can send her photo from her own phone.
 function botQrBlock(){
- var bot=(state.pub&&state.pub.bot)||{},ks=Object.keys(bot);if(!ks.length||typeof qrcode==='undefined')return null;
- return el('div',{class:'kqrs'},ks.map(function(k){return el('div',{class:'kqr'},[el('div',{class:'qr__code',dir:'ltr',html:qrSvg(bot[k])}),h('span',k==='bale'?'بله':'تلگرام')])}).concat([h('p','یا با گوشی خودت اسکن کن، عکس تمام‌قدت را برای ربات بفرست و نتیجه را همان‌جا بگیر.')]));
+ var holder=el('div',{class:'kqrs',hidden:true}),tries=0;
+ // The attract screen is drawn before the boutique has loaded, so the codes are filled in when it arrives.
+ var t=setInterval(function(){
+  if(state.pub||++tries>40){clearInterval(t);var bot=(state.pub&&state.pub.bot)||{},ks=Object.keys(bot);if(!ks.length||typeof qrcode==='undefined')return;
+   holder.replaceChildren.apply(holder,ks.map(function(k){return el('div',{class:'kqr'},[el('div',{class:'qr__code',dir:'ltr',html:qrSvg(bot[k])}),h('span',k==='bale'?'بله':'تلگرام')])}).concat([h('p','یا با گوشی خودت اسکن کن، عکس تمام‌قدت را برای ربات بفرست و نتیجه را همان‌جا بگیر.')]));holder.hidden=false}
+ },250);
+ return holder;
 }
 function kioskBoot(){
  document.documentElement.classList.add('kiosk');
