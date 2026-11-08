@@ -20,6 +20,8 @@ import {createStaff,transfer,assign,team as teamOf,SPECIALTIES} from './referral
 import {LINE_LABEL} from './lines.js';
 import {setLeadStatus} from './dresses.js';
 import {notifyOwner,linkOwner,isOwnerChat,sendDigest,setupStatus} from './alerts.js';
+import {newSession} from './server.js';
+import {setConsent} from './social.js';
 const STALE=20*60000; // an unfinished wizard or team question is dropped after 20 idle minutes
 
 const one=(db,sql,...a)=>db.prepare(sql).bind(...a).first();
@@ -39,6 +41,9 @@ export const baleSecret=env=>env?.BALE_WEBHOOK_SECRET||env?.TELEGRAM_WEBHOOK_SEC
 // Platforms on which this salon can actually receive messages right now.
 export const inboxes=(env,salon)=>Object.values(PLATFORMS).filter(P=>salon?.[P.col]&&P.token(env)).map(P=>P.name);
 export function followLinks(env,token){const out={};for(const P of Object.values(PLATFORMS)){const u=P.user(env);if(P.token(env)&&u)out[P.name]=P.link(u,'f_'+token)}return out}
+
+// Links that open the bot already tied to a boutique: a bride sends her photo there instead of using the page.
+export function customerLinks(env,slug){const out={};if(!/^[a-z0-9-]{1,62}$/.test(slug))return out;for(const P of Object.values(PLATFORMS)){const u=P.user(env);if(P.token(env)&&u)out[P.name]=P.link(u,'c_'+slug)}return out}
 
 const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const plain=s=>String(s??'').replace(/<\/?b>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
@@ -128,11 +133,14 @@ async function handle(req,env,p){
   if(Number.isInteger(u.update_id)){const seen=await run(db,'INSERT OR IGNORE INTO bot_seen(key,created_at) VALUES(?,?)',p+':'+u.update_id,Date.now());if(!seen.meta.changes)return J({ok:true})}
   if(u.callback_query){await onCallback(ctx,u.callback_query);return J({ok:true})}
   const m=u.message;if(!m||m.chat?.type!=='private')return J({ok:true});
-  ctx.chat=String(m.chat.id);ctx.say=(t,extra={})=>call(env,p,'sendMessage',{chat_id:ctx.chat,text:t,...extra});
+  ctx.chat=String(m.chat.id);ctx.name=String(m.from?.first_name||'').replace(/\s+/g,' ').trim().slice(0,40);ctx.say=(t,extra={})=>call(env,p,'sendMessage',{chat_id:ctx.chat,text:t,...extra});
   const textIn=(m.text||'').trim();
   if(textIn.startsWith('/start')){await onStart(ctx,textIn.split(/\s+/)[1]||'');return J({ok:true})}
   if(textIn==='/report'&&await isOwnerChat(db,p,ctx.chat)){await sendDigest(env,[{platform:p,chat_id:ctx.chat}]);return J({ok:true})}
   const actor=await actorByChat(db,p,ctx.chat);
+  // Someone who opened the bot from a boutique's customer link is a bride, not staff.
+  const bc=await one(db,'SELECT * FROM bot_customers WHERE platform=? AND chat_id=?',p,ctx.chat);
+  if(bc&&(!actor||(Date.now()-bc.created_at<30*60000&&!textIn.startsWith('/')))){await customerMessage(ctx,bc,m);return J({ok:true})}
   if(!actor){await strangerMessage(ctx);return J({ok:true})}
   const salon=actor.salon;ctx.salon=salon;ctx.staff=actor.staff||null;ctx.role=actor.role;
   if(actor.role==='staff'){await staffMessage(ctx,m,textIn);return J({ok:true})}
@@ -196,6 +204,7 @@ async function onStart(ctx,arg){
   return;
  }
  if(/^f_[a-f0-9]{24}$/.test(arg)){await follow(ctx,arg.slice(2));return}
+ if(/^c_[a-z0-9-]{1,62}$/.test(arg)){await customerStart(ctx,arg.slice(2));return}
  if(/^o_[a-f0-9]{24}$/.test(arg)){if(await linkOwner(db,p,ctx.chat,arg.slice(2)))await ctx.say(ownerHelp,{parse_mode:'HTML'});else await ctx.say('این لینک گزارش منقضی یا قبلاً استفاده شده است. از صفحهٔ ادمین لینک تازه بسازید.');return}
  const a=await actorByChat(db,p,ctx.chat);
  if(a?.role==='staff'){await ctx.say(staffHelp(a.staff,a.salon,ctx.origin,inviteReady(env)),{parse_mode:'HTML'});return}
@@ -416,6 +425,38 @@ export async function expireStates(env,now=Date.now()){
  return n;
 }
 
+
+/* ---------- a bride talking to the bot: she sends a photo, gets a personal link, gets the picture back ---------- */
+async function customerStart(ctx,slug){
+ const salon=await one(ctx.db,'SELECT id,slug,name FROM salons WHERE slug=?',slug);
+ if(!salon){await ctx.say('این مزون پیدا نشد؛ لینک را دوباره از مزون بگیرید.');return}
+ await run(ctx.db,'INSERT INTO bot_customers(platform,chat_id,salon_id,name,created_at) VALUES(?,?,?,?,?) ON CONFLICT(platform,chat_id) DO UPDATE SET salon_id=excluded.salon_id,name=excluded.name,created_at=excluded.created_at',ctx.p,ctx.chat,salon.id,ctx.name,Date.now());
+ await ctx.say('سلام'+(ctx.name?' '+ctx.name:'')+' 🌸\nبه «'+salon.name+'» خوش آمدی.\nیک عکس تمام‌قد از خودت بفرست (ایستاده، از سر تا پا، با نور خوب) تا لباس عروس را روی خودت ببینی.');
+}
+async function customerMessage(ctx,bc,m){
+ const {env,db,p}=ctx,photo=photoOf(m);
+ if(!photo){await ctx.say('عکس تمام‌قد خودت را بفرست (📎 ← عکس) تا لباس عروس را روی خودت ببینی. 🌸');return}
+ await limited(db,'botphoto:'+p+':'+ctx.chat,12,'امروز چند عکس فرستاده‌ای؛ فردا دوباره امتحان کن');
+ must((photo.file_size||0)<=5*1024*1024,'عکس بزرگ‌تر از ۵ مگابایت است؛ آن را به‌صورت «عکس» بفرست نه «فایل»');
+ const salon=await one(db,'SELECT * FROM salons WHERE id=?',bc.salon_id);
+ if(!salon){await ctx.say('این مزون پیدا نشد؛ لینک را دوباره از مزون بگیرید.');return}
+ const bytes=await fileBytes(env,p,photo.file_id);
+ const {s,raw}=await newSession(db,salon,{platform:p,chat:ctx.chat,name:bc.name||ctx.name});
+ await putImage(env,salon,s,bytes,'original');
+ await ctx.say('عکست رسید ✅\nحالا مدل لباس را انتخاب کن. ساختن تصویر ۲ تا ۳ دقیقه طول می‌کشد؛ بعدش خودم همین‌جا برایت می‌فرستمش و می‌توانی برای دوستانت بفرستی.',{reply_markup:{inline_keyboard:[[{text:'👰 انتخاب مدل لباس',url:ctx.origin+'/s/'+salon.slug+'?c='+raw}]]}});
+}
+// Her yes/no to "may we post your picture on the boutique's social media?".
+async function consentCallback(ctx,q,data){
+ const {env,db,p}=ctx,chat=String(q.message?.chat?.id||''),m=/^sc:([01]):([a-f0-9-]{36})$/.exec(data);let note='انجام نشد';
+ try{
+  const g=m&&await one(db,"SELECT g.* FROM generations g JOIN sessions s ON s.id=g.session_id WHERE g.id=? AND s.bot_chat=? AND s.bot_platform=? AND g.state='success'",m[2],chat,p);
+  if(g){const salon=await one(db,'SELECT * FROM salons WHERE id=?',g.salon_id);await setConsent(env,ctx.origin,salon,g,m[1]==='1');note=m[1]==='1'?'ممنون! ثبت شد 💛':'باشه، ثبت شد';
+   try{await call(env,p,'editMessageReplyMarkup',{chat_id:chat,message_id:q.message.message_id,reply_markup:{inline_keyboard:[]}})}catch{}
+   await call(env,p,'sendMessage',{chat_id:chat,text:m[1]==='1'?'💛 ممنون که اجازه دادی. «'+salon.name+'» تصویرت را با افتخار منتشر می‌کند.':'باشه، تصویرت فقط پیش خودت و کسانی می‌ماند که لینکش را برایشان بفرستی.'}).catch(()=>{});}
+ }catch(e){console.error('consent cb',e?.message)}
+ await call(env,p,'answerCallbackQuery',{callback_query_id:q.id,text:note}).catch(()=>{});
+}
+
 /* ---------- customer follow: she taps "خبرم کن" on the page and starts the bot ---------- */
 const STATUS={new:'هنوز منتظر تماس مزون',called:'مزون با شما تماس گرفته',booked:'نوبت هماهنگ شد',cancelled:'درخواست بسته شد',declined:'مزون گفت این مدل قابل اجرا نیست'};
 async function follow(ctx,token){
@@ -454,6 +495,7 @@ export function leadKeyboard(lead,p,members=[]){
  return {inline_keyboard:rows};
 }
 async function onCallback(ctx,q){
+ if(String(q.data||'').startsWith('sc:')){await consentCallback(ctx,q,String(q.data));return}
  const {env,db,p}=ctx,chat=String(q.message?.chat?.id||''),actor=await actorByChat(db,p,chat),salon=actor?.salon||null;ctx.chat=chat;ctx.salon=salon;ctx.staff=actor?.staff||null;
  const manager=actor?.role==='manager';ctx.role=actor?.role;
  ctx.say=(t,extra={})=>call(env,p,'sendMessage',{chat_id:chat,text:t,...extra});

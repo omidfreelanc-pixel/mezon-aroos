@@ -184,6 +184,7 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .progress__fill{height:100%;width:8%;border-radius:999px;background:var(--accent);transition:width .6s var(--ease)}
 .rate-line{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line-2)}
 .rating{display:flex;gap:4px}
+.social{margin-top:16px;display:grid;gap:12px}.soc-card{border:1px solid var(--line-2);border-radius:18px;padding:14px;background:var(--surface,#fff);display:grid;gap:10px}.soc-card p{margin:0;font-size:14px;line-height:1.95}.soc-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.soc-stat{font-size:13px;color:var(--muted)}.soc-c{border-top:1px dashed var(--line-2);padding-top:8px;font-size:14px;line-height:1.9;overflow-wrap:anywhere}.soc-c b{display:block;font-size:12.5px;color:var(--muted)}
 .rating button{width:42px;height:42px;border-radius:50%;border:0;background:transparent;font-size:22px;color:#c3ccc8;transition:color .14s var(--ease),transform .14s var(--ease)}
 .rating button:hover{transform:scale(1.1)}
 .rating button.is-on{color:var(--honey)}
@@ -503,6 +504,10 @@ function track(kind,meta,once){if(once){if(tracked[kind+meta])return;tracked[kin
  document.title=state.pub.salon.name+' | مزون آینه';
  if(state.pub.trial)trialBar(state.pub.trial);
  if(state.pub.demo)document.body.prepend(el('div',{class:'trialbar',role:'status'},[document.createTextNode('نسخهٔ نمونهٔ مزون آینه · روزی ۳ تصویر · '),el('a',{href:'/#start',style:'color:#fff;text-decoration:underline',text:'صفحهٔ مزون خودتان را بسازید'})]));
+ // A bride who sent her photo to the bot arrives with her personal key: it opens her own session, photo already in it.
+ var claim=(location.search.match(/[?&]c=([a-f0-9]{64})/)||[])[1]||'';
+ if(claim&&history.replaceState){try{history.replaceState(null,'',location.pathname)}catch(e){}}
+ var claimP=claim?api('session/claim',{t:claim}).then(function(){state.session=false;return ensureSession()}).catch(function(e){toast(e.message,'error')}):null;
  var pending=null;try{pending=sessionStorage.getItem('ayneh-job-'+SLUG)}catch(e){}
  if(pending)pending=pending.replace(/^dress:/,'');
  // Open on the boutique's own dresses when it has some, otherwise on the ready-made ones.
@@ -865,6 +870,47 @@ function ratingBlock(){
  wrap.append(stars);
  return wrap;
 }
+/* ---------- share, likes and comments under the result, and "may we post this on the boutique's social media?" ---------- */
+function socialBlock(){
+ var wrap=el('div',{class:'social'}),gen=state.gen;
+ if(!gen||!state.result)return wrap;
+ var S=state.soc&&state.soc.gen===gen?state.soc:(state.soc={gen:gen,likes:0,comments:[],consent:0,loaded:false});
+ function paint(){
+  wrap.replaceChildren();
+  var salon=state.pub.salon.name;
+  if(S.consent===0){
+   wrap.append(el('div',{class:'soc-card'},[
+    h('p','به نظر ما تصویر شما بسیار زیبا و دیدنی است. افتخار به اشتراک‌گذاری این تصویر در سوشال مزون («'+salon+'») را به ما می‌دهید؟'),
+    el('div',{class:'soc-row'},[
+     el('button',{class:'btn btn--primary btn--sm',type:'button',text:'بله، افتخار می‌دهم',onclick:function(){answer(true)}}),
+     el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'نه، ممنون',onclick:function(){answer(false)}})
+    ])
+   ]));
+  }else if(S.consent===1){wrap.append(h('p','💛 ممنون! اجازهٔ انتشار این تصویر در سوشال «'+salon+'» ثبت شد.','soc-stat'))}
+  var nm=el('input',{type:'text',maxlength:'40',placeholder:'اسمت (برای متن پست)',autocomplete:'given-name',value:S.name||''});
+  nm.addEventListener('input',function(){S.name=nm.value});
+  var card=el('div',{class:'soc-card'},[
+   h('p','این تصویر را برای دوستان و خانواده بفرست؛ هر کس روی لینک بزند می‌تواند لایک کند و نظر بنویسد.'),
+   el('div',{class:'soc-row'},[nm,el('button',{class:'btn btn--soft btn--sm',type:'button',text:'📤 اشتراک‌گذاری',onclick:share})]),
+   h('div','❤️ '+fa(S.likes)+' · 💬 '+fa(S.comments.length),'soc-stat')
+  ]);
+  S.comments.forEach(function(c){card.append(el('div',{class:'soc-c'},[el('b',{text:c.name}),el('span',{text:c.body})]))});
+  wrap.append(card);
+ }
+ function answer(yes){api('social',{gen:gen,consent:yes}).then(function(){S.consent=yes?1:2;paint();if(yes)toast('ممنون! ثبت شد 💛')}).catch(function(e){toast(e.message,'error')})}
+ function share(){
+  api('share',{gen:gen,name:(S.name||'').trim()}).then(function(d){
+   track('share_post','');
+   if(navigator.share)return navigator.share({text:d.text}).catch(function(){});
+   return copyText(d.text).then(function(){toast('متن و لینک کپی شد؛ برای هر کس خواستی بفرست')},function(){toast(d.text)});
+  }).catch(function(e){toast(e.message,'error')});
+ }
+ function load(){api('reactions/'+gen).then(function(d){var ch=d.likes!==S.likes||d.comments.length!==S.comments.length||d.consent!==S.consent||!S.loaded;S.likes=d.likes;S.comments=d.comments||[];S.consent=d.consent;S.loaded=true;if(ch&&wrap.isConnected&&!(document.activeElement&&wrap.contains(document.activeElement)))paint()}).catch(function(){})}
+ paint();load();
+ var t=setInterval(function(){if(!wrap.isConnected&&S.polled){clearInterval(t);return}S.polled=true;load()},20000);
+ return wrap;
+}
+
 function saveRating(n){try{localStorage.setItem('ayneh-rating-'+state.result,String(n))}catch(e){}track('rating',n+':'+(state.gen||''))}
 function notice(kind,text){
  var map={info:ICO.info,warn:ICO.warn,danger:ICO.warn,ok:ICO.check};
@@ -988,6 +1034,7 @@ function stepResult(){
   ]));
   box.append(h('p','عکسی که دانلود می‌کنی، گوشهٔ پایینش لوگوی «'+state.pub.salon.name+'» را دارد.'+(retentionLine()?' '+retentionLine():''),'fine-print'));
   box.append(ratingBlock());
+  box.append(socialBlock());
   box.append(el('div',{class:'flow__nav flow__nav--want'},state.pub.telegram?[wantButton(),el('button',{class:'btn btn--ghost',type:'button',onclick:openRequest,html:ICO.send+'<span>فقط عکس را بفرست</span>'})]:[sendButton()]));
   box.append(sendNote());
  }else if(!state.busy){
@@ -1385,7 +1432,7 @@ function ensureSession(){
  });
 }
 // The session also says how many images this person has left.
-function loadSession(){return api('session?v='+VISITOR).then(function(d){state.session=true;applyVerified(d);if(d.quota){state.quota=d.quota;renderDockSoon();var f=$('#flow');if(f&&state.step===2&&!state.busy)renderFlow()}})}
+function loadSession(){return api('session?v='+VISITOR).then(function(d){state.session=true;applyVerified(d);if(d.original&&!state.original){state.original=d.original;state.justUploaded=true;state.fromBot=true;state.ratio='';if(state.step===1){state.step=2;state.justArrived=true;renderSteps();renderFlow();renderDock()}}if(d.quota){state.quota=d.quota;renderDockSoon();var f=$('#flow');if(f&&state.step===2&&!state.busy)renderFlow()}})}
 function quotaLeft(){return state.quota&&state.quota.left?state.quota.left.dress:null}
 function spentQuota(){if(state.quota&&state.quota.left&&state.quota.left.dress>0)state.quota.left.dress--}
 function quotaOut(){

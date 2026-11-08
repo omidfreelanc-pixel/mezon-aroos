@@ -7,10 +7,11 @@ import {fontResponse} from './fonts.js';
 import {webhook,baleWebhook,setWebhook} from './telegram.js';
 import {favicon,baseCSS} from './design.js';
 import {sharePage} from './share.js';
+import {postPage} from './social.js';
 import {landingHTML as homeHTML} from './landing.js';
 const htmlHeaders={'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",'Permissions-Policy':'camera=(self), geolocation=(), microphone=()'};
 // Only real pages are served the app shell; everything else is a 404, never a blank app page.
-const pages=[/^\/admin\/?$/,/^\/admin\/[a-z0-9-]{1,64}\/?$/,/^\/s\/[a-z0-9-]{1,64}\/?$/,/^\/i\/[a-z0-9-]{1,64}\/?$/,/^\/signin-with-chatgpt(\/.*)?$/];
+const pages=[/^\/admin\/?$/,/^\/admin\/[a-z0-9-]{1,64}\/?$/,/^\/s\/[a-z0-9-]{1,64}\/?$/,/^\/i\/[a-z0-9-]{1,64}\/?$/,/^\/p\/[a-f0-9]{32}\/?$/,/^\/signin-with-chatgpt(\/.*)?$/];
 const notFound='<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#e8edeb"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><title>صفحه پیدا نشد | مزون آینه</title><style>'+baseCSS+'.nf{min-height:100vh;display:grid;place-items:center;padding:32px 20px;text-align:center}.nf main{display:grid;justify-items:center;gap:18px;max-width:420px}.nf .mirror{width:150px}.nf .mirror__glass{aspect-ratio:3/4}.nf h1{font-family:var(--display);font-weight:800;font-size:32px}.nf p{color:var(--muted);line-height:2}</style></head><body class="nf"><main><div class="mirror"><div class="mirror__glass"></div></div><h1>این صفحه پیدا نشد</h1><p>نشانی اشتباه است یا صفحهٔ مزون برداشته شده. لینک اختصاصی مزون را دوباره باز کنید.</p><a class="btn btn--primary" href="/">صفحهٔ اصلی مزون آینه</a></main></body></html>';
 // Link previews (Telegram, WhatsApp, Instagram, iMessage) read these tags, so each salon page
 // carries its own name, description and cover instead of generic ones.
@@ -51,6 +52,7 @@ export default {
   if(u.pathname.startsWith('/fonts/')){const f=fontResponse(u.pathname.slice(7));if(f)return f;}
   if(u.pathname==='/'){ctx?.waitUntil(ensureWebhook(env,u.origin));return new Response(homeHTML,{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}})}
   if(!pages.some(r=>r.test(u.pathname)))return new Response(notFound,{status:404,headers:htmlHeaders});
+  if(/^\/p\/[a-f0-9]{32}\/?$/.test(u.pathname)){const html=await postPage(u,env);return new Response(html||notFound,{status:html?200:404,headers:htmlHeaders});}
   if(/^\/i\/[a-z0-9-]{1,64}\/?$/.test(u.pathname)){const html=await sharePage(u,env);return new Response(html||notFound,{status:html?200:404,headers:htmlHeaders});}
   if(/^\/s\/[a-z0-9-]{1,64}\/?$/.test(u.pathname)){const html=await salonPage(u,env);return html?new Response(html,{headers:htmlHeaders}):new Response(notFound,{status:404,headers:htmlHeaders});}
   return new Response(appHTML,{headers:htmlHeaders});
