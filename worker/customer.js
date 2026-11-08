@@ -372,7 +372,7 @@ body.is-touring{overflow:hidden}
 .bgnote{margin:8px 2px 0;font-size:12px;line-height:1.8;color:var(--muted)}.bgchip img,.bgchip__own{width:100%;aspect-ratio:2/3;object-fit:cover;display:grid;place-items:center;background:var(--surface-2)}.bgchip__own svg{width:30px;height:30px;color:var(--accent)}
 .bgchip>span:last-child{font-size:12px;line-height:1.5;padding:6px 4px;color:var(--ink-2)}
 .bgchip.is-on{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}.bgchip.is-on>span:last-child{color:var(--accent-ink);font-weight:700}
-.vspin{display:grid;gap:12px;justify-items:center;padding:4px 2px 14px}.vspin__stage{position:relative;width:min(100%,380px);overflow:hidden;border-radius:18px;background:#e9e5df;touch-action:none;cursor:grab;box-shadow:var(--lift)}.vspin__stage video{display:block;width:100%;height:auto;transform-origin:center;will-change:transform;pointer-events:none}.vspin__wait{display:grid;gap:12px;justify-items:center;text-align:center}.vspin__wait img{width:min(60%,220px);border-radius:16px;animation:sway 3.2s ease-in-out infinite;box-shadow:var(--float)}
+.vspin{display:grid;gap:12px;justify-items:center;padding:4px 2px 14px}.vspin__stage{position:relative;width:min(100%,380px);overflow:hidden;border-radius:18px;background:#e9e5df;touch-action:none;cursor:grab;box-shadow:var(--lift)}.vspin__stage canvas{display:block;width:100%;height:auto;transform-origin:center;will-change:transform;pointer-events:none}.vspin__wait{display:grid;gap:12px;justify-items:center;text-align:center}.vspin__wait img{width:min(60%,220px);border-radius:16px;animation:sway 3.2s ease-in-out infinite;box-shadow:var(--float)}
 /* 360 viewer */
 .spin-wrap{width:min(100%,330px);margin:4px auto 0;padding:6px}
 @media(max-width:420px){.spin-wrap{width:min(100%,330px,calc((100svh - 340px)*.62))}.result-actions{display:grid;grid-template-columns:1fr 1fr}.result-actions .btn{min-width:0;padding:0 10px}}
@@ -2106,28 +2106,51 @@ function openSpin(){
  body.append(el('div',{class:'vspin__wait'},[el('img',{src:media(state.result),alt:''}),h('p','دارم ویدیوی چرخشی را می‌سازم… معمولاً ۱ تا ۳ دقیقه طول می‌کشد؛ این پنجره را باز نگه دار.','spin__tip')]));
  var gen=state.gen;
  function show(id){
-  var v=el('video',{src:media(id),playsinline:'',loop:'',preload:'auto','aria-label':'ویدیوی چرخشی لباس'});v.muted=true;v.setAttribute('muted','');
-  var stage=el('div',{class:'vspin__stage',dir:'ltr'},[v]);
-  var play=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'⏸ توقف'});
-  body.replaceChildren(stage,el('div',{class:'spin__row'},[play]),h('p','برای چرخاندن بکش؛ برای زوم دو انگشتی بزن یا دوبار لمس کن.','spin__tip'));
-  var z=1,tx=0,ty=0,pts={},pd=0;
-  function lim(){var w=stage.clientWidth,hh=stage.clientHeight;return [(z-1)*w/2,(z-1)*hh/2]}
-  function apply(){var l=lim();tx=Math.max(-l[0],Math.min(l[0],tx));ty=Math.max(-l[1],Math.min(l[1],ty));v.style.transform='translate('+tx+'px,'+ty+'px) scale('+z+')'}
-  function setPlay(on){if(on){v.play().catch(function(){});play.textContent='⏸ توقف'}else{v.pause();play.textContent='▶ پخش'}}
-  play.addEventListener('click',function(){setPlay(v.paused)});
-  v.play().catch(function(){play.textContent='▶ پخش'});
-  function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
-  stage.addEventListener('pointerdown',function(e){try{stage.setPointerCapture(e.pointerId)}catch(x){}pts[e.pointerId]={x:e.clientX,y:e.clientY};var k=Object.keys(pts);if(k.length===2)pd=dist(pts[k[0]],pts[k[1]]);setPlay(false)});
-  stage.addEventListener('pointermove',function(e){
-   var p=pts[e.pointerId];if(!p)return;var k=Object.keys(pts);
-   if(k.length===2){pts[e.pointerId]={x:e.clientX,y:e.clientY};var nd=dist(pts[k[0]],pts[k[1]]);if(pd>0){z=Math.max(1,Math.min(4,z*nd/pd))}pd=nd;apply();return}
-   var dx=e.clientX-p.x,dy=e.clientY-p.y;pts[e.pointerId]={x:e.clientX,y:e.clientY};
-   if(z>1.02){tx+=dx;ty+=dy;apply()}
-   else if(v.duration){var t=v.currentTime-dx/stage.clientWidth*v.duration;v.currentTime=((t%v.duration)+v.duration)%v.duration}
-  });
-  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){stage.addEventListener(ev,function(e){delete pts[e.pointerId];pd=0})});
-  stage.addEventListener('dblclick',function(){z=z>1.1?1:2.4;tx=0;ty=0;apply()});
-  stage.addEventListener('wheel',function(e){e.preventDefault();z=Math.max(1,Math.min(4,z*(e.deltaY<0?1.12:0.89)));apply()},{passive:false});
+  // The video is decoded ONCE into still frames (seeking a compressed video while dragging stutters and can go blank),
+  // then the bride drags/turns through those frames on a canvas: smooth, exact, and zoom works on a still image.
+  var N=48,frames=[],f=0,playing=true,last=0;
+  var bar=el('i'),wait=el('div',{class:'vspin__wait'},[el('img',{src:media(state.result),alt:''}),h('p','دارم ویدیو را برای چرخاندن آماده می‌کنم…','spin__tip'),el('span',{class:'upl__bar'},[bar])]);
+  body.replaceChildren(wait);
+  fetch(media(id)).then(function(r){if(!r.ok)throw new Error('x');return r.blob()}).then(function(b){
+   var v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';v.src=URL.createObjectURL(b);
+   return new Promise(function(res,rej){v.onloadeddata=function(){res(v)};v.onerror=function(){rej(new Error('x'))}});
+  }).then(function(v){
+   var W=Math.min(v.videoWidth,720),H=Math.round(W*v.videoHeight/v.videoWidth),c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d'),dur=v.duration||5,i=0;
+   function next(){
+    if(i>=N)return Promise.resolve();
+    return new Promise(function(res){var done=false;function ok(){if(done)return;done=true;v.removeEventListener('seeked',ok);res()}v.addEventListener('seeked',ok);v.currentTime=Math.min(dur-0.04,i*dur/N);setTimeout(ok,1500)}).then(function(){x.drawImage(v,0,0,W,H);return createImageBitmap(c)}).then(function(bm){frames.push(bm);i++;bar.style.width=Math.round(i/N*100)+'%';return next()});
+   }
+   return next().then(function(){URL.revokeObjectURL(v.src);return {W:W,H:H}});
+  }).then(function(d){
+   var cv=el('canvas',{width:d.W,height:d.H}),cx=cv.getContext('2d');
+   var stage=el('div',{class:'vspin__stage',dir:'ltr'},[cv]);
+   var play=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'⏸ توقف'});
+   var zin=el('button',{class:'btn btn--ghost btn--sm',type:'button','aria-label':'نزدیک‌تر',text:'＋ زوم'}),zout=el('button',{class:'btn btn--ghost btn--sm',type:'button','aria-label':'دورتر',text:'－ زوم'});
+   var lft=el('button',{class:'btn btn--ghost btn--sm',type:'button','aria-label':'چرخش به چپ',text:'◀'}),rgt=el('button',{class:'btn btn--ghost btn--sm',type:'button','aria-label':'چرخش به راست',text:'▶'});
+   body.replaceChildren(stage,el('div',{class:'spin__row'},[lft,play,rgt,zout,zin]),h('p','برای چرخاندن بکش؛ برای زوم دو انگشتی بزن، دوبار لمس کن یا دکمهٔ زوم را بزن.','spin__tip'));
+   var z=1,tx=0,ty=0,pts={},pd=0,idx=-1;
+   function draw(){var k=((Math.round(f)%N)+N)%N;if(k!==idx){idx=k;cx.drawImage(frames[k],0,0,d.W,d.H)}}
+   function lim(){var w=stage.clientWidth,hh=stage.clientHeight;return [(z-1)*w/2,(z-1)*hh/2]}
+   function apply(){var l=lim();tx=Math.max(-l[0],Math.min(l[0],tx));ty=Math.max(-l[1],Math.min(l[1],ty));cv.style.transform='translate('+tx+'px,'+ty+'px) scale('+z+')'}
+   function zoom(k){z=Math.max(1,Math.min(4,z*k));if(z<1.02){z=1;tx=0;ty=0}apply()}
+   function setPlay(on){playing=on;play.textContent=on?'⏸ توقف':'▶ پخش'}
+   function tick(ts){if(!panel.isConnected)return;if(playing){f+=(ts-(last||ts))/1000*(N/5)*0.6}last=ts;draw();requestAnimationFrame(tick)}
+   play.addEventListener('click',function(){setPlay(!playing)});
+   zin.addEventListener('click',function(){zoom(1.4)});zout.addEventListener('click',function(){zoom(1/1.4)});
+   lft.addEventListener('click',function(){setPlay(false);f-=2});rgt.addEventListener('click',function(){setPlay(false);f+=2});
+   function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+   stage.addEventListener('pointerdown',function(e){try{stage.setPointerCapture(e.pointerId)}catch(x){}pts[e.pointerId]={x:e.clientX,y:e.clientY};var k=Object.keys(pts);if(k.length===2)pd=dist(pts[k[0]],pts[k[1]]);setPlay(false)});
+   stage.addEventListener('pointermove',function(e){
+    var p=pts[e.pointerId];if(!p)return;var k=Object.keys(pts);
+    if(k.length===2){pts[e.pointerId]={x:e.clientX,y:e.clientY};var nd=dist(pts[k[0]],pts[k[1]]);if(pd>0)zoom(nd/pd);pd=nd;return}
+    var dx=e.clientX-p.x,dy=e.clientY-p.y;pts[e.pointerId]={x:e.clientX,y:e.clientY};
+    if(z>1.02){tx+=dx;ty+=dy;apply()}else{f-=dx/stage.clientWidth*N*0.8}
+   });
+   ['pointerup','pointercancel'].forEach(function(ev){stage.addEventListener(ev,function(e){delete pts[e.pointerId];pd=0})});
+   stage.addEventListener('dblclick',function(){z=z>1.1?1:2.4;tx=0;ty=0;apply()});
+   stage.addEventListener('wheel',function(e){e.preventDefault();zoom(e.deltaY<0?1.12:0.89)},{passive:false});
+   requestAnimationFrame(tick);
+  }).catch(function(){body.replaceChildren(notice('danger','آماده‌سازی ویدیو ممکن نشد. دوباره امتحان کن.'))});
  }
  if(state.spin&&state.spin.gen===gen&&state.spin.id){show(state.spin.id);return}
  ensureSession().then(function(){
