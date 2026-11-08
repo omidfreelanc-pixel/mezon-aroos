@@ -53,7 +53,7 @@ jobs:
           OWNER_PASSWORD_HASH: ${{ secrets.OWNER_PASSWORD_HASH }}
           SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
           JOB_TOKEN: ${{ secrets.JOB_TOKEN }}
-          APP_ORIGIN: https://mezon.ayneh-salon.site
+          APP_ORIGIN: https://mezon-aroos.omidfreelanc.workers.dev
           TELEGRAM_BOT_TOKEN: ${{ secrets.MEZON_TELEGRAM_BOT_TOKEN }}
           TELEGRAM_WEBHOOK_SECRET: ${{ secrets.MEZON_TELEGRAM_WEBHOOK_SECRET }}
           TELEGRAM_BOT_USERNAME: ${{ secrets.MEZON_TELEGRAM_BOT_USERNAME }}
@@ -88,7 +88,7 @@ jobs:
         env:
           TOKEN: ${{ secrets.MEZON_TELEGRAM_BOT_TOKEN }}
           SECRET: ${{ secrets.MEZON_TELEGRAM_WEBHOOK_SECRET }}
-          ORIGIN: https://mezon.ayneh-salon.site
+          ORIGIN: https://mezon-aroos.omidfreelanc.workers.dev
         run: |
           if [ -z "$TOKEN" ] || [ -z "$SECRET" ] || [ -z "$ORIGIN" ]; then echo "Telegram or APP_ORIGIN not configured; skipping webhook."; exit 0; fi
           curl -sS -o /dev/null -w "setWebhook HTTP %{http_code}\n" "https://api.telegram.org/bot$TOKEN/setWebhook" \
@@ -99,12 +99,12 @@ jobs:
         env:
           TOKEN: ${{ secrets.MEZON_BALE_BOT_TOKEN }}
           SECRET: ${{ secrets.MEZON_TELEGRAM_WEBHOOK_SECRET }}
-          ORIGIN: https://mezon.ayneh-salon.site
+          ORIGIN: https://mezon-aroos.omidfreelanc.workers.dev
         run: |
           if [ -z "$TOKEN" ] || [ -z "$SECRET" ] || [ -z "$ORIGIN" ]; then echo "Bale or APP_ORIGIN not configured; skipping."; exit 0; fi
           curl -sS -o /dev/null -w "Bale setWebhook HTTP %{http_code}\n" "https://tapi.bale.ai/bot$TOKEN/setWebhook" --data-urlencode "url=$ORIGIN/api/bale/webhook/$SECRET"
       - name: Summary
         if: steps.config.outputs.ready == 'true'
         env:
-          URL: https://mezon.ayneh-salon.site
+          URL: https://mezon-aroos.omidfreelanc.workers.dev
         run: echo "Deployed ${URL:-(address not reported)}" >> "$GITHUB_STEP_SUMMARY"
