@@ -79,6 +79,7 @@ async function ownMedia(db,s,id){const m=await one(db,'SELECT * FROM media WHERE
 // (a boutique setting, default 30). Here only expired technical rows go.
 async function cleanup(env){const now=Date.now();
  await run(env.DB,'DELETE FROM sessions WHERE expires_at<? AND id NOT IN(SELECT session_id FROM requests) AND id NOT IN(SELECT session_id FROM leads) AND id NOT IN(SELECT session_id FROM generations) AND id NOT IN(SELECT session_id FROM media WHERE session_id IS NOT NULL)',now);
+ await run(env.DB,'DELETE FROM pairings WHERE expires_at<?',now-3600000);
  await run(env.DB,'DELETE FROM limits WHERE expires_at<?',now);
  await run(env.DB,'DELETE FROM otps WHERE expires_at<?',now);
  await run(env.DB,'DELETE FROM events_log WHERE created_at<?',now-400*86400000);
