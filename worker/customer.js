@@ -415,7 +415,7 @@ body.is-touring{overflow:hidden}
 .style-card__art{display:block;aspect-ratio:4/5;background:linear-gradient(170deg,#eef2f0,#d6dfdb);overflow:hidden;position:relative}
 .angle-badge{position:absolute;inset-block-end:8px;inset-inline-start:8px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;padding:2px 8px;border-radius:999px}
 .dress-stage{display:flex;justify-content:center;background:#f3f1ee;border-radius:14px;overflow:hidden}
-.dress-big{max-width:100%;max-height:58vh;object-fit:contain;display:block}
+.dress-big{max-width:100%;max-height:58vh;object-fit:contain;display:block;transform-origin:center;user-select:none;-webkit-user-drag:none}
 .dress-thumbs{display:flex;gap:8px;justify-content:center;margin:10px 0}
 .dress-th{border:2px solid transparent;border-radius:10px;padding:0;background:none;width:64px;cursor:pointer;font:inherit;font-size:11px;color:inherit}
 .dress-th img{width:100%;height:80px;object-fit:cover;border-radius:8px;display:block}
@@ -2181,12 +2181,26 @@ function openDress(p,imgs,pick){
  panel.append(el('div',{class:'sheet__head'},[h('h2',p.title),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
  var big=el('img',{class:'dress-big',alt:p.title,src:media(imgs[0])}),thumbs=el('div',{class:'dress-thumbs'});
  var tb=imgs.map(function(id,i){var b=el('button',{type:'button',class:'dress-th'+(i===0?' is-on':''),'aria-label':'نمای '+(ANGLE_NAMES[i]||i+1)},[el('img',{src:media(id),alt:'',loading:'lazy'}),el('span',{text:ANGLE_NAMES[i]||''})]);b.addEventListener('click',function(){show(i)});thumbs.append(b);return b});
- function show(i){cur=(i+imgs.length)%imgs.length;big.src=media(imgs[cur]);tb.forEach(function(b,k){b.classList.toggle('is-on',k===cur)})}
- var sx=0;big.addEventListener('touchstart',function(e){sx=e.touches[0].clientX},{passive:true});
- big.addEventListener('touchend',function(e){var d=e.changedTouches[0].clientX-sx;if(Math.abs(d)>40)show(cur+(d<0?1:-1))});
+ var z=1,tx=0,ty=0,pts={},pd=0,stage=null,moved=false;
+ function zapply(){var w=big.clientWidth,hh=big.clientHeight,lx=(z-1)*w/2,ly=(z-1)*hh/2;tx=Math.max(-lx,Math.min(lx,tx));ty=Math.max(-ly,Math.min(ly,ty));big.style.transform='translate('+tx+'px,'+ty+'px) scale('+z+')'}
+ function zset(k){z=Math.max(1,Math.min(4,k));if(z<1.02){z=1;tx=0;ty=0}zapply()}
+ function show(i){zset(1);cur=(i+imgs.length)%imgs.length;big.src=media(imgs[cur]);tb.forEach(function(b,k){b.classList.toggle('is-on',k===cur)})}
+ function dd(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+ var sx0=0;
+ function bind(st){stage=st;st.style.touchAction='none';
+  st.addEventListener('pointerdown',function(e){try{st.setPointerCapture(e.pointerId)}catch(x){}pts[e.pointerId]={x:e.clientX,y:e.clientY};sx0=e.clientX;var k=Object.keys(pts);if(k.length===2)pd=dd(pts[k[0]],pts[k[1]])});
+  st.addEventListener('pointermove',function(e){var p=pts[e.pointerId];if(!p)return;var k=Object.keys(pts);
+   if(k.length===2){pts[e.pointerId]={x:e.clientX,y:e.clientY};var nd=dd(pts[k[0]],pts[k[1]]);if(pd>0)zset(z*nd/pd);pd=nd;return}
+   var dx=e.clientX-p.x,dy=e.clientY-p.y;pts[e.pointerId]={x:e.clientX,y:e.clientY};if(z>1.02){tx+=dx;ty+=dy;zapply()}});
+  ['pointerup','pointercancel'].forEach(function(ev){st.addEventListener(ev,function(e){var n=Object.keys(pts).length;if(ev==='pointerup'&&n===1&&z<=1.02){var d=e.clientX-sx0;if(Math.abs(d)>50)show(cur+(d<0?1:-1))}delete pts[e.pointerId];pd=0})});
+  st.addEventListener('dblclick',function(){zset(z>1.1?1:2.5)});
+  st.addEventListener('wheel',function(e){e.preventDefault();zset(z*(e.deltaY<0?1.15:0.87))},{passive:false});
+ }
  var prev=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'▶',onclick:function(){show(cur-1)},'aria-label':'قبلی'}),nxt=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'◀',onclick:function(){show(cur+1)},'aria-label':'بعدی'});
  var go=el('button',{class:'btn btn--primary',type:'button',text:'این لباس را انتخاب کن و بساز'});go.addEventListener('click',function(){closeSheet();pick()});
- panel.append(el('div',{class:'dress-stage',dir:'ltr'},[big]),el('div',{class:'spin__row'},[nxt,prev]),thumbs,h('p',[p.stylist?'کار '+p.stylist:'',p.category||''].filter(Boolean).join(' · '),'spin__tip'),go);
+ var dstage=el('div',{class:'dress-stage',dir:'ltr'},[big]);bind(dstage);
+ var zin=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'＋ زوم',onclick:function(){zset(z*1.5)}}),zout=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'－ زوم',onclick:function(){zset(z/1.5)}});
+ panel.append(dstage,el('div',{class:'spin__row'},[nxt,prev,zout,zin]),h('p','دوبار لمس یا دو انگشتی بزن تا جزئیات را بزرگ ببینی.','spin__tip'),thumbs,h('p',[p.stylist?'کار '+p.stylist:'',p.category||''].filter(Boolean).join(' · '),'spin__tip'),go);
  openSheet(panel);
 }
 function openSheet(node){
