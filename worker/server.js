@@ -43,7 +43,9 @@ const dailyLimit=cfg=>Number.isInteger(cfg?.daily_limit)?cfg.daily_limit:DAILY_L
 // same bride in the same dress, made from her result photo.
 // 360-degree turntable clip made from the finished try-on photo (image-to-video). The bride stays still and the
 // camera circles her once, so every angle (side, back, train) is shown in one smooth rotation.
-export const SPIN_PROMPT='Smooth, steady 360-degree turntable shot: the camera orbits once around the standing bride at constant speed and a constant distance, always showing her FULL body from head to the floor, including the whole hem and train. The bride stands completely still in a relaxed pose and does not walk, turn or change pose; the camera moves, not her. She is the SAME woman, with the SAME body shape and size, the SAME face and hair and the SAME wedding dress in every frame: the dress keeps its exact design, fabric, lace, volume and colour all the way round, and the back of the dress is a natural continuation of the front design. Plain, evenly lit, unchanged background and floor. No zoom, no cuts, no text, no watermark, no extra people.';
+export const BACK_PROMPT='Photo 1 shows a bride wearing a wedding dress, seen from the front. Create a photo of the SAME woman wearing the SAME dress seen exactly from BEHIND (camera directly behind her, 180 degrees from photo 1): same pose, same distance, full body from head to the floor including the whole hem and train, same body shape and size, same hair (seen from behind), same background and lighting. If more photos are given, they show the same dress from other angles: copy the real back, train and side design from them exactly. If no back photo is given, continue the front design naturally. Photorealistic, no text, no watermark.';
+export const SPIN_PROMPT='Smooth, steady half-turn orbit: the camera starts at the front view (the first image) and moves around the standing bride at constant speed and constant distance to end exactly at the back view (the last image), always showing her FULL body from head to the floor including the hem and train. The bride stands completely still in a relaxed pose; the camera moves, not her. She is the SAME woman with the SAME body, hair and wedding dress in every frame; the dress keeps its exact design, fabric, lace, volume and colour all the way round. Plain, evenly lit, unchanged background and floor. No zoom, no cuts, no text, no watermark, no extra people.';
+export const spinVideoInput=(cfg,front,back)=>({model:cfg.spin_model||'kling-3.0/video',input:{prompt:SPIN_PROMPT,image_urls:[front,back],mode:cfg.spin_mode==='std'?'std':'pro',sound:false,duration:String(cfg.spin_seconds===10?10:5),multi_shots:false}});
 export const VIEWS_PROMPT='Wedding-dress turnaround of the SAME bride as photo 1, wearing the SAME dress. Exactly 3 equal tiles side by side in one row, no gaps, borders, labels or numbers: tile 1 = front 3/4 view (turned about 45 degrees), tile 2 = exact side profile with her nose pointing to the LEFT edge of the tile, tile 3 = back view showing the back of the dress and the train. Each tile: the whole figure from head to floor, the same scale and framing, the same plain light background and soft even light. DRESS: in every tile the dress design, neckline, sleeves, bodice, waist, skirt shape and volume, length, train, fabric, lace, beading and colour are exactly as in photo 1, seen from that side; the back view shows the real back, closure and train of this same dress. BRIDE: her face, skin tone, hair and hairstyle, headscarf if she wears one, and her body size and proportions stay exactly as in photo 1; never beautify, slim or change her face or body. Photorealistic, high detail. No text, watermark or collage frame.';
 export const QUOTA_PER_LINE=4;
 async function quotaUsed(db,salon,s,visitor){
@@ -97,6 +99,23 @@ async function cleanup(env){const now=Date.now();
 // page's polling and by the scheduled job (a bride who started from the bot may never open the page).
 async function settle(env,db,salon,s,g){
  if(g.result_id)return {state:'success',result_id:g.result_id};if(!g.task_id)return {state:g.state};
+ if(g.kind==='spin'){let o={};try{o=JSON.parse(g.opts||'{}')}catch{}
+  if(o.stage==='back'){
+   const d=await provider(env,'/api/v1/jobs/recordInfo?taskId='+encodeURIComponent(g.task_id));
+   if(d.state==='success'){
+    const link=parse(d.resultJson).resultUrls?.[0];must(link&&new URL(link).protocol==='https:','خروجی سرویس معتبر نیست',502);const res=await fetch(link,{signal:AbortSignal.timeout(20000)});must(res.ok,'دریافت خروجی ممکن نشد',502);
+    const backId=await putImage(env,salon,s,new Uint8Array(await res.arrayBuffer()),'simulation');
+    const claim=await run(db,"UPDATE generations SET opts=?,updated_at=? WHERE id=? AND opts LIKE '%\"stage\":\"back\"%'",JSON.stringify({...o,stage:'video',back:backId}),Date.now(),g.id);
+    if(!claim.meta.changes)return {state:'waiting'};
+    try{const cfg=parse(salon.settings);const front=await uploadProvider(env,await one(db,'SELECT * FROM media WHERE id=?',o.front)),back=await uploadProvider(env,await one(db,'SELECT * FROM media WHERE id=?',backId));
+     const task=await provider(env,'/api/v1/jobs/createTask',spinVideoInput(cfg,front,back));await run(db,"UPDATE generations SET task_id=?,state='waiting' WHERE id=?",task.taskId,g.id);}
+    catch(e){await run(db,"UPDATE generations SET state='fail',updated_at=? WHERE id=?",Date.now(),g.id);return {state:'fail'}}
+    return {state:'waiting'};
+   }
+   if(d.state==='fail'){await run(db,"UPDATE generations SET state='fail',updated_at=? WHERE id=?",Date.now(),g.id);return {state:'fail'}}
+   return {state:'waiting'};
+  }
+ }
  const d=await provider(env,'/api/v1/jobs/recordInfo?taskId='+encodeURIComponent(g.task_id));
  if(d.state==='success'){const link=parse(d.resultJson).resultUrls?.[0];must(link&&new URL(link).protocol==='https:','خروجی سرویس معتبر نیست',502);const res=await fetch(link,{signal:AbortSignal.timeout(20000)});must(res.ok,'دریافت خروجی ممکن نشد',502);must(Number(res.headers.get('content-length')||0)<=(g.kind==='spin'?24:12)*1024*1024,'خروجی بیش از حد بزرگ است',502);const bytes=new Uint8Array(await res.arrayBuffer());const media=g.kind==='spin'?await putVideo(env,salon,s,bytes):await putImage(env,salon,s,bytes,'simulation');const win=await run(db,"UPDATE generations SET state='success',result_id=?,updated_at=? WHERE id=? AND result_id IS NULL",media,Date.now(),g.id);if(!win.meta.changes){await bucketFor(env).delete(salon.id+'/'+media);await run(db,'DELETE FROM media WHERE id=?',media);}const done=await one(db,'SELECT result_id FROM generations WHERE id=?',g.id);return {state:'success',result_id:done.result_id};}
  await run(db,'UPDATE generations SET state=?,updated_at=? WHERE id=?',d.state,Date.now(),g.id);return {state:d.state};
@@ -355,7 +374,7 @@ return new Response(object.body,{headers:base});}
   if(!trial&&!free)await spendQuota(db,salon,s,visitor,'dress');
   await spendTrialImage(db,trial);
   await run(db,"INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,created_at,updated_at,visitor) VALUES(?,?,?,?,'spin','creating',?,?,?,?)",id,salon.id,s.id,b.idem,base.original_id,now,now,visitor);
-  try{const img=await uploadProvider(env,m);const task=await provider(env,'/api/v1/jobs/createTask',{model:'kling-2.6/image-to-video',input:{prompt:SPIN_PROMPT,image_urls:[img],sound:false,duration:String(cfg.spin_seconds===10?10:5)}});await run(db,"UPDATE generations SET state='waiting',task_id=? WHERE id=?",task.taskId,id);return J({id,state:'waiting'});}catch{await run(db,"UPDATE generations SET state='unknown' WHERE id=?",id);throw new Problem(502,'ارسال نامشخص؛ بدون بازتولید خودکار');}
+  try{const img=await uploadProvider(env,m);const ang=base.reference_id?(await dressAngles(db,salon,'dress',base.reference_id)).media.slice(1):[];const extra=[];for(const x of ang)extra.push(await uploadProvider(env,x));const task=await createImageTask(env,cfg,{prompt:BACK_PROMPT,image_input:[img,...extra],aspect_ratio:'3:4',resolution:'2K',output_format:'jpg'});await run(db,"UPDATE generations SET state='waiting',task_id=?,opts=? WHERE id=?",task.taskId,JSON.stringify({stage:'back',front:base.result_id}),id);return J({id,state:'waiting'});}catch{await run(db,"UPDATE generations SET state='unknown' WHERE id=?",id);throw new Problem(502,'ارسال نامشخص؛ بدون بازتولید خودکار');}
  }
  if(route==='generate'&&req.method==='POST'){
   const b=await req.json();const line=LINE_KEYS.includes(b.line)?b.line:'dress';

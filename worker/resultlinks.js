@@ -26,21 +26,28 @@ async function liveLink(db,token){
 
 const headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex'};
 
-export async function resultImage(env,token){
+export async function resultImage(env,token,req){
  const l=await liveLink(env.DB,token);if(!l)return null;
  const m=await one(env.DB,'SELECT object_key,mime FROM media WHERE id=? AND salon_id=?',l.media_id,l.salon_id);if(!m)return null;
  const o=await bucketFor(env).get(m.object_key);if(!o)return null;
- return new Response(o.body,{headers:{...headers,'Content-Type':m.mime,'Content-Security-Policy':"default-src 'none'"}});
+ const h={...headers,'Content-Type':m.mime,'Content-Security-Policy':"default-src 'none'"};
+ if(m.mime==='video/mp4'){ // phones need byte ranges to play a video
+  const buf=new Uint8Array(await o.arrayBuffer()),size=buf.length,rg=/^bytes=(\d*)-(\d*)$/.exec(req?.headers.get('Range')||'');h['Accept-Ranges']='bytes';
+  if(rg){const st=rg[1]===''?Math.max(size-Number(rg[2]),0):Number(rg[1]),en=rg[1]===''||rg[2]===''?size-1:Math.min(Number(rg[2]),size-1);if(st>en||st>=size)return new Response(null,{status:416,headers:{...h,'Content-Range':'bytes */'+size}});return new Response(buf.slice(st,en+1),{status:206,headers:{...h,'Content-Range':'bytes '+st+'-'+en+'/'+size}})}
+  return new Response(buf,{headers:h});
+ }
+ return new Response(o.body,{headers:h});
 }
 
 export async function resultPage(env,token,notFound){
  const l=await liveLink(env.DB,token);
  if(!l)return new Response(notFound,{status:404,headers:{...headers,'Content-Type':'text/html;charset=utf-8'}});
+ const vm=await one(env.DB,"SELECT mime FROM media WHERE id=?",l.media_id),vid=vm?.mime==='video/mp4';
  const html='<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>لباس عروس من | '+esc(l.salon_name)+'</title>'+
   '<style>body{margin:0;background:#f6f4f1;color:#2a2420;font-family:Tahoma,system-ui,sans-serif;text-align:center;padding:18px 16px 30px}img{max-width:100%;max-height:78vh;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.18)}h1{font-size:18px;margin:6px 0 14px}p{font-size:13px;color:#6b625a;line-height:1.9}a.b{display:inline-block;margin:14px 0 6px;padding:12px 26px;border-radius:999px;background:#2a2420;color:#fff;text-decoration:none;font-size:15px}</style></head><body>'+
-  '<h1>'+esc(l.salon_name)+'</h1><img src="/r/'+token+'/img" alt="لباس عروس روی عکس شما"><br><a class="b" href="/r/'+token+'/img" download="lebas-aroos.jpg">ذخیره عکس</a>'+
+  '<h1>'+esc(l.salon_name)+'</h1>'+(vid?'<video src="/r/'+token+'/img" controls autoplay muted loop playsinline style="max-width:100%;max-height:78vh;border-radius:18px"></video><br><a class="b" href="/r/'+token+'/img" download="lebas-aroos.mp4">ذخیره ویدیو</a>':'<img src="/r/'+token+'/img" alt="لباس عروس روی عکس شما"><br><a class="b" href="/r/'+token+'/img" download="lebas-aroos.jpg">ذخیره عکس</a>')+
   '<p>این لینک شخصی است و بعد از '+Math.max(1,Math.round((l.expires_at-l.created_at)/HOUR))+' ساعت خودش بسته می‌شود.</p></body></html>';
- return new Response(html,{headers:{...headers,'Content-Type':'text/html;charset=utf-8','Content-Security-Policy':"default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"}});
+ return new Response(html,{headers:{...headers,'Content-Type':'text/html;charset=utf-8','Content-Security-Policy':"default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"}});
 }
 
 // "Finish" on the kiosk: delete this visitor's photos and results. Photos that became a request

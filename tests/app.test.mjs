@@ -896,20 +896,25 @@ test('360: turntable video is requested from the result, stored as mp4 and serve
  const base=crypto.randomUUID(),now=Date.now();
  e.DB.sql.prepare("INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,result_id,created_at,updated_at,line,opts) VALUES(?,?,?,?,'single','success',?,?,?,?,'dress','{}')").run(base,salonId,sid,crypto.randomUUID(),original,original,now,now);
  const mp4=new Uint8Array(5000);mp4.set([0,0,0,24,0x66,0x74,0x79,0x70,0x69,0x73,0x6f,0x6d],0);for(let i=12;i<mp4.length;i++)mp4[i]=i%251;
- const previous=globalThis.fetch;let created=null;
+ const previous=globalThis.fetch;const tasks=[];
  globalThis.fetch=async(url,init)=>{url=String(url);
   if(url.includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/in.jpg'}});
-  if(url.includes('createTask')){created=JSON.parse(init.body);return Response.json({code:200,data:{taskId:'spin1'}})}
-  if(url.includes('recordInfo'))return Response.json({code:200,data:{state:'success',resultJson:JSON.stringify({resultUrls:['https://provider.example/out.mp4']})}});
+  if(url.includes('createTask')){const b=JSON.parse(init.body);tasks.push(b);return Response.json({code:200,data:{taskId:'t'+tasks.length}})}
+  if(url.includes('recordInfo'))return Response.json({code:200,data:{state:'success',resultJson:JSON.stringify({resultUrls:[url.includes('taskId=t2')?'https://provider.example/out.mp4':'https://provider.example/back.jpg']})}});
   if(url.endsWith('out.mp4'))return new Response(mp4);
   return new Response(png())};
  try{
   const idem=crypto.randomUUID(),job=await call(e,'/api/s/'+s.slug+'/spin',{v,parent:base,idem},g);assert.equal(job.status,200);
-  assert.equal(created.model,'kling-2.6/image-to-video');assert.match(created.input.prompt,/360-degree/);assert.deepEqual(created.input.image_urls,['https://provider.example/in.jpg']);
+  assert.match(tasks[0].input.prompt,/BEHIND/,'stage 1 makes the back view of the same bride');
   const again=await call(e,'/api/s/'+s.slug+'/spin',{v,parent:base,idem},g);assert.equal(again.data.id,job.data.id,'same idem, same job');
+  const mid=await call(e,'/api/s/'+s.slug+'/generation/'+job.data.id,undefined,g);assert.equal(mid.data.state,'waiting','back view done, video started');
+  assert.equal(tasks[1].model,'kling-3.0/video');assert.equal(tasks[1].input.image_urls.length,2,'front frame + back frame');assert.match(tasks[1].input.prompt,/half-turn/);
   const done=await call(e,'/api/s/'+s.slug+'/generation/'+job.data.id,undefined,g);assert.equal(done.data.state,'success');
   const media=e.DB.sql.prepare('SELECT kind,mime FROM media WHERE id=?').get(done.data.result_id);assert.deepEqual({...media},{kind:'spin',mime:'video/mp4'});
   const url=origin+'/api/s/'+s.slug+'/media/'+done.data.result_id;
+  const rl=await call(e,'/api/s/'+s.slug+'/result-link',{v,gen:job.data.id},g);assert.equal(rl.status,200);
+  const rp=await (await app.fetch(new Request(rl.data.url),e)).text();assert.match(rp,/<video/);
+  const rr=await app.fetch(new Request(rl.data.url+'/img',{headers:{Range:'bytes=0-9'}}),e);assert.equal(rr.status,206,'phone can stream the shared video');
   const part=await app.fetch(new Request(url,{headers:{origin,cookie:g.cookie,Range:'bytes=100-199'}}),e);assert.equal(part.status,206);assert.equal(part.headers.get('content-range'),'bytes 100-199/5000');assert.equal((await part.arrayBuffer()).byteLength,100);
  }finally{globalThis.fetch=previous}
 });

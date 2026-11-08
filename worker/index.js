@@ -65,7 +65,7 @@ export default {
   if(u.pathname==='/register'||u.pathname==='/register/')return new Response(registerHTML,{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}});
   if(u.pathname==='/'){ctx?.waitUntil(ensureWebhook(env,u.origin));return new Response(homeHTML,{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}})}
   {const m=/^\/u\/([a-f0-9]{12})(\/photo)?$/.exec(u.pathname);if(m){if(m[2]){if(request.method!=='POST')return new Response('Method not allowed',{status:405});return await pairUpload(env,request,m[1])}return await pairPage(env,m[1],notFound)}}
-  {const m=/^\/r\/([a-f0-9]{48})(\/img)?$/.exec(u.pathname);if(m){if(m[2]){return (await resultImage(env,m[1]))||new Response('Not found',{status:404,headers:{'Cache-Control':'no-store'}})}return await resultPage(env,m[1],notFound)}}
+  {const m=/^\/r\/([a-f0-9]{48})(\/img)?$/.exec(u.pathname);if(m){if(m[2]){return (await resultImage(env,m[1],request))||new Response('Not found',{status:404,headers:{'Cache-Control':'no-store'}})}return await resultPage(env,m[1],notFound)}}
   if(!pages.some(r=>r.test(u.pathname)))return new Response(notFound,{status:404,headers:htmlHeaders});
   {const m=/^\/m\/([a-f0-9]{32})\/?$/.exec(u.pathname);if(m)return await panelPage(env,m[1],notFound,htmlHeaders);}
   if(/^\/p\/[a-f0-9]{32}\/?$/.test(u.pathname)){const html=await postPage(u,env);return new Response(html||notFound,{status:html?200:404,headers:htmlHeaders});}
