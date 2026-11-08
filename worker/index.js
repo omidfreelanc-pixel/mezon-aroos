@@ -3,7 +3,7 @@ import {customerHTML} from './customer.js';
 import {api,errorResponse,tick} from './server.js';
 import {must} from './domain.js';
 import {fontResponse} from './fonts.js';
-import {webhook,baleWebhook} from './telegram.js';
+import {webhook,baleWebhook,setWebhook} from './telegram.js';
 import {favicon,baseCSS} from './design.js';
 import {sharePage} from './share.js';
 const htmlHeaders={'Content-Type':'text/html;charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",'Permissions-Policy':'camera=(self), geolocation=(), microphone=()'};
@@ -29,6 +29,7 @@ async function salonPage(u,env){
 const homeHTML='<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#e8edeb"><title>مزون عروس | لباس عروس را روی اندام خودت ببین</title><meta name="description" content="پرو مجازی لباس عروس روی عکس تمام‌قد خودت، با حفظ سایز و فرم بدن."><link rel="icon" href="/favicon.svg"><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#e8edeb;color:#2b2118;font:16px/1.9 Vazirmatn,Tahoma,sans-serif}main{max-width:460px;padding:32px 24px;text-align:center}h1{font-size:28px;margin:0 0 8px}p{margin:0 0 20px;color:#5b5148}a{display:inline-block;padding:14px 26px;border-radius:999px;background:#1f6f6b;color:#fff;text-decoration:none;font-weight:700}</style></head><body><main><h1>مزون عروس</h1><p>لباس عروس را روی اندام خودت ببین؛ قد و سایز بدنت همان می‌ماند. مزون‌داران لباس‌هایشان را در تلگرام می‌گذارند و عروس‌ها در یک دقیقه پرو می‌کنند.</p><a href="/s/demo">نمونه را ببین</a></main></body></html>';
 export default {
  async fetch(request,env){try{const u=new URL(request.url);
+  if(u.pathname==='/api/internal/webhook'){must(request.method==='POST','متد مجاز نیست',405);must(env.JOB_TOKEN&&request.headers.get('Authorization')==='Bearer '+env.JOB_TOKEN,'دسترسی مجاز نیست',403);return Response.json(await setWebhook(env,env.APP_ORIGIN||u.origin));}
   if(u.pathname==='/api/internal/tick'){must(request.method==='POST','متد مجاز نیست',405);must(env.JOB_TOKEN&&request.headers.get('Authorization')==='Bearer '+env.JOB_TOKEN,'دسترسی مجاز نیست',403);return Response.json(await tick(env,u.origin));}
   if(u.pathname==='/api/telegram/webhook')return await webhook(request,env);
   if(u.pathname.startsWith('/api/bale/webhook/'))return await baleWebhook(request,env,decodeURIComponent(u.pathname.slice(18)));
