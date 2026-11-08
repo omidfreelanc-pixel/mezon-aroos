@@ -1064,3 +1064,16 @@ test('manager accounts: chosen at registration, panel opens after approval on th
   // suspended salon: the cookie stops working
   await call(e,'/api/owner/account',{slug,approved:false},OWNER);assert.equal((await as('/api/s/'+slug+'/owner')).status,401);
  }finally{tg.restore()}});
+
+test('manager can text the page link to customers (needs the invite text); approval ends the trial strip',async()=>{
+ const e=tgEnv(fixture());e.SESSION_SECRET='s3cret-test';e.APP_ORIGIN='https://ayneh.test';
+ const body={name:'نرگس',salon:'مزون نرگس',city:'تهران',phone:'09125550001',consent:true,username:'narges.m',password:'Passw0rd!x',subdomain:'narges'};
+ const r=await call(e,'/api/trial',body);assert.equal(r.status,200,JSON.stringify(r));const slug=r.data.path.slice(3);
+ assert.equal((await call(e,'/api/s/'+slug+'/public')).data.trial?.images_limit,5,'trial strip before approval');
+ const none=await call(e,'/api/s/'+slug+'/owner/invite',{numbers:'09121234567'},OWNER);assert.equal(none.status,503,'SMS off');
+ await call(e,'/api/owner/account',{slug,approved:true,subdomain:'narges'},OWNER);
+ const pub=(await call(e,'/api/s/'+slug+'/public')).data;assert.ok(!pub.trial,'no trial strip after approval');assert.match(pub.brand,/^#/,'page colour stays');
+ Object.assign(e,{MELIPAYAMAK_TOKEN:'dev-mock',MELIPAYAMAK_BODY_ID:'524'});
+ const ok=await call(e,'/api/s/'+slug+'/owner/invite',{numbers:'09121234567 09351234567'},OWNER);assert.equal(ok.status,200,JSON.stringify(ok));assert.equal(ok.data.results.filter(x=>x.ok).length,2);
+ assert.equal((await call(e,'/api/s/'+slug+'/owner/invite',{numbers:'abc'},OWNER)).status,400);
+});

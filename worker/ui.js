@@ -131,6 +131,7 @@ main#app{max-width:1080px;margin:0 auto;padding:6px 20px 80px;min-height:70vh}
 .uploadbox__txt small{color:var(--muted);font-size:12px}
 .two{display:grid;gap:0 14px}
 @media(min-width:620px){.two{grid-template-columns:1fr 1fr}}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;margin:0 0 6px;position:sticky;top:0;z-index:5;background:var(--bg,#fafbfa);scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;border:0;border-radius:999px;padding:10px 16px;font:700 14px inherit;font-family:inherit;background:#e8edeb;color:#23170f;cursor:pointer;white-space:nowrap}.tab.is-on{background:#0c6b6b;color:#fff}.tabpanels{display:grid;gap:16px}.tabpanels>[hidden]{display:none}
 .login input{font-family:system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;color:#23170f;-webkit-text-fill-color:#23170f;background:#fff;caret-color:#23170f;color-scheme:light;font-size:16px}
 .field input[type=url],.field input[type=tel],#slug{direction:ltr;text-align:right}
 .ports{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
@@ -531,8 +532,25 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
 
  var leads=leadsCard(slug),social=socialCard(slug);
 
- if(MGR){dashState.salon=MGR;$('#app').replaceChildren(head,mgrCredits(),dashboard([{slug:MGR,name:S.name}]),el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[prof,port]),el('div',{class:'stack'},[tg,teamC,set,leads,social])]));return}
- $('#app').replaceChildren(head,el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[prof,port]),el('div',{class:'stack'},[tg,teamC,set,leads,social])]));
+
+ // SMS: the manager texts the page link to a customer from the approved shared-line text
+ var smsIn=el('textarea',{rows:'2',placeholder:'۰۹۱۲۱۲۳۴۵۶۷  ۰۹۳۵۱۲۳۴۵۶۷'}),smsOut=el('div',{class:'stack'});smsIn.setAttribute('dir','ltr');
+ var smsC=el('section',{class:'card'},[h('h2','پیامک لینک برای مشتری'),h('p','شمارهٔ موبایل مشتری را بنویسید (تا ۵ شماره، با فاصله یا ویرگول جدا)؛ لینک صفحهٔ مزون برایش پیامک می‌شود تا لباس را روی خودش امتحان کند.','lead')]);
+ if(d.sms_invite)smsC.append(smsIn,el('button',{class:'btn btn--primary',type:'button',text:'ارسال پیامک',onclick:act(function(){return api('/api/s/'+slug+'/owner/invite',{numbers:smsIn.value}).then(function(r){smsOut.replaceChildren.apply(smsOut,r.results.map(function(x){return h('small',(x.ok?'✅ ':'⚠️ ')+x.phone+(x.msg?' — '+x.msg:' — فرستاده شد'))}));if(r.results.some(function(x){return x.ok}))smsIn.value=''})})}),smsOut);
+ else smsC.append(h('p','ارسال پیامک هنوز فعال نشده است. تا آن موقع می‌توانید لینک صفحه را از ربات یا پیام‌رسان‌ها برای مشتری بفرستید.','notice notice--warn'));
+ var pageUrl=location.origin+(MGR&&location.hostname.split('.').length>2?'/':'/s/'+slug);
+ var share=el('section',{class:'card'},[h('h2','لینک صفحهٔ مزون'),h('p','این لینک را به مشتری‌ها بدهید یا در اینستاگرام بگذارید.','lead'),copyRow('صفحهٔ مشتری‌ها',pageUrl)]);
+ function tabs(defs){
+  var bar=el('div',{class:'tabs',role:'tablist'}),box=el('div',{class:'tabpanels'}),btns=[],panes=[];
+  function pick(i){btns.forEach(function(b,k){b.classList.toggle('is-on',k===i);b.setAttribute('aria-selected',k===i?'true':'false')});panes.forEach(function(x,k){x.hidden=k!==i});try{sessionStorage.setItem('tab:'+slug,String(i))}catch(e){}}
+  defs.forEach(function(t,i){var b=el('button',{class:'tab',type:'button',role:'tab',text:t[0],onclick:function(){pick(i)}});btns.push(b);bar.append(b);var pn=el('div',{class:'stack',role:'tabpanel'},t[1]);pn.hidden=true;panes.push(pn);box.append(pn)});
+  var start=0;try{start=Math.min(defs.length-1,Number(sessionStorage.getItem('tab:'+slug))||0)}catch(e){}
+  pick(start);return el('div',{},[bar,box]);
+ }
+ var defs=MGR?[['نمای کلی',[mgrCredits(),dashboard([{slug:MGR,name:S.name}]),share]],['درخواست‌ها',[leads]],['نمونه‌کارها',[port,social]],['مشخصات مزون',[prof]],['تیم',[teamC]],['ارتباط با مشتری',[tg,smsC]]]
+  :[['نمای کلی',[share]],['درخواست‌ها',[leads]],['نمونه‌کارها',[port,social]],['مشخصات مزون',[prof]],['تیم',[teamC]],['ارتباط با مشتری',[tg,smsC]],['تنظیمات',[set]]];
+ if(MGR)dashState.salon=MGR;
+ $('#app').replaceChildren(head,tabs(defs));
 })}
 $('#logout').addEventListener('click',function(){(MGR?api('/api/s/'+MGR+'/manager/logout',{}):api('/api/logout',{})).then(function(){location.href='/'})});
 `;

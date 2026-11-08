@@ -35,7 +35,10 @@ export async function approveSalon(db,salon,label){
  label=subLabel(label||salon.subdomain||salon.desired_sub||(/^t-/.test(salon.slug)?'':salon.slug));
  must(label,'برای این مزون یک زیردامنهٔ انگلیسی وارد کنید',400);
  await checkSub(db,label,salon.id);
- await run(db,'UPDATE salons SET approved=1,subdomain=? WHERE id=?',label,salon.id);
+ // An approved salon is a full account: the 10-hour / 5-image trial strip and limits end here; the page colour stays.
+ let cfg={};try{cfg=JSON.parse(salon.settings||'{}')}catch{}
+ if(cfg.trial){const t=await db.prepare('SELECT brand FROM trials WHERE salon_id=?').bind(salon.id).first();delete cfg.trial;if(t?.brand)cfg.brand=t.brand}
+ await run(db,'UPDATE salons SET approved=1,subdomain=?,settings=? WHERE id=?',label,JSON.stringify(cfg),salon.id);
  return label;
 }
 

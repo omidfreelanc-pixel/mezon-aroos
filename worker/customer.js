@@ -574,7 +574,7 @@ function track(kind,meta,once){if(once){if(tracked[kind+meta])return;tracked[kin
  var ft=document.getElementById('foot');if(ft&&state.pub.retention_days)ft.append(document.createElement('br'),document.createTextNode(retentionLine()))
  if(refIn&&history.replaceState){try{history.replaceState(null,'',location.pathname)}catch(e){}}
  document.title=state.pub.salon.name+' | مزون آینه';
- if(state.pub.trial)trialBar(state.pub.trial);
+ if(state.pub.trial)trialBar(state.pub.trial);else if(state.pub.brand)applyBrand({brand:state.pub.brand});
  if(state.pub.demo)document.body.prepend(el('div',{class:'trialbar',role:'status'},[document.createTextNode('نسخهٔ نمونهٔ مزون آینه · روزی ۳ تصویر · '),el('a',{href:'/#start',style:'color:#fff;text-decoration:underline',text:'صفحهٔ مزون خودتان را بسازید'})]));
  // A bride who sent her photo to the bot arrives with her personal key: it opens her own session, photo already in it.
  var claim=(location.search.match(/[?&]c=([a-f0-9]{64})/)||[])[1]||'';
@@ -594,9 +594,12 @@ function track(kind,meta,once){if(once){if(tracked[kind+meta])return;tracked[kin
 })();
 
 /* ---------- free trial strip: brand colour, time left, images left ---------- */
-function trialBar(t){
+function applyBrand(t){
  var root=document.documentElement;
  if(/^#[0-9a-f]{6}$/i.test(t.brand||'')){var n=parseInt(t.brand.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255,mix=function(k,to){return 'rgb('+[r,g,b].map(function(c){return Math.round(c+(to-c)*k)}).join(',')+')'};root.style.setProperty('--accent',mix(.18,0));root.style.setProperty('--accent-ink',mix(.45,0));root.style.setProperty('--accent-soft',mix(.82,255));root.style.setProperty('--accent-ring','rgba('+r+','+g+','+b+',.3)')}
+}
+function trialBar(t){
+ applyBrand(t);
  var bar=el('div',{class:'trialbar',role:'status'}),fa=function(x){return String(x).replace(/\d/g,function(d){return '۰۱۲۳۴۵۶۷۸۹'[d]})};
  function paint(){var ms=t.expires_at-Date.now();if(t.expired||ms<=0){bar.textContent='مهلت صفحهٔ آزمایشی تمام شد. برای ادامه با مزون آینه تماس بگیرید.';bar.classList.add('is-over');var main=$('#main');if(main&&!$('.trial-over')){main.replaceChildren(el('div',{class:'panel fatal trial-over'},[h('h1','مهلت صفحهٔ آزمایشی تمام شد'),h('p','این صفحه ۱۰ ساعت و ۵ تصویر برای امتحان داشت. برای نسخهٔ دائمی با مزون آینه تماس بگیرید.','muted'),el('a',{class:'btn btn--primary',href:'/#start',text:'درخواست نسخهٔ دائمی'})]))}return}
   var m=Math.ceil(ms/60000),hh=Math.floor(m/60),mm=m%60;bar.textContent='صفحهٔ آزمایشی · '+fa(hh)+' ساعت و '+fa(mm)+' دقیقه مانده · '+fa(t.images_left)+' تصویر از '+fa(t.images_limit)}
