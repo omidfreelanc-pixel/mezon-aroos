@@ -1179,7 +1179,7 @@ function openViews(){
  var panel=el('div',{class:'sheet__panel spin-panel'});
  panel.append(el('div',{class:'sheet__head'},[h('h2','از همهٔ زاویه‌ها'),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
  var a=el('div',{class:'spin__layer'}),b=el('div',{class:'spin__layer'});
- var stage=el('div',{class:'spin',tabindex:'0',role:'img','aria-label':'نمای سه‌زاویهٔ لباس؛ برای چرخاندن بکش یا از کلیدهای جهت استفاده کن'},[a,b]);
+ var stage=el('div',{class:'spin',tabindex:'0',role:'img','aria-label':'نمای سه‌زاویهٔ لباس؛ برای چرخاندن بکش، برای زوم دو انگشت یا دوبار لمس'},[a,b]);
  var tip=el('p',{class:'spin__tip',text:'دارم زاویه‌های لباس را می‌سازم… معمولاً ۲ تا ۳ دقیقه طول می‌کشد.'}),bar=el('span',{class:'spin__bar'});
  var loading=el('div',{class:'spin__loading'},[el('div',{class:'spin__orbit'},[el('img',{src:media(state.result),alt:''})]),el('span',{class:'spin__ring'}),tip,el('span',{class:'spin__track'},[bar])]);
  stage.append(loading);
@@ -1188,7 +1188,7 @@ function openViews(){
  var thumbs=el('div',{class:'spin__thumbs',role:'group','aria-label':'زاویه‌ها'});
  var play=el('button',{class:'btn btn--ghost btn--sm spin__play',type:'button',text:'⏸ توقف'});
  var controls=el('div',{class:'spin__controls',hidden:true},[el('div',{class:'spin__row'},[dial,angle,play]),thumbs]);
- panel.append(el('div',{class:'mirror spin-wrap'},[stage]),controls,h('p','نیم‌رخ و پشت لباس تخمینی‌اند و اسکن سه‌بعدی نیست؛ طرح دقیق لباس را با مزون هماهنگ کن.','tiny muted spin__note'));
+ panel.append(el('div',{class:'mirror spin-wrap'},[stage]),controls,h('p','برای چرخاندن بکش؛ برای زوم دو انگشتی یا دوبار لمس. نیم‌رخ و پشت لباس تخمینی‌اند و اسکن سه‌بعدی نیست؛ طرح دقیق لباس را با مزون هماهنگ کن.','tiny muted spin__note'));
  openSheet(panel);
  var frame=0,front=a,timer=null,spinTimer=null,tipTimer=null,progTimer=null,src='';
  function paint(layer,n){layer.style.backgroundImage='url('+src+')';layer.style.backgroundSize='300% 100%';layer.style.backgroundPosition=(n*50)+'% 0'}
@@ -1201,10 +1201,22 @@ function openViews(){
  function auto(on){clearInterval(spinTimer);spinTimer=null;play.textContent=on?'⏸ توقف':'▶ چرخش';if(on&&!reduce)spinTimer=setInterval(function(){if(!panel.isConnected){cleanup();return}show(frame+1)},1100)}
  function cleanup(){clearInterval(spinTimer);clearInterval(tipTimer);clearInterval(progTimer);cancelAnimationFrame(timer)}
  play.addEventListener('click',function(){auto(!spinTimer)});
- var drag=null;
- stage.addEventListener('pointerdown',function(e){if(!src)return;auto(false);cancelAnimationFrame(timer);drag={x:e.clientX,f:frame,t:performance.now(),v:0,lx:e.clientX};try{stage.setPointerCapture(e.pointerId)}catch(err){}});
- stage.addEventListener('pointermove',function(e){if(!drag)return;var now=performance.now(),dt=Math.max(1,now-drag.t);drag.v=(drag.lx-e.clientX)/dt;drag.lx=e.clientX;drag.t=now;var f=drag.f+Math.round((drag.x-e.clientX)/56);if(f!==frame)show(f)});
- function release(){if(!drag)return;var v=drag.v;drag=null;if(reduce||Math.abs(v)<0.25)return;var acc=0,last=performance.now();
+ var drag=null,Z=1,PX=0,PY=0,pts={},pinch=null;
+ function applyZ(){var r=stage.getBoundingClientRect(),mx=r.width*(Z-1)/2,my=r.height*(Z-1)/2;PX=Math.max(-mx,Math.min(mx,PX));PY=Math.max(-my,Math.min(my,PY));var t=Z>1?'translate('+PX+'px,'+PY+'px) scale('+Z+')':'';a.style.transform=t;b.style.transform=t;stage.style.touchAction=Z>1?'none':'pan-y';stage.classList.toggle('is-zoomed',Z>1)}
+ function setZ(z,cx,cy){var r=stage.getBoundingClientRect(),nz=Math.max(1,Math.min(4,z));if(cx==null){cx=r.left+r.width/2;cy=r.top+r.height/2}var k=nz/Z,ox=cx-(r.left+r.width/2),oy=cy-(r.top+r.height/2);PX=PX*k+(1-k)*(ox-0);PY=PY*k+(1-k)*(oy-0);Z=nz;if(Z===1){PX=0;PY=0}applyZ()}
+ function dist(){var k=Object.keys(pts);return Math.hypot(pts[k[0]].x-pts[k[1]].x,pts[k[0]].y-pts[k[1]].y)}
+ var lastTap=0;
+ stage.addEventListener('pointerdown',function(e){if(!src)return;auto(false);cancelAnimationFrame(timer);pts[e.pointerId]={x:e.clientX,y:e.clientY};try{stage.setPointerCapture(e.pointerId)}catch(err){}
+  if(Object.keys(pts).length===2){drag=null;pinch={d:dist(),z:Z};return}
+  var n=performance.now();if(n-lastTap<300&&e.pointerType!=='mouse'||e.detail===2){setZ(Z>1?1:2.5,e.clientX,e.clientY);lastTap=0;drag=null;return}lastTap=n;
+  drag={x:e.clientX,y:e.clientY,f:frame,t:n,v:0,lx:e.clientX,px:PX,py:PY}});
+ stage.addEventListener('pointermove',function(e){if(pts[e.pointerId]){pts[e.pointerId]={x:e.clientX,y:e.clientY}}
+  if(pinch&&Object.keys(pts).length>=2){var k=Object.keys(pts),cx=(pts[k[0]].x+pts[k[1]].x)/2,cy=(pts[k[0]].y+pts[k[1]].y)/2;setZ(pinch.z*dist()/pinch.d,cx,cy);return}
+  if(!drag)return;
+  if(Z>1){PX=drag.px+(e.clientX-drag.x);PY=drag.py+(e.clientY-drag.y);applyZ();return}
+  var now=performance.now(),dt=Math.max(1,now-drag.t);drag.v=(drag.lx-e.clientX)/dt;drag.lx=e.clientX;drag.t=now;var f=drag.f+Math.round((drag.x-e.clientX)/56);if(f!==frame)show(f)});
+ stage.addEventListener('wheel',function(e){if(!src)return;e.preventDefault();auto(false);setZ(Z*(e.deltaY<0?1.15:1/1.15),e.clientX,e.clientY)},{passive:false});
+ function release(e){if(e&&pts[e.pointerId])delete pts[e.pointerId];if(pinch){if(Object.keys(pts).length<2)pinch=null;drag=null;return}if(!drag)return;var v=drag.v;drag=null;if(Z>1||reduce||Math.abs(v)<0.25)return;var acc=0,last=performance.now();
   (function coast(now){var dt=now-last;last=now;acc+=v*dt/56;v*=Math.pow(0.992,dt);if(Math.abs(acc)>=1){var s=acc>0?1:-1;show(frame+s);acc-=s}if(Math.abs(v)>0.05&&panel.isConnected)timer=requestAnimationFrame(coast)})(last)}
  stage.addEventListener('pointerup',release);stage.addEventListener('pointercancel',release);
  stage.addEventListener('keydown',function(e){if(!src)return;if(e.key==='ArrowLeft'){auto(false);show(frame+1)}if(e.key==='ArrowRight'){auto(false);show(frame-1)}if(e.key===' '){e.preventDefault();auto(!spinTimer)}});
