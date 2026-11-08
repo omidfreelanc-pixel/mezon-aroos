@@ -74,7 +74,7 @@ export async function purgePhotos(env,now=Date.now(),batch=200){
  for(const s of await all(db,'SELECT id,settings FROM salons')){
   const days=retentionDays(parse(s.settings));if(!days||n>=batch)continue; // 0 = keep everything
   const cut=now-days*DAY;
-  const rows=await all(db,"SELECT m.id,m.object_key FROM media m WHERE m.salon_id=? AND m.kind IN('original','reference','simulation') AND m.session_id IS NOT NULL AND m.created_at<? AND NOT EXISTS(SELECT 1 FROM generations sg WHERE sg.result_id=m.id AND sg.social_consent=1) AND NOT EXISTS(SELECT 1 FROM leads l WHERE (l.original_id=m.id OR l.reference_id=m.id OR l.preview_id=m.id) AND (l.closed_at IS NULL OR l.closed_at>=?)) ORDER BY m.created_at LIMIT ?",s.id,cut,cut,batch-n);
+  const rows=await all(db,"SELECT m.id,m.object_key FROM media m WHERE m.salon_id=? AND m.kind IN('original','reference','simulation','spin') AND m.session_id IS NOT NULL AND m.created_at<? AND NOT EXISTS(SELECT 1 FROM generations sg WHERE sg.result_id=m.id AND sg.social_consent=1) AND NOT EXISTS(SELECT 1 FROM leads l WHERE (l.original_id=m.id OR l.reference_id=m.id OR l.preview_id=m.id) AND (l.closed_at IS NULL OR l.closed_at>=?)) ORDER BY m.created_at LIMIT ?",s.id,cut,cut,batch-n);
   for(const m of rows){
    try{await bucketFor(env).delete(m.object_key)}catch(e){console.error('purge object',e?.message);continue}
    await run(db,'DELETE FROM media WHERE id=?',m.id);n++;

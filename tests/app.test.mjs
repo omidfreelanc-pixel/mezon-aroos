@@ -636,7 +636,7 @@ test('mezon: the three-angle prompt is about the dress, not about hair',()=>{
  assert.match(VIEWS_PROMPT,/tile 1 = front 3\/4[\s\S]*tile 2 = exact side profile[\s\S]*tile 3 = back view[\s\S]*train/);
  assert.match(VIEWS_PROMPT,/plain light background/);assert.match(VIEWS_PROMPT,/body size and proportions/);
  assert(!/haircut|hair consultation|back of her head/i.test(VIEWS_PROMPT));
- assert.match(customerHTML,/نمای سه‌زاویه/);assert(!/۳۶۰ درجه|مدل مو|رنگ مو|ناخن|مژه/.test(customerHTML+appHTML),'no salon wording on the pages');
+ assert.match(customerHTML,/نمای سه‌زاویه/);assert(!/مدل مو|رنگ مو|ناخن|مژه/.test(customerHTML+appHTML),'no salon wording on the pages');
 });
 
 test('mezon: landing is public and the customer page is dress-only (limits temporarily off)',async()=>{
@@ -883,4 +883,30 @@ test('a bride messages the bot from the boutique link: photo in, personal link o
     // unknown boutique
     await send({text:'/start c_nope'});assert.ok(tg.calls.some(c=>String(c.body.text||'').includes('پیدا نشد')));
   }finally{tg.restore()}
+});
+
+test('360: turntable video is requested from the result, stored as mp4 and served with byte ranges',async()=>{
+ const e=fixture(),s=await salon(e),g=await guest(e,s);e.KIE_API_KEY='mock';
+ await call(e,'/api/s/'+s.slug+'/owner/settings',{generation_enabled:true,reference_verified:true},OWNER);
+ const original=await upload(e,s,g),v='ab'.repeat(16);
+ const sid=e.DB.sql.prepare('SELECT session_id FROM media WHERE id=?').get(original).session_id,salonId=e.DB.sql.prepare('SELECT salon_id FROM media WHERE id=?').get(original).salon_id;
+ const base=crypto.randomUUID(),now=Date.now();
+ e.DB.sql.prepare("INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,result_id,created_at,updated_at,line,opts) VALUES(?,?,?,?,'single','success',?,?,?,?,'dress','{}')").run(base,salonId,sid,crypto.randomUUID(),original,original,now,now);
+ const mp4=new Uint8Array(5000);mp4.set([0,0,0,24,0x66,0x74,0x79,0x70,0x69,0x73,0x6f,0x6d],0);for(let i=12;i<mp4.length;i++)mp4[i]=i%251;
+ const previous=globalThis.fetch;let created=null;
+ globalThis.fetch=async(url,init)=>{url=String(url);
+  if(url.includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/in.jpg'}});
+  if(url.includes('createTask')){created=JSON.parse(init.body);return Response.json({code:200,data:{taskId:'spin1'}})}
+  if(url.includes('recordInfo'))return Response.json({code:200,data:{state:'success',resultJson:JSON.stringify({resultUrls:['https://provider.example/out.mp4']})}});
+  if(url.endsWith('out.mp4'))return new Response(mp4);
+  return new Response(png())};
+ try{
+  const idem=crypto.randomUUID(),job=await call(e,'/api/s/'+s.slug+'/spin',{v,parent:base,idem},g);assert.equal(job.status,200);
+  assert.equal(created.model,'kling-2.6/image-to-video');assert.match(created.input.prompt,/360-degree/);assert.deepEqual(created.input.image_urls,['https://provider.example/in.jpg']);
+  const again=await call(e,'/api/s/'+s.slug+'/spin',{v,parent:base,idem},g);assert.equal(again.data.id,job.data.id,'same idem, same job');
+  const done=await call(e,'/api/s/'+s.slug+'/generation/'+job.data.id,undefined,g);assert.equal(done.data.state,'success');
+  const media=e.DB.sql.prepare('SELECT kind,mime FROM media WHERE id=?').get(done.data.result_id);assert.deepEqual({...media},{kind:'spin',mime:'video/mp4'});
+  const url=origin+'/api/s/'+s.slug+'/media/'+done.data.result_id;
+  const part=await app.fetch(new Request(url,{headers:{origin,cookie:g.cookie,Range:'bytes=100-199'}}),e);assert.equal(part.status,206);assert.equal(part.headers.get('content-range'),'bytes 100-199/5000');assert.equal((await part.arrayBuffer()).byteLength,100);
+ }finally{globalThis.fetch=previous}
 });

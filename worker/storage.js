@@ -20,3 +20,13 @@ function d1Bucket(db){return {
 import {Problem,must,uid} from './domain.js';
 export function imageType(bytes){if(bytes[0]===255&&bytes[1]===216&&bytes[2]===255)return 'image/jpeg';if(bytes[0]===137&&bytes[1]===80&&bytes[2]===78&&bytes[3]===71)return 'image/png';if(String.fromCharCode(...bytes.slice(0,4))==='RIFF'&&String.fromCharCode(...bytes.slice(8,12))==='WEBP')return 'image/webp';throw new Problem(400,'فقط تصویر JPG، PNG یا WebP معتبر پذیرفته می‌شود');}
 export async function putImage(env,salon,s,bytes,kind){must(bytes.length>100,'فایل عکس خالی یا خیلی کوچک است');const limit=kind==='simulation'&&(env?.BUCKET||env?.KV)?10*1024*1024:maxUpload(env);must(bytes.length<=limit,'حجم عکس بیش از حد مجاز است ('+Math.round(limit/1024)+' کیلوبایت)');const mime=imageType(bytes),id=uid(),key=salon.id+'/'+id;await bucketFor(env).put(key,bytes,{httpMetadata:{contentType:mime}});try{await env.DB.prepare('INSERT INTO media VALUES(?,?,?,?,?,?,?)').bind(id,salon.id,s?.id||null,kind,key,mime,Date.now()).run();}catch(e){await bucketFor(env).delete(key);throw e}return id;}
+
+// The 360-degree turntable clip (mp4, a few MB). Stored like a photo but with its own kind and type.
+export async function putVideo(env,salon,s,bytes){
+ must(bytes.length>1000,'ویدیو خالی یا خیلی کوچک است');must(bytes.length<=24*1024*1024,'ویدیو بیش از حد بزرگ است');
+ must(String.fromCharCode(bytes[4],bytes[5],bytes[6],bytes[7])==='ftyp','فرمت ویدیو معتبر نیست',502);
+ const id=uid(),key=salon.id+'/'+id,mime='video/mp4';
+ await bucketFor(env).put(key,bytes,{httpMetadata:{contentType:mime}});
+ try{await env.DB.prepare('INSERT INTO media VALUES(?,?,?,?,?,?,?)').bind(id,salon.id,s?.id||null,'spin',key,mime,Date.now()).run();}catch(e){await bucketFor(env).delete(key);throw e}
+ return id;
+}

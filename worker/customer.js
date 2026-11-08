@@ -313,6 +313,7 @@ body.is-touring{overflow:hidden}
 .kov{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#f6f4f1;padding:20px}.kov__card{width:min(92vw,520px);text-align:center;display:grid;gap:14px}.kov__card h1{font-size:30px;margin:0}.kov__card h2{margin:0}.kov__card p{margin:0;line-height:1.9}.kov__fine{font-size:13px;color:var(--muted)}
 .kend{position:fixed;left:12px;top:12px;z-index:900;border:0;border-radius:999px;padding:10px 16px;background:rgba(35,23,15,.82);color:#fff;font:inherit;font-size:14px}
 .kcam .btn--ghost{color:#fff;border-color:rgba(255,255,255,.6)}.kcam{background:#111;color:#fff;grid-template-rows:1fr auto}.kcam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.kcam__guide{position:absolute;inset:6% 0 18%;display:grid;place-items:center;pointer-events:none}.kcam__guide svg{height:100%}.kcam__count{position:absolute;inset:0;display:grid;place-items:center;font-size:140px;font-weight:700;text-shadow:0 4px 24px rgba(0,0,0,.6);pointer-events:none}.kcam__tip{position:absolute;top:14px;left:0;right:0;text-align:center;font-size:15px;text-shadow:0 2px 10px rgba(0,0,0,.7)}.kcam__btns{position:absolute;bottom:18px;left:0;right:0;display:flex;gap:12px;justify-content:center}
+.vspin{display:grid;gap:12px;justify-items:center;padding:4px 2px 14px}.vspin__stage{position:relative;width:min(100%,380px);overflow:hidden;border-radius:18px;background:#e9e5df;touch-action:none;cursor:grab;box-shadow:var(--lift)}.vspin__stage video{display:block;width:100%;height:auto;transform-origin:center;will-change:transform;pointer-events:none}.vspin__wait{display:grid;gap:12px;justify-items:center;text-align:center}.vspin__wait img{width:min(60%,220px);border-radius:16px;animation:sway 3.2s ease-in-out infinite;box-shadow:var(--float)}
 /* 360 viewer */
 .spin-wrap{width:min(100%,330px);margin:4px auto 0;padding:6px}
 @media(max-width:420px){.spin-wrap{width:min(100%,330px,calc((100svh - 340px)*.62))}.result-actions{display:grid;grid-template-columns:1fr 1fr}.result-actions .btn{min-width:0;padding:0 10px}}
@@ -1043,6 +1044,7 @@ function stepResult(){
   box.append(compareBlock());
   box.append(el('div',{class:'result-actions'},[
    el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openViews,html:ICO.orbit+'<span>نمای سه‌زاویه</span>'}),
+   el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openSpin,html:ICO.orbit+'<span>چرخش ۳۶۰ (ویدیو)</span>'}),
    KIOSK?el('button',{class:'btn btn--primary btn--sm',type:'button',onclick:openQR,text:'بگیر روی گوشی (QR)'}):downloadLink('btn btn--ghost btn--sm','دانلود'),
    saveBtn(),
    savedCount()?el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:openSaved,'data-cmp':'1',text:'مقایسه ('+fa(savedCount())+')'}):null,
@@ -1863,6 +1865,54 @@ function kioskCamera(){
    c.toBlob(function(b){stop();if(b)handleFile(new File([b],'kiosk.jpg',{type:'image/jpeg'}),'original')},'image/jpeg',0.92);
   },1000);
  });
+}
+/* ---------- true 360: a short turntable video of the bride in the dress; drag to turn it, pinch / double-tap to zoom ---------- */
+function openSpin(){
+ if(!state.gen)return;
+ track('view360','video');
+ var panel=el('div',{class:'sheet__panel spin-panel'});
+ panel.append(el('div',{class:'sheet__head'},[h('h2','چرخش ۳۶۰ درجه'),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
+ var body=el('div',{class:'vspin'});panel.append(body);openSheet(panel);
+ body.append(el('div',{class:'vspin__wait'},[el('img',{src:media(state.result),alt:''}),h('p','دارم ویدیوی چرخشی را می‌سازم… معمولاً ۱ تا ۳ دقیقه طول می‌کشد؛ این پنجره را باز نگه دار.','spin__tip')]));
+ var gen=state.gen;
+ function show(id){
+  var v=el('video',{src:media(id),playsinline:'',loop:'',preload:'auto','aria-label':'ویدیوی چرخشی لباس'});v.muted=true;v.setAttribute('muted','');
+  var stage=el('div',{class:'vspin__stage',dir:'ltr'},[v]);
+  var play=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'⏸ توقف'});
+  body.replaceChildren(stage,el('div',{class:'spin__row'},[play]),h('p','برای چرخاندن بکش؛ برای زوم دو انگشتی بزن یا دوبار لمس کن.','spin__tip'));
+  var z=1,tx=0,ty=0,pts={},pd=0;
+  function lim(){var w=stage.clientWidth,hh=stage.clientHeight;return [(z-1)*w/2,(z-1)*hh/2]}
+  function apply(){var l=lim();tx=Math.max(-l[0],Math.min(l[0],tx));ty=Math.max(-l[1],Math.min(l[1],ty));v.style.transform='translate('+tx+'px,'+ty+'px) scale('+z+')'}
+  function setPlay(on){if(on){v.play().catch(function(){});play.textContent='⏸ توقف'}else{v.pause();play.textContent='▶ پخش'}}
+  play.addEventListener('click',function(){setPlay(v.paused)});
+  v.play().catch(function(){play.textContent='▶ پخش'});
+  function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+  stage.addEventListener('pointerdown',function(e){try{stage.setPointerCapture(e.pointerId)}catch(x){}pts[e.pointerId]={x:e.clientX,y:e.clientY};var k=Object.keys(pts);if(k.length===2)pd=dist(pts[k[0]],pts[k[1]]);setPlay(false)});
+  stage.addEventListener('pointermove',function(e){
+   var p=pts[e.pointerId];if(!p)return;var k=Object.keys(pts);
+   if(k.length===2){pts[e.pointerId]={x:e.clientX,y:e.clientY};var nd=dist(pts[k[0]],pts[k[1]]);if(pd>0){z=Math.max(1,Math.min(4,z*nd/pd))}pd=nd;apply();return}
+   var dx=e.clientX-p.x,dy=e.clientY-p.y;pts[e.pointerId]={x:e.clientX,y:e.clientY};
+   if(z>1.02){tx+=dx;ty+=dy;apply()}
+   else if(v.duration){var t=v.currentTime-dx/stage.clientWidth*v.duration;v.currentTime=((t%v.duration)+v.duration)%v.duration}
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){stage.addEventListener(ev,function(e){delete pts[e.pointerId];pd=0})});
+  stage.addEventListener('dblclick',function(){z=z>1.1?1:2.4;tx=0;ty=0;apply()});
+  stage.addEventListener('wheel',function(e){e.preventDefault();z=Math.max(1,Math.min(4,z*(e.deltaY<0?1.12:0.89)));apply()},{passive:false});
+ }
+ if(state.spin&&state.spin.gen===gen&&state.spin.id){show(state.spin.id);return}
+ ensureSession().then(function(){
+  if(!state.spinIdem||state.spinIdem.gen!==gen)state.spinIdem={gen:gen,id:uuid()};
+  return api('spin',{v:VISITOR,parent:gen,idem:state.spinIdem.id});
+ }).then(function(job){
+  (function check(){
+   if(!panel.isConnected)return;
+   api('generation/'+job.id).then(function(d){
+    if(d.state==='success'&&d.result_id){state.spin={gen:gen,id:d.result_id};show(d.result_id);return}
+    if(d.state==='fail'||d.state==='unknown'){state.spinIdem=null;body.replaceChildren(notice('danger','ساخت ویدیو انجام نشد. دوباره امتحان کن.'));return}
+    setTimeout(check,4000);
+   }).catch(function(){setTimeout(check,6000)});
+  })();
+ }).catch(function(e){body.replaceChildren(notice('danger',(e&&e.message)||'ساخت ویدیو ممکن نشد'))});
 }
 function openSheet(node){
  var d=$('#sheet');

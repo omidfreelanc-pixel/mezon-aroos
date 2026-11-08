@@ -46,7 +46,7 @@ export async function resultPage(env,token,notFound){
 // "Finish" on the kiosk: delete this visitor's photos and results. Photos that became a request
 // (a lead the boutique is working on) stay, exactly as in the retention job.
 export async function eraseSession(env,db,salon,session){
- const rows=await all(db,"SELECT m.id,m.object_key FROM media m WHERE m.salon_id=? AND m.session_id=? AND m.kind IN('original','reference','simulation') AND NOT EXISTS(SELECT 1 FROM generations sg WHERE sg.result_id=m.id AND sg.social_consent=1) AND NOT EXISTS(SELECT 1 FROM leads l WHERE l.original_id=m.id OR l.reference_id=m.id OR l.preview_id=m.id)",salon.id,session.id);
+ const rows=await all(db,"SELECT m.id,m.object_key FROM media m WHERE m.salon_id=? AND m.session_id=? AND m.kind IN('original','reference','simulation','spin') AND NOT EXISTS(SELECT 1 FROM generations sg WHERE sg.result_id=m.id AND sg.social_consent=1) AND NOT EXISTS(SELECT 1 FROM leads l WHERE l.original_id=m.id OR l.reference_id=m.id OR l.preview_id=m.id)",salon.id,session.id);
  let n=0;
  for(const m of rows){try{await bucketFor(env).delete(m.object_key)}catch(e){console.error('erase object',e?.message);continue}await run(db,'DELETE FROM media WHERE id=?',m.id);n++}
  await run(db,'DELETE FROM result_links WHERE session_id=?',session.id);
