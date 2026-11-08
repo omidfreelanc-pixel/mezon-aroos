@@ -810,3 +810,31 @@ test('step 3: customer page has the want sheet, consent line and retention note;
  const script=customerHTML.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/)[1];
  assert(!/fetch\(['"]https?:|XMLHttpRequest/.test(script),'no external requests in the customer script');
 });
+
+// ---- Kiosk: QR result link and "finish" wipe ----
+test('kiosk: result QR link opens only that photo, expires, and finishing wipes the visitor\'s photos',async()=>{
+ const e=fixture(),s=await salon(e),g=await guest(e,s);
+ const original=await upload(e,s,g),v='ab'.repeat(16);
+ const sess=e.DB.sql.prepare('SELECT id,salon_id FROM media WHERE id=?').get(original);
+ const sid=e.DB.sql.prepare('SELECT session_id FROM media WHERE id=?').get(original).session_id;
+ const gid=crypto.randomUUID(),now=Date.now();
+ e.DB.sql.prepare("INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,result_id,created_at,updated_at,line,opts) VALUES(?,?,?,?,'single','success',?,?,?,?,'dress','{}')").run(gid,sess.salon_id,sid,crypto.randomUUID(),original,original,now,now);
+ const bad=await call(e,'/api/s/'+s.slug+'/result-link',{v,gen:crypto.randomUUID()},g);assert.equal(bad.status,404);
+ const r=await call(e,'/api/s/'+s.slug+'/result-link',{v,gen:gid},g);assert.equal(r.status,200);
+ assert.match(r.data.url,/\/r\/[a-f0-9]{48}$/);const token=r.data.token;
+ const page=await app.fetch(new Request(origin+'/r/'+token),e);assert.equal(page.status,200);assert.match(await page.text(),/ذخیره عکس/);
+ const img=await app.fetch(new Request(origin+'/r/'+token+'/img'),e);assert.equal(img.status,200);assert.match(img.headers.get('content-type'),/^image\//);
+ assert.equal((await app.fetch(new Request(origin+'/r/'+'0'.repeat(48)),e)).status,404);
+ e.DB.sql.prepare('UPDATE result_links SET expires_at=1 WHERE token=?').run(token);
+ assert.equal((await app.fetch(new Request(origin+'/r/'+token+'/img'),e)).status,404,'expired link is closed');
+ const r2=await call(e,'/api/s/'+s.slug+'/result-link',{v,gen:gid},g);
+ const wipe=await call(e,'/api/s/'+s.slug+'/erase',{v},g);assert.equal(wipe.status,200);assert(wipe.data.deleted>=1);
+ assert.equal(e.DB.sql.prepare('SELECT COUNT(*) c FROM media WHERE id=?').get(original).c,0);
+ assert.equal((await app.fetch(new Request(origin+'/r/'+r2.data.token+'/img'),e)).status,404,'links die with the photos');
+});
+
+test('kiosk page: ?kiosk=1 is the same page, QR library and camera guide are shipped',async()=>{
+ const e=fixture(),s=await salon(e);
+ const html=await (await app.fetch(new Request(origin+'/s/'+s.slug+'?kiosk=1'),e)).text();
+ assert.match(html,/function kioskBoot/);assert.match(html,/var qrcode=/);assert.match(html,/آرایش ملایم عروس/);
+});

@@ -1,4 +1,5 @@
 import {DRESS_STYLES,LINE_FILTERS,LINE_PHOTO,LINE_LABEL} from './lines.js';
+import {QR_JS} from './qr.js';
 const lineJSON=(line,list)=>({styles:list.map(x=>[x[0],x[1],x[2]]),filters:LINE_FILTERS[line]});
 const LINES_JSON=JSON.stringify({label:LINE_LABEL,photo:{dress:LINE_PHOTO.dress},dress:lineJSON('dress',DRESS_STYLES)});
 import {baseCSS,markSVG} from './design.js';
@@ -304,6 +305,13 @@ body.is-touring{overflow:hidden}
 .cmpx__col .btn{padding:0 6px;font-size:12px;white-space:normal;text-align:center;line-height:1.4}
 .cmpx__col .btn svg{display:none}
 .result-actions .btn{flex:1 1 auto}
+.mkrow{display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;padding:10px 12px;border-radius:14px;background:var(--glass-2);font-size:13.5px;line-height:1.7;cursor:pointer}.mkrow input{margin-top:5px;width:18px;height:18px;accent-color:var(--accent)}
+.qr{display:grid;justify-items:center;gap:14px;padding:6px 4px 14px}.qr__code{width:min(100%,300px);background:#fff;border-radius:16px;padding:10px;box-shadow:var(--lift)}.qr__code svg{display:block;width:100%;height:auto}.qr__note{text-align:center;font-size:13.5px;color:var(--ink-2);line-height:1.9;margin:0}
+.kiosk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}.kiosk img{-webkit-user-drag:none}
+.kiosk .btn{min-height:56px;font-size:17px}
+.kov{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#f6f4f1;padding:20px}.kov__card{width:min(92vw,520px);text-align:center;display:grid;gap:14px}.kov__card h1{font-size:30px;margin:0}.kov__card h2{margin:0}.kov__card p{margin:0;line-height:1.9}.kov__fine{font-size:13px;color:var(--muted)}
+.kend{position:fixed;left:12px;top:12px;z-index:900;border:0;border-radius:999px;padding:10px 16px;background:rgba(35,23,15,.82);color:#fff;font:inherit;font-size:14px}
+.kcam .btn--ghost{color:#fff;border-color:rgba(255,255,255,.6)}.kcam{background:#111;color:#fff;grid-template-rows:1fr auto}.kcam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.kcam__guide{position:absolute;inset:6% 0 18%;display:grid;place-items:center;pointer-events:none}.kcam__guide svg{height:100%}.kcam__count{position:absolute;inset:0;display:grid;place-items:center;font-size:140px;font-weight:700;text-shadow:0 4px 24px rgba(0,0,0,.6);pointer-events:none}.kcam__tip{position:absolute;top:14px;left:0;right:0;text-align:center;font-size:15px;text-shadow:0 2px 10px rgba(0,0,0,.7)}.kcam__btns{position:absolute;bottom:18px;left:0;right:0;display:flex;gap:12px;justify-content:center}
 /* 360 viewer */
 .spin-wrap{width:min(100%,330px);margin:4px auto 0;padding:6px}
 @media(max-width:420px){.spin-wrap{width:min(100%,330px,calc((100svh - 340px)*.62))}.result-actions{display:grid;grid-template-columns:1fr 1fr}.result-actions .btn{min-width:0;padding:0 10px}}
@@ -437,6 +445,7 @@ img[loading="lazy"].is-in{opacity:1}
 `;
 
 const clientJS=String.raw`
+/*__QR__*/
 var LINES=__LINES__;
 var MARK=__MARK__;
 var SLUG=location.pathname.split('/').filter(Boolean)[1]||'';
@@ -460,7 +469,7 @@ var ICO={
  gallery:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="m20.5 15-4.6-4.4L7 19.5"/></svg>',
  orbit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="9" ry="3.6"/><path d="M12 3.5c2 1.6 3.2 4.7 3.2 8.5s-1.2 6.9-3.2 8.5"/><path d="m18.6 13.8 2 1.6-2.3 1"/></svg>',
  arrow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H4M10 6l-6 6 6 6"/></svg>',};
-var state={ratio:'',pub:null,step:1,original:null,reference:null,refTitle:'',style:null,tab:'salon',result:null,gen:null,genState:null,busy:false,error:'',session:false,verified:false,idem:null,rating:0,me:null};
+var state={makeup:true,ratio:'',pub:null,step:1,original:null,reference:null,refTitle:'',style:null,tab:'salon',result:null,gen:null,genState:null,busy:false,error:'',session:false,verified:false,idem:null,rating:0,me:null};
 try{state.me=JSON.parse(localStorage.getItem('ayneh-me')||'null')}catch(e){}
 var $=function(s,r){return (r||document).querySelector(s)};
 var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
@@ -654,7 +663,7 @@ function renderFlow(){
 function flowHead(title,sub){
  return el('div',{class:'flow__head'},[h('h2',title,'flow__title'),sub?h('p',sub,'flow__sub'):null]);
 }
-function openCamera(){var cam=el('input',{type:'file',accept:'image/*',capture:'user'});cam.style.display='none';cam.addEventListener('change',function(){handleFile(cam.files&&cam.files[0],'original');cam.remove()});document.body.append(cam);cam.click()}
+function openCamera(){if(KIOSK){kioskCamera();return}var cam=el('input',{type:'file',accept:'image/*',capture:'user'});cam.style.display='none';cam.addEventListener('change',function(){handleFile(cam.files&&cam.files[0],'original');cam.remove()});document.body.append(cam);cam.click()}
 function stepPhoto(){
  var box=el('div',{class:'panel flow'});
  if(!state.original&&state.preview){
@@ -723,6 +732,11 @@ function scrollToBuild(){
   if(y!=null)window.scrollTo({top:Math.max(0,y),behavior:beh});
  });
 }
+function makeupRow(){
+ var cb=el('input',{type:'checkbox',id:'mk'});cb.checked=state.makeup!==false;
+ cb.addEventListener('change',function(){state.makeup=cb.checked;state.idem=null});
+ return el('label',{class:'mkrow',for:'mk'},[cb,el('span',{},[el('b',{text:'آرایش ملایم عروس'}),document.createTextNode(' — فقط روی پوست و چشم و لب؛ شکل و چهره‌ات تغییر نمی‌کند.')])]);
+}
 function stepModel(){
  var box=el('div',{class:'panel flow'});
  if(state.original){
@@ -730,6 +744,7 @@ function stepModel(){
   box.append(el('div',{class:'selfie'+(fresh?' selfie--fresh':'')},[el('img',{src:state.preview||media(state.original),alt:''}),el('div',{},[el('b',{html:ICO.check+'<span>'+(fresh?'عکست ثبت شد':'عکست آماده است')+'</span>'}),el('span',{text:'لباس انتخابی روی همین عکس امتحان می‌شود.'})]),el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){changePhoto();go(1)},text:'تغییر'})]));
  }
  box.append(flowHead(MODEL_HEAD.dress[0],MODEL_HEAD.dress[1]));
+ box.append(makeupRow());
  if(quotaLeft()===0&&!state.tourDemo)box.append(notice('warn',quotaOut()));
  var seg=el('div',{class:'seg',role:'tablist'});
  [['salon',0],['catalog',1],['upload',2]].forEach(function(x){
@@ -1027,7 +1042,7 @@ function stepResult(){
   box.append(compareBlock());
   box.append(el('div',{class:'result-actions'},[
    el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openViews,html:ICO.orbit+'<span>نمای سه‌زاویه</span>'}),
-   downloadLink('btn btn--ghost btn--sm','دانلود'),
+   KIOSK?el('button',{class:'btn btn--primary btn--sm',type:'button',onclick:openQR,text:'بگیر روی گوشی (QR)'}):downloadLink('btn btn--ghost btn--sm','دانلود'),
    saveBtn(),
    savedCount()?el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:openSaved,'data-cmp':'1',text:'مقایسه ('+fa(savedCount())+')'}):null,
    el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){state.result=null;state.gen=null;state.idem=null;state.error='';state.busy=false;go(2)},text:'یک لباس دیگر'})
@@ -1152,7 +1167,7 @@ function generate(){
  ensureSession().then(function(){
   state.idem=state.idem||uuid();
   // The page's own note under «بساز» says the photo is sent for the simulation; no extra checkbox.
-  return api('generate',{v:VISITOR,image_consent:true,idem:state.idem,ratio:state.ratio||undefined,original_id:state.original,reference_id:state.reference||undefined,style:state.reference?undefined:(state.style===null?undefined:state.style)});
+  return api('generate',{v:VISITOR,image_consent:true,makeup:state.makeup!==false,idem:state.idem,ratio:state.ratio||undefined,original_id:state.original,reference_id:state.reference||undefined,style:state.reference?undefined:(state.style===null?undefined:state.style)});
  }).then(function(job){
   track('generate',state.reference?(state.refTitle?'salon':'upload'):'catalog');
   spentQuota();
@@ -1175,7 +1190,7 @@ function friendly(msg){
  if(/درخواست را نپذیرفت/.test(msg))return 'سرویس تصویر درخواست را نپذیرفت. کمی بعد دوباره تلاش کن.';
  return msg;
 }
-function pickNow(){var pick=$('#pick');if(pick)pick.click();else toast('اول عکس خودت را اضافه کن')}
+function pickNow(){if(KIOSK){kioskCamera();return}var pick=$('#pick');if(pick)pick.click();else toast('اول عکس خودت را اضافه کن')}
 function updateProgress(){
  var f=$('#flow');if(!f)return;
  var pct=buildPct(),B=BUILD;
@@ -1777,6 +1792,67 @@ function openSaved(){
 }
 
 /* ---------- sheet ---------- */
+/* ---------- QR to the bride's phone, and the boutique touch-screen (kiosk) mode (?kiosk=1) ---------- */
+var KIOSK=/[?&]kiosk=1(&|$)/.test(location.search);
+function qrSvg(text){var q=qrcode(0,'M');q.addData(text);q.make();return q.createSvgTag({cellSize:7,margin:2,scalable:true})}
+function openQR(){
+ if(!state.gen){toast('اول نتیجه را بساز');return}
+ var panel=el('div',{class:'sheet__panel'});
+ panel.append(el('div',{class:'sheet__head'},[h('h2','عکس را روی گوشی‌ات بگیر'),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
+ var box=el('div',{class:'qr'},[h('p','در حال ساخت لینک…','qr__note')]);
+ panel.append(box);openSheet(panel);
+ ensureSession().then(function(){return api('result-link',{v:VISITOR,gen:state.gen})}).then(function(d){
+  box.replaceChildren(el('div',{class:'qr__code',dir:'ltr',html:qrSvg(d.url)}),h('p','دوربین گوشی را روی این کد بگیر. لینک شخصی توست و ۲۴ ساعت بعد بسته می‌شود.','qr__note'));
+ }).catch(function(e){box.replaceChildren(notice('danger',e.message||'ساخت لینک ممکن نشد'))});
+}
+function kioskReset(){
+ var done=function(){try{localStorage.clear()}catch(e){}try{sessionStorage.clear()}catch(e){}location.replace(location.pathname+'?kiosk=1'+(state.tag?'&r='+encodeURIComponent(state.tag):''))};
+ api('erase',{v:VISITOR}).then(done,done);
+}
+var kioskIdle=0,kioskWarnEl=null,kioskWarnT=0,kioskStarted=false;
+function kioskActivity(){if(!kioskStarted||kioskWarnEl)return;clearTimeout(kioskIdle);kioskIdle=setTimeout(kioskWarn,90000)}
+function kioskWarn(){
+ var left=15,num=el('b',{text:fa(left)});
+ kioskWarnEl=el('div',{class:'kov kov--warn',role:'alertdialog'},[el('div',{class:'kov__card'},[h('h2','هنوز اینجایی؟'),el('p',{},[document.createTextNode('برای حفظ حریم خصوصی تو، عکس‌ها تا '),num,document.createTextNode(' ثانیهٔ دیگر پاک می‌شود.')]),el('button',{class:'btn btn--primary',type:'button',text:'ادامه می‌دهم',onclick:function(){clearInterval(kioskWarnT);kioskWarnEl.remove();kioskWarnEl=null;kioskActivity()}})])]);
+ document.body.append(kioskWarnEl);
+ kioskWarnT=setInterval(function(){left--;num.textContent=fa(Math.max(left,0));if(left<=0){clearInterval(kioskWarnT);kioskReset()}},1000);
+}
+function kioskBoot(){
+ document.documentElement.classList.add('kiosk');
+ document.addEventListener('contextmenu',function(e){e.preventDefault()});
+ ['pointerdown','keydown','touchstart','wheel'].forEach(function(ev){document.addEventListener(ev,kioskActivity,{passive:true})});
+ var end=el('button',{class:'kend',type:'button',text:'پایان و پاک کردن عکس‌ها',onclick:function(){
+  var box=el('div',{class:'kov'},[el('div',{class:'kov__card'},[h('h2','پایان؟'),h('p','عکس‌های تو از روی این دستگاه پاک می‌شود. اگر لینک عکس را نگرفته‌ای، دیگر نمی‌توانی ببینی‌اش.'),el('button',{class:'btn btn--primary',type:'button',text:'بله، پاک کن',onclick:kioskReset}),el('button',{class:'btn btn--ghost',type:'button',text:'برگرد',onclick:function(){box.remove()}})])]);
+  document.body.append(box);
+ }});
+ document.body.append(end);
+ var name=(document.title||'').split('|')[0].trim();
+ var att=el('div',{class:'kov kov--attract'},[el('div',{class:'kov__card'},[h('h1',name||'مزون'),h('p','لباس عروس را روی اندام خودت ببین؛ قد و سایز بدنت همان می‌ماند.'),h('p','عکس تمام‌قدت فقط برای ساخت همین شبیه‌سازی استفاده می‌شود و با «پایان» یا بعد از چند دقیقه بی‌حرکتی از روی این دستگاه پاک می‌شود.','kov__fine'),el('button',{class:'btn btn--primary btn--lg',type:'button',text:'برای شروع لمس کن',onclick:function(){
+  kioskStarted=true;att.remove();kioskActivity();try{if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen()}catch(e){}
+ }})])]);
+ document.body.append(att);
+}
+// Live camera with a standing guide and a 3-2-1 countdown, so the full-length photo is taken in front of the screen.
+function kioskCamera(){
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){var i=$('#pick');if(i)i.click();return}
+ var video=el('video',{autoplay:'',playsinline:'',muted:''});video.muted=true;
+ var count=el('div',{class:'kcam__count'}),stream=null;
+ var guide=el('div',{class:'kcam__guide',html:'<svg viewBox="0 0 100 220" fill="none" stroke="#fff" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round" opacity=".85"><circle cx="50" cy="20" r="13"/><path d="M38 36 L28 50 L32 112 L18 214 L82 214 L68 112 L72 50 L62 36"/></svg>'});
+ var shoot=el('button',{class:'btn btn--primary btn--lg',type:'button',text:'بشمار و عکس بگیر'}),cancel=el('button',{class:'btn btn--ghost',type:'button',text:'بستن'});
+ var wrap=el('div',{class:'kov kcam'},[video,guide,count,el('p',{class:'kcam__tip',text:'از سر تا کفش در قاب باش، دست‌ها کنار بدن، رو به دوربین.'}),el('div',{class:'kcam__btns'},[shoot,cancel])]);
+ function stop(){if(stream)stream.getTracks().forEach(function(t){t.stop()});wrap.remove()}
+ cancel.addEventListener('click',stop);
+ document.body.append(wrap);
+ navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1920}},audio:false}).then(function(s){stream=s;video.srcObject=s;video.play().catch(function(){})}).catch(function(){stop();toast('دوربین باز نشد؛ از گالری انتخاب کن','error');var i=$('#pick');if(i)i.click()});
+ shoot.addEventListener('click',function(){
+  shoot.disabled=true;var n=3;count.textContent=fa(n);
+  var t=setInterval(function(){n--;if(n>0){count.textContent=fa(n);return}clearInterval(t);count.textContent='';
+   var w=video.videoWidth,hh=video.videoHeight;if(!w){stop();toast('دوربین آماده نبود؛ دوباره امتحان کن','error');return}
+   var c=document.createElement('canvas');c.width=w;c.height=hh;c.getContext('2d').drawImage(video,0,0,w,hh);
+   c.toBlob(function(b){stop();if(b)handleFile(new File([b],'kiosk.jpg',{type:'image/jpeg'}),'original')},'image/jpeg',0.92);
+  },1000);
+ });
+}
 function openSheet(node){
  var d=$('#sheet');
  d.replaceChildren(node);
@@ -1787,6 +1863,7 @@ function closeSheet(){var d=$('#sheet');if(d&&d.open)d.close()}
 document.addEventListener('click',function(e){
  if(e.target&&e.target.classList&&e.target.classList.contains('sheet'))closeSheet();
 });
+if(KIOSK)kioskBoot();
 `;
 
 export const customerHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head>
@@ -1822,4 +1899,4 @@ export const customerHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><h
 <script>__JS__</script>
 </body></html>`
  .replace('__CSS__',()=>baseCSS+customerCSS)
- .replace('__JS__',()=>clientJS.replace('__LINES__',()=>LINES_JSON).replace('__MARK__',()=>JSON.stringify(markSVG)));
+ .replace('__JS__',()=>clientJS.replace('/*__QR__*/',()=>QR_JS).replace('__LINES__',()=>LINES_JSON).replace('__MARK__',()=>JSON.stringify(markSVG)));
