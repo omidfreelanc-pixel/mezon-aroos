@@ -131,6 +131,7 @@ main#app{max-width:1080px;margin:0 auto;padding:6px 20px 80px;min-height:70vh}
 .uploadbox__txt small{color:var(--muted);font-size:12px}
 .two{display:grid;gap:0 14px}
 @media(min-width:620px){.two{grid-template-columns:1fr 1fr}}
+.login input{color:#23170f;-webkit-text-fill-color:#23170f;background:#fff;caret-color:#23170f;color-scheme:light;font-size:16px}
 .field input[type=url],.field input[type=tel],#slug{direction:ltr;text-align:right}
 .ports{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
 .port-add{display:grid;gap:10px;margin-top:18px;padding:14px;border:1.5px dashed var(--line);border-radius:16px}
@@ -191,7 +192,7 @@ function mgrCredits(){
  load().catch(function(e){body.append(h('p',e.message,'empty-note'))});return box;
 }
 function mgrLogin(){
- var u=field('mu','نام کاربری','', 'text'),pw=field('mp','رمز عبور','', 'password');u.querySelector('input').setAttribute('dir','ltr');u.querySelector('input').setAttribute('autocapitalize','off');
+ var u=field('mu','نام کاربری','', 'text'),pw=field('mp','رمز عبور','', 'password');u.querySelector('input').setAttribute('dir','ltr');u.querySelector('input').setAttribute('autocapitalize','off');u.querySelector('input').setAttribute('autocomplete','username');u.querySelector('input').setAttribute('autocorrect','off');u.querySelector('input').setAttribute('spellcheck','false');pw.querySelector('input').setAttribute('autocomplete','current-password');
  var go=el('button',{class:'btn btn--primary btn--block',type:'button',text:'ورود',onclick:act(function(){return api('/api/s/'+MGR+'/manager/login',{username:$('#mu').value,password:$('#mp').value}).then(function(){location.reload()})})});
  pw.querySelector('input').addEventListener('keydown',function(e){if(e.key==='Enter')go.click()});
  $('#app').replaceChildren(el('section',{class:'card login'},[el('div',{class:'mirror'},[el('div',{class:'mirror__glass'},[el('span',{html:MARK})])]),h('h1','پنل مدیریت مزون'),h('p','با نام کاربری و رمزی که هنگام ثبت‌نام انتخاب کردید وارد شوید.'),u,pw,go]));
