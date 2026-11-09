@@ -47,5 +47,5 @@ $("f").addEventListener("submit",function(e){e.preventDefault();var err=$("err")
   if(!d.path){return}
   $("f").hidden=true;$("done").hidden=false;var bl=(d.bot&&(d.bot.telegram||d.bot.bale))||"";if(bl){$("botbox").hidden=false;$("botl").href=bl;var m=/^https:\/\/t\.me\/([^?]+)\?start=(\w+)$/.exec(bl);if(m){var a=document.createElement("a");a.href="tg://resolve?domain="+m[1]+"&start="+m[2];document.body.appendChild(a);setTimeout(function(){a.click()},600)}
   var tk=(d.panel||"").split("/m/")[1]||"",n=0,iv=setInterval(function(){if(!tk||++n>120){clearInterval(iv);return}fetch("/api/m/"+tk+"/bot").then(function(r){return r.json()}).then(function(x){if(x.linked){clearInterval(iv);$("botbox").className="msg good";$("botbox").textContent="✅ ربات وصل شد. بعد از تأیید مدیر مزون آینه، خبر فعال‌شدن صفحه همان‌جا برایتان می‌آید."}}).catch(function(){})},3000)}$("l1").href=$("l1").textContent=d.url;$("l2").href=$("l2").textContent=d.panel;
- }).catch(function(x){err.hidden=false;err.className="msg bad";err.textContent=x.message}).then(function(){b.disabled=false})});
+ }).catch(function(x){err.hidden=false;err.className="msg bad";err.textContent=x.message;try{err.scrollIntoView({block:"center"})}catch(z){}}).then(function(){b.disabled=false})});
 </script></body></html>`;

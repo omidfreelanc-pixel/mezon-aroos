@@ -2,6 +2,7 @@
 // Only the project owner signs in here to create salons, fill in their details and hand
 // each salon its one-time Telegram link.
 import {baseCSS,markSVG} from './design.js';
+import {QR_JS} from './qr.js';
 
 const css=String.raw`
 .section-title{font-family:var(--display);font-weight:800;font-size:24px;margin:34px 0 14px}
@@ -160,6 +161,7 @@ main#app{max-width:1080px;margin:0 auto;padding:6px 20px 80px;min-height:70vh}
 `;
 
 const clientJS=String.raw`
+/*__QR__*/
 var MARK=__MARK__;
 var $=function(s,r){return (r||document).querySelector(s)};
 function el(tag,attrs,children){var e=document.createElement(tag);attrs=attrs||{};Object.keys(attrs).forEach(function(k){var v=attrs[k];if(v===undefined||v===null||v===false)return;if(k==='text')e.textContent=v;else if(k==='html')e.innerHTML=v;else if(k==='class')e.className=v;else if(k.slice(0,2)==='on')e.addEventListener(k.slice(2),v);else e.setAttribute(k,v===true?'':v)});(children||[]).forEach(function(c){if(c!==null&&c!==undefined&&c!==false)e.append(c)});return e}
@@ -564,7 +566,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  if(d.sms_invite)smsC.append(smsIn,el('button',{class:'btn btn--primary',type:'button',text:'ارسال پیامک',onclick:act(function(){return api('/api/s/'+slug+'/owner/invite',{numbers:smsIn.value}).then(function(r){smsOut.replaceChildren.apply(smsOut,r.results.map(function(x){return h('small',(x.ok?'✅ ':'⚠️ ')+x.phone+(x.msg?' — '+x.msg:' — فرستاده شد'))}));if(r.results.some(function(x){return x.ok}))smsIn.value=''})})}),smsOut);
  else smsC.append(h('p','ارسال پیامک هنوز فعال نشده است. تا آن موقع می‌توانید لینک صفحه را از ربات یا پیام‌رسان‌ها برای مشتری بفرستید.','notice notice--warn'));
  var pageUrl=location.origin+(MGR&&location.hostname.split('.').length>2?'/':'/s/'+slug);
- var share=el('section',{class:'card'},[h('h2','لینک صفحهٔ مزون'),h('p','این لینک را به مشتری‌ها بدهید یا در اینستاگرام بگذارید.','lead'),copyRow('صفحهٔ مشتری‌ها',pageUrl)]);
+ var share=el('section',{class:'card'},[h('h2','لینک صفحهٔ مزون'),h('p','این لینک را به مشتری‌ها بدهید یا در اینستاگرام بگذارید.','lead'),copyRow('صفحهٔ مشتری‌ها',pageUrl),(function(){var q=qrcode(0,'M');q.addData(pageUrl);q.make();var svg=q.createSvgTag({cellSize:6,margin:2,scalable:true});var wrap=el('div',{class:'qrbox',dir:'ltr',html:svg,style:'width:180px;max-width:100%;margin:14px auto 6px;background:#fff;padding:8px;border-radius:14px'});var row=el('div',{class:'row',style:'display:flex;gap:8px;flex-wrap:wrap;justify-content:center'},[el('button',{class:'btn btn--soft btn--sm',type:'button',text:'اشتراک‌گذاری',onclick:function(){if(navigator.share)navigator.share({title:'امتحان لباس عروس',url:pageUrl}).catch(function(){});else{navigator.clipboard&&navigator.clipboard.writeText(pageUrl);toast('لینک کپی شد.')}}}),el('button',{class:'btn btn--soft btn--sm',type:'button',text:'چاپ QR',onclick:function(){var w=window.open('','_blank');if(!w)return;w.document.write('<!doctype html><meta charset=utf-8><title>QR</title><body style="text-align:center;font-family:sans-serif;padding:40px"><div style="width:320px;margin:auto">'+svg+'</div><p>برای امتحان لباس، کد را با گوشی اسکن کنید</p>');w.document.close();w.focus();w.print()}})]);return el('div',{},[wrap,row])})()]);
  function tabs(defs){return tabsView(defs,slug)}
  var defs=MGR?[['نمای کلی',[mgrCredits(),dashboard([{slug:MGR,name:S.name}]),share]],['درخواست‌ها',[leads]],['نمونه‌کارها',[port,social]],['مشخصات مزون',[prof]],['تیم',[teamC]],['ارتباط با مشتری',[tg,smsC]]]
   :[['نمای کلی',[share]],['درخواست‌ها',[leads]],['نمونه‌کارها',[port,social]],['مشخصات مزون',[prof]],['تیم',[teamC]],['ارتباط با مشتری',[tg,smsC]],['تنظیمات',[set]]];
@@ -584,4 +586,4 @@ export const appHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><
 </body></html>`
  .replace('__CSS__',()=>baseCSS+css)
  .replace('__MARKHTML__',()=>markSVG)
- .replace('__JS__',()=>clientJS.replace('__MARK__',()=>JSON.stringify(markSVG)));
+ .replace('__JS__',()=>clientJS.replace('/*__QR__*/',()=>QR_JS).replace('__MARK__',()=>JSON.stringify(markSVG)));
