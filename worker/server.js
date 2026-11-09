@@ -24,7 +24,7 @@ const one=(db,sql,...args)=>db.prepare(sql).bind(...args).first();
 const run=(db,sql,...args)=>db.prepare(sql).bind(...args).run();
 const all=async(db,sql,...args)=>(await db.prepare(sql).bind(...args).all()).results;
 const cookie=t=>'ayneh='+t+'; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800';
-const PROFILE_TEXT=['bio','address','hours','manager'],PROFILE_LINKS=['map','instagram','website','telegram'],PROFILE_IMAGES=['logo','cover','portrait'];
+const PROFILE_TEXT=['bio','address','hours','manager','city'],PROFILE_LINKS=['map','instagram','website','telegram'],PROFILE_IMAGES=['logo','cover','portrait'];
 const botInfo=env=>({token:botReady(env),secret:!!env.TELEGRAM_WEBHOOK_SECRET,username:PLATFORMS.telegram.user(env),telegram:{ready:platformReady(env,'telegram'),username:PLATFORMS.telegram.user(env)},bale:{ready:platformReady(env,'bale'),username:PLATFORMS.bale.user(env),secret:!!baleSecret(env)}});
 // The boutique's own dresses is tryable on customers by default; an owner may switch it off.
 const refOn=cfg=>cfg.reference_verified!==false;

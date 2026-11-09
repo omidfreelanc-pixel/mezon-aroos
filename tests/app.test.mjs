@@ -1466,3 +1466,15 @@ test('a result link can carry the other-angle photos',async()=>{
  assert.equal((await app.fetch(new Request(origin+'/r/'+t+'/img/2'),e)).status,404);
  assert.match(await (await app.fetch(new Request(origin+'/r/'+t),e)).text(),/\/img\/1/);
 });
+
+test('waiting scene, viewer, seal footer and export card are wired; pinch-zoom never blocked', async()=>{
+ const {customerHTML}=await import('../worker/customer.js');
+ for(const f of ['customer','landing','ui','register','share','social','resultlinks','pairing','credits','legal','index']){
+  const src=(await import('node:fs')).readFileSync(new URL('../worker/'+f+'.js',import.meta.url),'utf8');
+  assert(!/user-scalable\s*=\s*no|maximum-scale\s*=\s*1/i.test(src),f+' must not block zoom');
+ }
+ for(const needle of ['function pmCtl','PM_LINES','آخرین پرداخت…','function openViewer','function sealFoot','function brandedBlob','retryStage','touch-action:none','sealfoot__rule','با مزون آینه','prefers-reduced-motion'])assert(customerHTML.includes(needle),needle);
+ assert(!customerHTML.includes('buildPct'),'no invented percentage');
+ assert(!/class:'curtain/.test(customerHTML));
+ assert.match(customerHTML,/pan-y pinch-zoom/);
+});
