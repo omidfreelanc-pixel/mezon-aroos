@@ -637,7 +637,7 @@ test('mezon: one dress line, 15 ready-made dresses, prompts lock body size and i
 });
 
 test('mezon: the other-angle prompts lock face and dress and are about the dress, not hair',()=>{
- for(const k of ['side','back','left']){const p=ANGLE_PROMPTS[k];assert.match(p,/SAME bride/);assert.match(p,/Image 2 = her original photo[\s\S]*real face/);assert.match(p,/never invent lace/);assert.match(p,/same body size and proportions/);assert(!/haircut|hair consultation/i.test(p))}
+ for(const k of ['side','back','left']){const p=ANGLE_PROMPTS[k];assert.match(p,/SAME bride/);assert.match(p,/Image 1 = the finished try-on photo/);assert.match(p,/THE DRESS MUST NOT CHANGE/);assert.match(p,/satin stays satin/);assert.match(p,/never invent lace/);assert.match(p,/same body size and proportions/);assert(!/haircut|hair consultation/i.test(p))}
  assert.match(ANGLE_PROMPTS.side,/RIGHT side profile/);assert.match(ANGLE_PROMPTS.back,/BEHIND/);assert.match(ANGLE_PROMPTS.left,/LEFT side profile/);
  assert.match(customerHTML,/زوایای دیگر/);assert(!/مدل مو|رنگ مو|ناخن|مژه/.test(customerHTML+appHTML),'no salon wording on the pages');
 });
@@ -1377,7 +1377,7 @@ test('owner settings save only touches the keys sent; accounts return per-filter
  const f=await call(e,'/api/owner/accounts?filter=pending',undefined,OWNER);assert.equal(f.data.counts.all,l.data.counts.all,'counts ignore the active filter');
 });
 
-test('other angles: one click makes side, back and left as three separate images on the normal model, with her original photo for the face',async()=>{
+test('other angles: one click makes side, back and left as three separate images on the normal model, from her result and the real dress photos',async()=>{
  const e=fixture(),s=await salon(e),g=await guest(e,s);e.KIE_API_KEY='mock';
  await call(e,'/api/s/'+s.slug+'/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true},OWNER);
  const original=await upload(e,s,g),v='cd'.repeat(16),base=crypto.randomUUID(),now=Date.now();
@@ -1392,7 +1392,7 @@ test('other angles: one click makes side, back and left as three separate images
   const r=await call(e,'/api/s/'+s.slug+'/views',{v,parent:base,idem:crypto.randomUUID()},g);assert.equal(r.status,200);assert.equal(r.data.ids.length,3);
   assert.equal(tasks.length,3);assert.deepEqual(tasks.map(x=>x.model),['nano-banana-2','nano-banana-2','nano-banana-2']);
   assert.match(tasks[0].input.prompt,/RIGHT side profile/);assert.match(tasks[1].input.prompt,/BEHIND/);assert.match(tasks[2].input.prompt,/LEFT side profile/);
-  assert.equal(tasks[1].input.image_input.length,2,'her result + her original photo');assert.equal(tasks[1].input.resolution,'2K');
+  assert.equal(tasks[1].input.image_input.length,1,'her result is the master; no original photo with her own clothes');assert.equal(tasks[1].input.resolution,'2K');
   const v2=await call(e,'/api/s/'+s.slug+'/spin',{v,parent:base,idem:crypto.randomUUID()},g);assert.equal(v2.status,403,'video is off by default');
  }finally{globalThis.fetch=previous}
 });
