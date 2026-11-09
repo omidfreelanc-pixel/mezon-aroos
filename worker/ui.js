@@ -164,6 +164,14 @@ input[dir=ltr],textarea[dir=ltr],.field input[type=url],.field input[type=tel],#
 .login p{text-align:center;color:var(--muted);margin:6px 0 18px;line-height:1.9}
 .loading{padding:60px 20px;text-align:center;color:var(--muted)}
 .foot{padding:26px 20px 34px;text-align:center;color:var(--muted);font-size:12px}
+.prog{height:8px;border-radius:99px;background:var(--glass-2);overflow:hidden}.prog i{display:block;height:100%;background:var(--accent);border-radius:99px}.prog--warn i{background:var(--honey)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.tools input[type=search],.tools select{min-height:44px;border:1.5px solid var(--line);border-radius:12px;padding:0 12px;font:inherit;font-size:14px;background:var(--surface);color:var(--ink);min-width:0}.tools input[type=search]{flex:1 1 200px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chips .chip{min-height:44px}
+.pager{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;color:var(--muted);font-size:13px}
+.forgot{display:grid;gap:12px}.linkbtn{display:block;margin:6px auto 0;background:none;border:0;color:var(--accent-ink);font:inherit;font-size:14px;font-weight:600;min-height:44px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.risk{display:grid;gap:8px}.risk li{list-style:none;padding:10px 14px;border-radius:14px;background:var(--warn-soft);color:var(--ink);font-size:13.5px;line-height:1.8}.risk ul{margin:0;padding:0;display:grid;gap:8px}.risk b{display:block}
+.tbl-btn{min-height:44px}
+
 `;
 
 const clientJS=String.raw`
@@ -197,24 +205,42 @@ var TG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.4 4.2 2.9 11.3
 
 // Manager's own credit card: remaining images, account status and recharge requests.
 function mgrCredits(){
- var box=el('section',{class:'card'},[h('h2','اعتبار تصویر و شارژ')]),body=el('div',{class:'stack'}),sel=0;box.append(body);
+ var box=el('section',{class:'card'},[h('h2','اعتبار و شارژ')]),body=el('div',{class:'stack'}),sel=0;box.append(body);
  function load(){return api('/api/s/'+MGR+'/owner/credits').then(function(d){
   var packs=el('div',{class:'row'});
-  d.packs.forEach(function(n){packs.append(el('button',{class:'btn btn--soft btn--sm',type:'button',text:fa(n)+' تصویر',onclick:function(){sel=n;Array.prototype.forEach.call(packs.children,function(c){c.classList.remove('btn--primary')});this.classList.add('btn--primary')}}))});
+  d.packs.forEach(function(n){packs.append(el('button',{class:'btn btn--soft btn--sm',type:'button',text:fa(n)+' اعتبار',onclick:function(){sel=n;Array.prototype.forEach.call(packs.children,function(c){c.classList.remove('btn--primary')});this.classList.add('btn--primary')}}))});
   var note=el('textarea',{placeholder:'توضیح یا شمارهٔ پیگیری پرداخت (اختیاری)','aria-label':'توضیح پرداخت',maxlength:'300',rows:'2'});
-  body.replaceChildren(el('p',{html:''}),h('b',fa(d.left)+' تصویر مانده — '+fa(d.used)+' از '+fa(d.limit)+' مصرف شده'),d.left<=0?h('p','اعتبار تمام شده؛ مشتری‌ها تا شارژ نمی‌توانند تصویر بسازند.','notice notice--warn'):'',h('p','بسته را انتخاب کنید و درخواست بدهید؛ هزینه و روش پرداخت را مدیر مزون آینه اعلام می‌کند و بعد از تأیید، اعتبار اضافه می‌شود.','muted'),packs,note,el('button',{class:'btn btn--primary',type:'button',text:'ثبت درخواست شارژ',onclick:act(function(){if(!sel)throw new Error('اول یک بسته را انتخاب کنید');return api('/api/s/'+MGR+'/owner/recharge',{amount:sel,note:note.value}).then(function(){toast('درخواست ثبت شد');sel=0;return load()})})}),d.requests.length?el('div',{},d.requests.map(function(r){return h('small',fa(r.amount)+' تصویر · '+(r.status==='approved'?'تأیید شد':r.status==='rejected'?'رد شد':'در انتظار'),'muted')})):'');
+  body.replaceChildren(el('p',{html:''}),h('b',fa(d.left)+' اعتبار مانده — '+fa(d.used)+' از '+fa(d.limit)+' مصرف شده'),d.sandbox?el('div',{class:'stack'},[h('b','نسخهٔ آزمایشی: '+fa(d.sandbox.images_left)+' از '+fa(d.sandbox.images_limit)+' تصویر آزمایشی مانده'),el('div',{class:'prog'+(d.sandbox.images_left<=1?' prog--warn':''),role:'progressbar','aria-valuemin':'0','aria-valuemax':String(d.sandbox.images_limit),'aria-valuenow':String(d.sandbox.images_left)},[el('i',{style:'width:'+(d.sandbox.images_limit?Math.round(d.sandbox.images_left/d.sandbox.images_limit*100):0)+'%'})]),h('p','بعد از تأیید حساب توسط تیم مزون آینه، اعتبار اصلی فعال می‌شود.','muted')]):'',usageBlock(d.by_kind)||'',d.left<=0?h('p','اعتبار تمام شده؛ تا شارژ، عروس‌ها نمی‌توانند تصویر بسازند و فقط می‌توانند درخواستشان را بدون تصویر بفرستند.','notice notice--warn'):'',h('p','بسته را انتخاب کنید و درخواست بدهید؛ هزینه و روش پرداخت را تیم مزون آینه اعلام می‌کند و بعد از تأیید، اعتبار اضافه می‌شود.','muted'),packs,note,el('button',{class:'btn btn--primary',type:'button',text:'ثبت درخواست شارژ',onclick:act(function(){if(!sel)throw new Error('اول یک بسته را انتخاب کنید');return api('/api/s/'+MGR+'/owner/recharge',{amount:sel,note:note.value}).then(function(){toast('درخواست ثبت شد');sel=0;return load()})})}),d.requests.length?el('div',{},d.requests.map(function(r){return h('small',fa(r.amount)+' تصویر · '+(r.status==='approved'?'تأیید شد':r.status==='rejected'?'رد شد':'در انتظار'),'muted')})):'');
  })}
  load().catch(function(e){body.append(h('p',e.message,'empty-note'))});return box;
+}
+function mgrForgot(){
+ var box=el('section',{class:'card login forgot'}),tick=0;
+ function back(){clearInterval(tick);mgrLogin()}
+ function stepSend(){
+  clearInterval(tick);
+  box.replaceChildren(h('h1','بازیابی رمز'),h('p','یک کد یک‌بارمصرف به شمارهٔ موبایلی که با آن ثبت‌نام کردید پیامک می‌شود.'),el('button',{class:'btn btn--primary btn--block',type:'button',text:'ارسال کد پیامکی',onclick:act(function(){return api('/api/s/'+MGR+'/manager/forgot',{}).then(function(r){stepCode(r)})})}),el('button',{class:'linkbtn',type:'button',text:'بازگشت به ورود',onclick:back}));
+ }
+ function stepCode(r){
+  var code=field('fc','کد پیامک‌شده','', 'text'),np=field('fnp','رمز تازه (حداقل ۸ نویسه)','', 'password'),left=Number(r.resend_in)||60;
+  var ci=code.querySelector('input'),pi=np.querySelector('input');ci.setAttribute('inputmode','numeric');ci.setAttribute('autocomplete','one-time-code');ci.dir='ltr';pi.dir='ltr';pi.setAttribute('autocomplete','new-password');
+  var resend=el('button',{class:'btn btn--ghost btn--block',type:'button',disabled:true,onclick:act(function(){return api('/api/s/'+MGR+'/manager/forgot',{}).then(function(x){toast('کد تازه فرستاده شد.');left=Number(x.resend_in)||60;paint()})})});
+  function paint(){clearInterval(tick);function t(){resend.textContent=left>0?'ارسال دوبارهٔ کد تا '+fa(left)+' ثانیه دیگر':'ارسال دوبارهٔ کد';resend.disabled=left>0}t();tick=setInterval(function(){left--;t();if(left<=0)clearInterval(tick)},1000)}
+  var ok=el('button',{class:'btn btn--primary btn--block',type:'button',text:'تغییر رمز و ورود',onclick:act(function(){return api('/api/s/'+MGR+'/manager/reset',{code:ci.value,password:pi.value}).then(function(x){clearInterval(tick);if(x.login){toast('رمز عوض شد.');location.reload()}else{toast('رمز عوض شد؛ با رمز تازه وارد شوید.');back()}})})});
+  box.replaceChildren(h('h1','کد را وارد کنید'),el('p',{},[document.createTextNode('کد به شمارهٔ '),el('bdi',{dir:'ltr',text:r.phone_hint||'ثبت‌نام'}),document.createTextNode(' پیامک شد و تا ۱۰ دقیقه معتبر است.')]),code,np,ok,resend,el('button',{class:'linkbtn',type:'button',text:'بازگشت به ورود',onclick:back}));
+  paint();
+ }
+ $('#app').replaceChildren(box);stepSend();
 }
 function mgrLogin(){
  var u=field('mu','نام کاربری','', 'text'),pw=field('mp','رمز عبور','', 'password');
  var go=el('button',{class:'btn btn--primary btn--block',type:'button',text:'ورود',onclick:act(function(){return api('/api/s/'+MGR+'/manager/login',{username:$('#mu').value,password:$('#mp').value}).then(function(){location.reload()})})});
  [['input',u,'username','username'],['input',pw,'current-password','password']].forEach(function(a){var i=a[1].querySelector('input');i.name=a[3];i.setAttribute('autocomplete',a[2]);i.dir='ltr';i.setAttribute('autocapitalize','off');i.setAttribute('autocorrect','off');i.setAttribute('spellcheck','false');i.enterKeyHint='go';i.addEventListener('keydown',function(e){if(e.key==='Enter')go.click()})});
  pw.querySelector('input').addEventListener('keydown',function(e){if(e.key==='Enter')go.click()});
- $('#app').replaceChildren(el('section',{class:'card login'},[el('div',{class:'mirror'},[el('div',{class:'mirror__glass'},[el('span',{html:MARK})])]),h('h1','پنل مدیریت مزون'),h('p','با نام کاربری و رمزی که هنگام ثبت‌نام انتخاب کردید وارد شوید.'),u,pw,go]));
+ $('#app').replaceChildren(el('section',{class:'card login'},[el('div',{class:'mirror'},[el('div',{class:'mirror__glass'},[el('span',{html:MARK})])]),h('h1','پنل مدیریت مزون'),h('p','با نام کاربری و رمزی که هنگام ثبت‌نام انتخاب کردید وارد شوید.'),u,pw,go,el('button',{class:'linkbtn',type:'button',text:'رمزم را فراموش کرده‌ام',onclick:mgrForgot})]));
 }
 function login(me){
- var box=el('section',{class:'card login'},[el('div',{class:'mirror'},[el('div',{class:'mirror__glass'},[el('span',{html:MARK})])]),h('h1','مدیریت مزون آینه'),h('p','اینجا فقط برای مدیر مزون آینه است. مزون‌ها با ربات تلگرام کار می‌کنند و مشتری‌ها از لینک اختصاصی مزون وارد می‌شوند.')]);
+ var box=el('section',{class:'card login'},[el('div',{class:'mirror'},[el('div',{class:'mirror__glass'},[el('span',{html:MARK})])]),h('h1','مدیریت مزون آینه'),h('p','اینجا فقط برای تیم مزون آینه است. مزون‌ها با ربات تلگرام کار می‌کنند و مشتری‌ها از لینک اختصاصی مزون وارد می‌شوند.')]);
  if(me.passwordLogin){var f=field('pw','رمز مدیر','', 'password');var go=el('button',{class:'btn btn--primary btn--block',type:'button',text:'ورود',onclick:act(function(){return api('/api/login',{password:$('#pw').value}).then(function(){location.reload()})})});f.querySelector('input').addEventListener('keydown',function(e){if(e.key==='Enter')go.click()});box.append(f,go)}
  else box.append(el('p',{class:'notice notice--warn',text:'ورود با رمز روی این میزبان تنظیم نشده است (OWNER_PASSWORD و SESSION_SECRET).'}));
  $('#app').replaceChildren(box);
@@ -225,6 +251,14 @@ function login(me){
 // the funnel and top lists (one hue), columns for days (one hue, today emphasised), stat tiles
 // for the salon response. Every chart has a table view and per-mark tooltips.
 var dashState={days:30,salon:new URLSearchParams(location.search).get('salon')||''};
+var SRC_FA={qr:'QR مزون',ig:'اینستاگرام',wa:'واتساپ',tg:'تلگرام',link:'لینک',kiosk:'تبلت مزون',direct:'مستقیم'};
+var KIND_FA={single:'تصویر تکی',views:'نمای سه‌زاویه',spin:'چرخش ۳۶۰'};
+var RSN_FA={face:'چهره شبیه من نیست',body:'اندام یا قد تغییر کرده',dress:'لباس شبیه مدل مزون نیست',artifact:'خطای تصویر (دست، لبه، پارچه)',other:'دلیل دیگر'};
+function usageBlock(by){
+ var rows=['single','views','spin'].filter(function(k){return by&&by[k]}).map(function(k){var x=by[k];return el('tr',{},[el('td',{text:KIND_FA[k]}),el('td',{text:fa(x.count)}),el('td',{text:fa(x.weight)}),el('td',{text:fa(x.credits)})])});
+ if(!rows.length)return null;
+ return el('div',{class:'stable'},[el('table',{},[el('thead',{},[el('tr',{},['نوع','تعداد','وزن (اعتبار)','اعتبار مصرف‌شده'].map(function(t){return el('th',{text:t})}))]),el('tbody',{},rows)])]);
+}
 function pct(x){return x==null?'—':fa(Math.round(x*100))+'٪'}
 function compact(n){n=Number(n)||0;return n>=10000?fa(Math.round(n/1000))+'هزار':fa(n)}
 function delta(cur,prev,isRate){if(!prev&&!cur)return null;if(!prev)return {plain:true};var d=isRate?(cur-prev)*100:(cur-prev)/prev*100;var r=Math.round(d);return {t:(r>0?'+':'')+fa(r)+(isRate?' واحد':'٪'),up:r>=0}}
@@ -269,7 +303,7 @@ function dashboard(salons){
  function draw(){
   Array.prototype.forEach.call(range.children,function(b,i){b.setAttribute('aria-pressed',[7,30,90][i]===dashState.days?'true':'false')});
   body.classList.add('is-refreshing');
-  api('/api/owner/stats?days='+dashState.days+(dashState.salon?'&salon='+encodeURIComponent(dashState.salon):'')).then(function(d){body.classList.remove('is-refreshing');body.replaceChildren.apply(body,render(d));if(MGR){Array.prototype.slice.call(body.querySelectorAll('.card')).forEach(function(c){var t=(c.querySelector('h2,h3')||{}).textContent||'';if(/پاسخ مزون‌ها|کیفیت فنی|مقایسهٔ مزون‌ها|رفرال|معرف|درخت/.test(t))c.remove()});Array.prototype.forEach.call(body.querySelectorAll('.dgrid'),function(g){if(g.children.length===1)g.classList.add('dgrid--1')});return}var slot=el('div',{class:'dgrid dgrid--1'},[el('div',{class:'loading',text:'در حال آوردن رفرال‌ها…'})]);body.append(slot);return api('/api/owner/referrals'+(dashState.salon?'?salon='+encodeURIComponent(dashState.salon):'')).then(function(r){slot.replaceChildren.apply(slot,referrals(r))},function(e){slot.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))})}).catch(function(e){body.classList.remove('is-refreshing');body.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))});
+  api('/api/owner/stats?days='+dashState.days+(dashState.salon?'&salon='+encodeURIComponent(dashState.salon):'')).then(function(d){body.classList.remove('is-refreshing');body.replaceChildren.apply(body,render(d));if(MGR){Array.prototype.slice.call(body.querySelectorAll('.card')).forEach(function(c){var t=(c.querySelector('h2,h3')||{}).textContent||'';if(/پاسخ مزون‌ها|کیفیت فنی|مقایسهٔ مزون‌ها|رفرال|معرف|درخت|در معرض ریسک/.test(t))c.remove()});Array.prototype.forEach.call(body.querySelectorAll('.dgrid'),function(g){if(g.children.length===1)g.classList.add('dgrid--1')});return}var slot=el('div',{class:'dgrid dgrid--1'},[el('div',{class:'loading',text:'در حال آوردن رفرال‌ها…'})]);body.append(slot);return api('/api/owner/referrals'+(dashState.salon?'?salon='+encodeURIComponent(dashState.salon):'')).then(function(r){slot.replaceChildren.apply(slot,referrals(r))},function(e){slot.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))})}).catch(function(e){body.classList.remove('is-refreshing');body.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))});
  }
  function render(d){
   var k=d.kpi,p=d.prev,out=[];
@@ -293,6 +327,17 @@ function dashboard(salons){
   out.push(el('div',{class:'dgrid'},[
    card('رضایت از شبیه‌سازی',r.count?'میانگین '+fa(r.avg.toFixed(1))+' از ۵، از '+fa(r.count)+' امتیاز':'هنوز امتیازی ثبت نشده.',hbars([5,4,3,2,1].map(function(v,i){return {label:fa(v)+' ستاره',count:r.dist[i]}}),{tone:'honey'}),tableOf(['امتیاز','تعداد'],[5,4,3,2,1].map(function(v,i){return [fa(v),fa(r.dist[i])]}))),
    card('کیفیت فنی و رفتار','',el('div',{class:'kpis kpis--small'},[tile('شبیه‌سازی موفق',g.total?pct(g.rate):'—',null,fa(g.success)+' از '+fa(g.total)),tile('تور آموزشی',x.tourStart?pct(x.tourDone/x.tourStart):'—',null,'کامل دیدند ('+fa(x.tourDone)+' از '+fa(x.tourStart)+')'),tile('نمای سه‌زاویه',fa(x.view360)),tile('خبرم کن',fa(x.follow),null,'مشتری ربات را باز کرد'),tile('دربارهٔ مزون',fa(x.about))]))
+  ]));
+  if(d.atRisk&&d.atRisk.length)out.splice(1,0,card('مزون‌های در معرض ریسک','هر کدام را زودتر پیگیری کنید.',el('ul',{class:'risk'},d.atRisk.map(function(a){return el('li',{},[el('a',{href:'/admin/'+a.slug,text:a.name}),el('span',{text:' — '+a.reasons.join('؛ ')})])}))));
+  var U=d.usage||null,L=d.lost||{no_credit:0,visitors:0,byKind:{}},SR=d.sources||[],RX=d.reactions||{down:0,refunded:0,reasons:{},rate:0,refundRate:0};
+  var srcItems=SR.map(function(x){return {label:SRC_FA[x.src]||SRC_FA.direct,count:x.visitors,sent:x.sent,conv:x.conversion}}),rsItems=Object.keys(RX.reasons||{}).map(function(k){return {label:RSN_FA[k]||RSN_FA.other,count:RX.reasons[k]}}).sort(function(a,b){return b.count-a.count});
+  out.push(el('div',{class:'dgrid'},[
+   card('مشتری‌ها از کجا آمدند','QR، اینستاگرام، واتساپ، تلگرام، لینک یا تبلت مزون. برای هر لینک آخرش src=ig یا wa یا tg بگذارید.',srcItems.length?hbars(srcItems.map(function(x){return {label:x.label,count:x.count}}),{fmt:function(it){var x=srcItems.filter(function(y){return y.label===it.label})[0];return fa(it.count)+' نفر · '+fa(x.sent)+' درخواست'}}):empty('results','هنوز بازدیدی ثبت نشده','با اولین بازدید، منبع آن اینجا دیده می‌شود.'),tableOf(['منبع','بازدیدکننده','درخواست','تبدیل'],srcItems.map(function(x){return [x.label,fa(x.count),fa(x.sent),pct(x.conv)]}))),
+   card('نتیجه‌هایی که عروس‌ها نپسندیدند','وقتی عروس «خوشم نیامد» را می‌زند، دلیلش و بازگشت اعتبار اینجا شمرده می‌شود.',el('div',{class:'stack'},[el('div',{class:'kpis kpis--small'},[tile('نرخ نارضایتی',pct(RX.rate),null,fa(RX.down)+' نتیجه'),tile('اعتبار برگشتی',fa(RX.refunded),null,pct(RX.refundRate)+' نتیجه‌ها')]),rsItems.length?hbars(rsItems,{tone:'honey'}):h('p','هنوز دلیلی ثبت نشده.','empty-note')]),tableOf(['دلیل','تعداد'],rsItems.map(function(x){return [x.label,fa(x.count)]})))
+  ]));
+  out.push(el('div',{class:'dgrid'},[
+   card('اعتبار مصرف‌شده در این بازه','هر نوع درخواست تصویر به اندازهٔ «وزن» خودش اعتبار برمی‌دارد.',el('div',{class:'stack'},[d.credits?el('div',{class:'kpis kpis--small'},[tile('اعتبار مانده',fa(d.credits.left),null,'از '+fa(d.credits.limit)+' اعتبار'),tile('مصرف تا امروز',fa(d.credits.used))]):null,usageBlock(U)||h('p','هنوز اعتباری مصرف نشده.','empty-note')])),
+   card('درخواست‌های ازدست‌رفته','عروس‌هایی که چون اعتبار تمام شده بود، تصویر نگرفتند و پیشنهاد «ارسال بدون تصویر» دیدند.',el('div',{class:'stack'},[el('div',{class:'kpis kpis--small'},[tile('بار رد شد',fa(L.no_credit)),tile('عروس متفاوت',fa(L.visitors))]),L.no_credit?h('p','با شارژ به‌موقع اعتبار این عدد صفر می‌ماند.','muted'):h('p','در این بازه هیچ عروسی به‌خاطر تمام شدن اعتبار برنگشته.','muted')]),tableOf(['نوع','تعداد'],Object.keys(L.byKind||{}).map(function(k){return [KIND_FA[k]||k,fa(L.byKind[k])]})))
   ]));
   var sh=d.share||{opened:0,sent:0,visitors:0,byApp:[]},APP={telegram:'تلگرام',whatsapp:'واتساپ',sms:'پیامک',instagram:'اینستاگرام',copy:'کپی لینک',native:'سایر برنامه‌ها (بله، ایتا…)'};
   var apps=sh.byApp.map(function(a){return {label:APP[a.label]||a.label,count:a.count}});
@@ -345,10 +390,10 @@ function socialCard(slug){
  }).catch(function(){list.replaceWith(h('p','بارگیری نشد.','lead'))});
  return box;
 }
-var LSTATUS=[['new','جدید'],['called','تماس گرفته شد'],['booked','رزرو شد'],['cancelled','لغو'],['declined','قابل اجرا نیست']];
+var LSTATUS=[['new','جدید'],['called','تماس گرفته شد'],['booked','رزرو شد'],['cancelled','لغو'],['declined','فعلاً امکان‌پذیر نیست']];
 function leadsCard(slug){
  var box=el('section',{class:'card'},[h('h2','درخواست‌ها و مشتریان علاقه‌مند'),h('p','هر کس «این لباس را می‌خواهم» یا فرستادن را زده اینجاست. وضعیت را از اینجا یا از دکمه‌های ربات عوض کنید؛ مشتری هم خبردار می‌شود.','lead')]);
- var chips=el('div',{class:'seg-ctl seg-ctl--wrap',role:'group','aria-label':'فیلتر وضعیت'}),list=el('div',{class:'log'}),csv=el('a',{class:'btn btn--ghost btn--sm',href:'#',text:'خروجی CSV'});
+ var chips=el('div',{class:'seg-ctl seg-ctl--wrap',role:'group','aria-label':'فیلتر وضعیت'}),list=el('div',{class:'log'}),csv=el('a',{class:'btn btn--soft btn--sm',href:'#',download:'leads.csv',html:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7.5 11 4.5 4.5 4.5-4.5"/><path d="M4.5 19.5h15"/></svg><span>خروجی CSV</span>'});
  var cur='all',tone={sent:'ok',queued:'',sending:'accent',retry:'warn',failed:'danger'},label={sent:'رسید',queued:'در صف',sending:'در حال ارسال',retry:'تلاش دوباره',failed:'ناموفق'};
  function paintChips(counts){
   var total=0;Object.keys(counts||{}).forEach(function(k){total+=counts[k]});
@@ -367,6 +412,7 @@ function leadsCard(slug){
     return el('div',{class:'log__row log__row--lead'},[
      el('div',{class:'grow'},[h('b',l.name),el('br'),el('a',{href:'tel:'+tel,dir:'ltr',class:'tel',text:tel.replace(/\d/g,function(c){return '۰۱۲۳۴۵۶۷۸۹'[c]})}),el('br'),h('small',[l.intent==='want'?'می‌خواهم · ':'',l.look||'بدون لباس',' · ',fmt(l.created_at),l.staff?' · '+l.staff:''].join('')),l.visit_note?el('div',{class:'ic-row'},[el('span',{class:'ic-line',html:IC.cal}),h('small',l.visit_note)]):null]),
      l.waiting?badge('منتظر وصل شدن '+(l.staff||'نیرو'),'warn'):badge(label[l.status]||l.status,tone[l.status]),
+     el('button',{class:'btn btn--ghost btn--sm tbl-btn',type:'button',text:'حذف درخواست','aria-label':'حذف درخواست '+l.name,onclick:act(function(){if(!confirm('درخواست «'+l.name+'» و عکس‌هایی که فقط برای همین درخواست بود برای همیشه پاک شود؟'))return;return api('/api/s/'+slug+'/owner/leads/delete',{id:l.id}).then(function(r){toast('درخواست حذف شد'+(r.photos?' ('+fa(r.photos)+' عکس پاک شد)':'')+'.');return load()})})}),
      l.status==='failed'?el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'ارسال دوباره',onclick:act(function(){return api('/api/s/'+slug+'/owner/leads/retry',{id:l.id}).then(load)})}):null,
      sel]);
    }));
@@ -381,7 +427,7 @@ function setupLine(s){var st=s.setup||{filled:0,total:11,missing:[]};var done=st
 var LEVEL={info:[IC.info,''],good:[IC.ok,'ok'],warn:[IC.warn,'warn'],error:[IC.bad,'danger']},KIND={setup:'راه‌اندازی',team:'تیم',stuck:'گیرکرده',credit:'اعتبار',noanswer:'بی‌جواب',error:'خطا'};
 function alertsCard(d){
  var a=d.alerts||{chats:[]},on=a.chats.length>0,out=el('div');
- var c=el('section',{class:'card'},[h('h2','گزارش‌ها و هشدارها'),h('p','هشدار فوری (وصل شدن یا نشدن مزون و مزون‌دار، صفحهٔ نیمه‌کاره، درخواست بی‌جواب یا گیرکرده، خطای ربات) و هر شب ساعت ۲۱ خلاصهٔ روز در گفتگوی تلگرام خودت با ربات.','lead'),
+ var c=el('section',{class:'card'},[h('h2','گزارش‌ها و هشدارها'),h('p','هشدار فوری (وصل شدن یا نشدن مزون و مدیر مزون، صفحهٔ نیمه‌کاره، درخواست بی‌جواب یا گیرکرده، خطای ربات) و هر شب ساعت ۲۱ خلاصهٔ روز در گفتگوی تلگرام خودت با ربات.','lead'),
   el('div',{class:'tg-state tg-state--'+(on?'on':'off')},[el('span',{html:TG}),el('div',{},[h('b',on?'گزارش‌ها به تلگرام خودت می‌آید':'هنوز به تلگرام خودت وصل نیست'),h('span',on?'در ربات /report خلاصهٔ همین الان را می‌دهد.':'دکمه را بزن، لینک را در تلگرام خودت باز کن و Start بزن.')])])]);
  c.append(el('div',{class:'row',style:'gap:8px;flex-wrap:wrap'},[
   el('button',{class:'btn btn--primary btn--sm',type:'button',text:on?'وصل کردن یک گفتگوی دیگر':'وصل کردن تلگرام من',onclick:act(function(){return api('/api/owner/alerts-link',{}).then(function(r){var L=r.links||{};out.replaceChildren.apply(out,[L.telegram?copyLink('تلگرام',L.telegram):null,L.bale?copyLink('بله',L.bale):null,el('p',{class:'tiny muted',text:'یک‌بار مصرف، ۲۴ ساعت اعتبار.'})].filter(Boolean))})})}),
@@ -407,25 +453,79 @@ function botCard(bot){
  return c;
 }
 // Accounts: approval, image credit and recharge requests per salon (the project owner's side of /m/<token>).
+function quotaCard(S){
+ var cur=Number(S.settings&&S.settings.quota_per_line)||4,st=S.settings||{};
+ var f=field('s-quota','تعداد امتحان هر عروس در هر بخش',String(cur),'number','عددی بین ۱ تا ۲۰؛ پیش‌فرض ۴. وقتی عروسی همهٔ امتحان‌هایش را انجام دهد، به شما خبر می‌دهیم.');
+ var i=f.querySelector('input');i.min='1';i.max='20';i.step='1';i.setAttribute('inputmode','numeric');
+ return el('section',{class:'card'},[h('h2','سهم امتحان عروس‌ها'),f,el('button',{class:'btn btn--primary',type:'button',text:'ذخیره',onclick:act(function(){var n=parseInt(i.value,10);if(!(n>=1&&n<=20))throw new Error('عددی بین ۱ تا ۲۰ بنویسید');return api('/api/s/'+slug+'/owner/settings',{quota_per_line:n,generation_enabled:!!st.generation_enabled,reference_verified:!!st.reference_verified,catalog:st.catalog,allow_own_dress:st.allow_own_dress,image_model:st.image_model==='fast'?'fast':'pro',daily_limit:st.daily_limit,retention_days:st.retention_days}).then(function(){toast('ذخیره شد.')})})})]);
+}
+function passwordCard(){
+ var cur=field('pw-cur','رمز فعلی','', 'password'),nw=field('pw-new','رمز تازه (حداقل ۸ نویسه)','', 'password'),nw2=field('pw-new2','تکرار رمز تازه','', 'password');
+ [cur,nw,nw2].forEach(function(f,k){var i=f.querySelector('input');i.dir='ltr';i.setAttribute('autocomplete',k?'new-password':'current-password')});
+ return el('section',{class:'card'},[h('h2','تغییر رمز عبور'),h('p','برای ورود به پنل. بعد از تغییر، همین مرورگر وارد می‌ماند و ورود قبلی در جاهای دیگر باطل می‌شود.','lead'),cur,nw,nw2,el('button',{class:'btn btn--primary',type:'button',text:'تغییر رمز',onclick:act(function(){var a=$('#pw-new').value;if(a!==$('#pw-new2').value)throw new Error('تکرار رمز با رمز تازه یکی نیست');return api('/api/s/'+slug+'/manager/password',{current:$('#pw-cur').value,password:a}).then(function(){['#pw-cur','#pw-new','#pw-new2'].forEach(function(q){$(q).value=''});toast('رمز عوض شد.')})})})]);
+}
+function rotateCard(){
+ var out=el('div',{});
+ return el('section',{class:'card'},[h('h2','لینک پنل شارژ'),h('p','اگر لینک پنل را به کسی داده‌اید که نباید داشته باشد، لینک تازه بسازید. لینک قبلی همان لحظه از کار می‌افتد.','lead'),el('button',{class:'btn btn--ghost',type:'button',text:'ساخت لینک پنل تازه',onclick:act(function(){if(!confirm('لینک فعلی پنل از کار می‌افتد. لینک تازه ساخته شود؟'))return;return api('/api/s/'+slug+'/manager/rotate-token',{}).then(function(r){out.replaceChildren(copyLink('لینک تازهٔ پنل',r.panel));toast('لینک تازه ساخته شد.')})})}),out]);
+}
 function accountsCard(){
- var box=el('section',{class:'card'},[h('h2','حساب مزون‌ها و اعتبار تصویر'),h('p','هر مزون ۱۰۰ تصویر دارد. تا وقتی حساب تأیید نشود، مزون‌دار همه‌چیز را می‌بیند و کار می‌کند اما ساخت تصویر بسته است. لینک پنل شارژ را برای مزون‌دار بفرست.','lead')]),body=el('div',{class:'stack'});
- box.append(body);
- function load(){return api('/api/owner/accounts').then(function(d){
+ var AQ={q:'',filter:'',sort:'new',offset:0,limit:20};
+ var box=el('section',{class:'card'},[h('h2','حساب مزون‌ها و اعتبار'),h('p','هر مزون ۱۰۰ اعتبار دارد. تا وقتی حساب تأیید نشود، مدیر مزون همه‌چیز را می‌بیند و کار می‌کند اما ساخت تصویر بسته است. لینک پنل شارژ را برای مدیر مزون بفرست.','lead')]),body=el('div',{class:'stack'}),pager=el('div',{class:'pager'});
+ var qi=el('input',{type:'search',placeholder:'جست‌وجوی نام، نشانی، موبایل یا مدیر','aria-label':'جست‌وجو'}),sortSel=el('select',{'aria-label':'مرتب‌سازی'},[['new','تازه‌ترین'],['name','نام'],['left','کمترین اعتبار مانده'],['used','بیشترین مصرف']].map(function(o){return el('option',{value:o[0],text:o[1]})})),chips=el('div',{class:'chips',role:'group','aria-label':'فیلتر'});
+ var FL=[['','همه'],['pending','در انتظار تأیید'],['approved','فعال'],['trial','آزمایشی'],['low','اعتبار کم'],['exhausted','اعتبار تمام'],['nobot','بدون ربات']],qt=0;
+ function paintChips(){chips.replaceChildren.apply(chips,FL.map(function(f){return el('button',{class:'chip',type:'button','aria-pressed':AQ.filter===f[0]?'true':'false',text:f[1],onclick:function(){AQ.filter=f[0];AQ.offset=0;paintChips();load()}})}))}
+ qi.addEventListener('input',function(){clearTimeout(qt);qt=setTimeout(function(){AQ.q=qi.value.trim();AQ.offset=0;load()},300)});sortSel.addEventListener('change',function(){AQ.sort=sortSel.value;AQ.offset=0;load()});paintChips();
+ box.append(el('div',{class:'tools'},[qi,sortSel]),chips,body,pager);
+ function load(){body.classList.add('is-refreshing');return api('/api/owner/accounts?q='+encodeURIComponent(AQ.q)+'&filter='+AQ.filter+'&sort='+AQ.sort+'&limit='+AQ.limit+'&offset='+AQ.offset).then(function(d){body.classList.remove('is-refreshing');
   body.replaceChildren();
   if(d.requests.length){body.append(h('b','درخواست‌های شارژ در انتظار'));d.requests.forEach(function(r){body.append(el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong',r.name+' · '+fa(r.amount)+' تصویر'),h('small',r.note||'بدون توضیح')]),el('button',{class:'btn btn--primary btn--sm',type:'button',text:'تأیید و شارژ',onclick:act(function(){return api('/api/owner/recharge',{id:r.id,action:'approve'}).then(function(){toast('اعتبار اضافه شد');return load()})})}),el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'رد',onclick:act(function(){return api('/api/owner/recharge',{id:r.id,action:'reject'}).then(load)})})]))})}
   d.accounts.forEach(function(a){
    var line=a.approved?(a.left>0?badge('فعال','ok'):badge('اعتبار تمام','warn')):badge('در انتظار تأیید','warn');
-   body.append(el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong',a.name+(a.trial?' (آزمایشی)':'')),h('small','/s/'+a.slug+' · '+fa(a.used)+' از '+fa(a.limit)+' تصویر'),h('small',(a.host?a.host+' · ':'')+(a.manager?'کاربر مدیر: '+a.manager:'مدیر هنوز نام کاربری ندارد')+(!a.subdomain&&a.desired?' · زیردامنهٔ درخواستی: '+a.desired:''))]),line,
+   body.append(el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong',a.name+(a.trial?' (آزمایشی)':'')),h('small','/s/'+a.slug+' · '+fa(a.used)+' از '+fa(a.limit)+' اعتبار مصرف شده'+(a.by_kind?' ('+['single','views','spin'].map(function(k){return KIND_FA[k]+' '+fa(a.by_kind[k].count)}).join('، ')+')':'')),h('small',(a.host?a.host+' · ':'')+(a.manager?'کاربر مدیر: '+a.manager:'مدیر هنوز نام کاربری ندارد')+(!a.subdomain&&a.desired?' · زیردامنهٔ درخواستی: '+a.desired:''))]),line,
     el('button',{class:'btn btn--ghost btn--sm',type:'button',text:a.approved?'تعلیق':'تأیید حساب',onclick:act(function(){if(a.approved)return api('/api/owner/account',{slug:a.slug,approved:false}).then(load);var sub=a.subdomain||prompt('زیردامنهٔ انگلیسی مزون (مثلاً rose برای rose.'+location.hostname.replace(/^www\./,'')+'):',a.desired||(a.trial?'':a.slug));if(!sub)return;return api('/api/owner/account',{slug:a.slug,approved:true,subdomain:sub}).then(function(r){toast('تأیید شد'+(r.subdomain?' · زیردامنه: '+r.subdomain:''));return load()})})}),el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'نام کاربری/رمز مدیر',onclick:act(function(){var u=prompt('نام کاربری مدیر (انگلیسی):',a.manager||'');if(!u)return;var pw=prompt('رمز عبور (حداقل ۸ نویسه):');if(!pw)return;return api('/api/owner/manager',{slug:a.slug,username:u,password:pw}).then(function(){toast('اطلاعات ورود مدیر ذخیره شد');return load()})})}),
-    el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'+۱۰۰ اعتبار',onclick:act(function(){return api('/api/owner/account',{slug:a.slug,add:100}).then(function(){toast('۱۰۰ تصویر اضافه شد');return load()})})}),
+    el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'+۱۰۰ اعتبار',onclick:act(function(){return api('/api/owner/account',{slug:a.slug,add:100}).then(function(){toast('۱۰۰ اعتبار اضافه شد');return load()})})}),
+    el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'لینک پنل تازه',onclick:act(function(){if(!confirm('لینک فعلی پنل «'+a.name+'» از کار می‌افتد. لینک تازه ساخته شود؟'))return;return api('/api/owner/rotate-token',{slug:a.slug}).then(function(r){return navigator.clipboard.writeText(r.panel).catch(function(){}).then(function(){toast('لینک تازه ساخته و کپی شد.');return load()})})})}),
     el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'کپی لینک پنل',onclick:act(function(){return navigator.clipboard.writeText(a.panel).then(function(){toast('لینک پنل کپی شد')})})})]))});
-   if(!d.accounts.length)body.append(h('p','هنوز حسابی برای نمایش نیست؛ بعد از ساخت مزون اینجا دیده می‌شود.','empty-note'));
+   if(!d.accounts.length)body.append(empty('leads',AQ.q||AQ.filter?'حسابی با این فیلتر نیست':'هنوز حسابی برای نمایش نیست',AQ.q||AQ.filter?'جست‌وجو یا فیلتر را عوض کنید.':'بعد از ساخت مزون اینجا دیده می‌شود.'));
+  var tot=d.total||0,from=tot?AQ.offset+1:0,to=Math.min(tot,AQ.offset+AQ.limit);
+  pager.replaceChildren(el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'قبلی',disabled:AQ.offset<=0,onclick:function(){AQ.offset=Math.max(0,AQ.offset-AQ.limit);load()}}),h('span',fa(from)+' تا '+fa(to)+' از '+fa(tot)),el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'بعدی',disabled:to>=tot,onclick:function(){AQ.offset+=AQ.limit;load()}}));
+  pager.hidden=tot<=AQ.limit&&!AQ.offset;
   })}
- load().catch(function(e){body.append(h('p',e.message,'empty-note'))});
+ load().catch(function(e){body.classList.remove('is-refreshing');body.append(h('p',e.message,'empty-note'))});
  return box;
 }
+var MTH_FA={admin:'تنظیم دستی',recharge:'شارژ',refund:'بازگشت اعتبار',opening:'اعتبار اولیه'};
+function weightsCard(){
+ var box=el('section',{class:'card'},[h('h2','وزن اعتبار هر درخواست'),h('p','هر نوع تصویر چند اعتبار از مزون کم کند. عدد صحیح بین ۰ تا ۵۰.','lead')]),body=el('div',{class:'stack'});box.append(body);
+ api('/api/owner/credit-weights').then(function(d){
+  var fs=[['single','تصویر تکی'],['views','نمای سه‌زاویه'],['spin','چرخش ۳۶۰']].map(function(k){var f=field('w-'+k[0],k[1],String(d.weights[k[0]]),'number');var i=f.querySelector('input');i.min='0';i.max='50';i.step='1';i.setAttribute('inputmode','numeric');return f});
+  body.replaceChildren(d.placeholder?h('p','این وزن‌ها فعلاً آزمایشی‌اند و بعد از مشخص‌شدن هزینهٔ واقعی تصویر باید دوباره تنظیم شوند.','notice notice--warn'):'',el('div',{class:'grid grid--2'},fs),el('button',{class:'btn btn--primary',type:'button',text:'ذخیرهٔ وزن‌ها',onclick:act(function(){var b={};['single','views','spin'].forEach(function(k){b[k]=parseInt($('#w-'+k).value,10)});return api('/api/owner/credit-weights',b).then(function(){toast('وزن‌ها ذخیره شد.')})})}));
+ }).catch(function(e){body.append(h('p',e.message,'empty-note'))});
+ return box;
+}
+function ledgerCard(salons){
+ var Q={salon:'',method:'',q:'',from:'',to:'',offset:0,limit:50};
+ var box=el('section',{class:'card'},[h('h2','دفتر اعتبار'),h('p','هر شارژ، تنظیم دستی و بازگشت اعتبار با تاریخ و کسی که انجامش داده.','lead')]),body=el('div',{class:'stack'}),pager=el('div',{class:'pager'});
+ var sel=el('select',{'aria-label':'مزون'},[el('option',{value:'',text:'همهٔ مزون‌ها'})].concat((salons||[]).map(function(x){return el('option',{value:x.slug,text:x.name})})));
+ var mth=el('select',{'aria-label':'روش'},[el('option',{value:'',text:'همهٔ روش‌ها'})].concat(Object.keys(MTH_FA).map(function(k){return el('option',{value:k,text:MTH_FA[k]})})));
+ var qi=el('input',{type:'search',placeholder:'جست‌وجوی مرجع یا نام','aria-label':'جست‌وجو'}),per=el('select',{'aria-label':'بازه'},[['','همهٔ زمان‌ها'],['7','۷ روز اخیر'],['30','۳۰ روز اخیر'],['90','۹۰ روز اخیر']].map(function(o){return el('option',{value:o[0],text:o[1]})}));
+ var csv=el('a',{class:'btn btn--soft btn--sm',href:'#',download:'credit-ledger.csv',text:'خروجی CSV'}),qt=0;
+ function qs(extra){var a=['salon','method','q','from','to'].filter(function(k){return Q[k]}).map(function(k){return k+'='+encodeURIComponent(Q[k])});return a.concat(extra||[]).join('&')}
+  function load(){csv.href='/api/owner/ledger.csv?'+qs();body.classList.add('is-refreshing');
+  return api('/api/owner/ledger?'+qs(['limit='+Q.limit,'offset='+Q.offset])).then(function(d){
+   body.classList.remove('is-refreshing');
+   if(!d.entries.length)body.replaceChildren(empty('leads','ردیفی نیست','با شارژ یا تنظیم اعتبار، اینجا ثبت می‌شود.'));
+   else body.replaceChildren(el('div',{class:'stable'},[el('table',{},[el('thead',{},[el('tr',{},['تاریخ','مزون','مقدار','روش','مرجع','توسط','سقف بعد از تغییر'].map(function(t){return el('th',{text:t})}))]),el('tbody',{},d.entries.map(function(r){return el('tr',{},[el('td',{text:fmt(r.created_at)}),el('td',{text:r.name}),el('td',{text:(r.amount>0?'+':'')+fa(r.amount),dir:'ltr'}),el('td',{text:MTH_FA[r.method]||r.method}),el('td',{text:r.ref||'—'}),el('td',{text:r.by||'—'}),el('td',{text:fa(r.limit_after)})])}))])]));
+   var from=d.total?Q.offset+1:0,to=Math.min(d.total,Q.offset+Q.limit);
+   pager.replaceChildren(el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'قبلی',disabled:Q.offset<=0,onclick:function(){Q.offset=Math.max(0,Q.offset-Q.limit);load()}}),h('span',fa(from)+' تا '+fa(to)+' از '+fa(d.total)),el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'بعدی',disabled:to>=d.total,onclick:function(){Q.offset+=Q.limit;load()}}));
+  }).catch(function(e){body.classList.remove('is-refreshing');body.replaceChildren(h('p',e.message,'empty-note'))});
+ }
+ function change(){Q.salon=sel.value;Q.method=mth.value;Q.from=per.value?String(Date.now()-Number(per.value)*86400000):'';Q.offset=0;load()}
+ [sel,mth,per].forEach(function(x){x.addEventListener('change',change)});qi.addEventListener('input',function(){clearTimeout(qt);qt=setTimeout(function(){Q.q=qi.value.trim();Q.offset=0;load()},300)});
+ box.append(el('div',{class:'tools'},[qi,sel,mth,per,csv]),body,pager);load();return box;
+}
 function pendingCard(){
- var box=el('section',{class:'card'},[h('h2','درخواست‌های ثبت‌نام مزون'),h('p','مزون‌دارهایی که ثبت‌نام کرده‌اند و منتظر تأیید شما هستند. با تأیید، زیردامنه ساخته می‌شود، پنل مدیریت باز می‌شود و برای مدیر پیامک و پیام ربات می‌رود.','lead')]),body=el('div',{class:'stack'});box.hidden=true;box.append(body);
+ var box=el('section',{class:'card'},[h('h2','درخواست‌های ثبت‌نام مزون'),h('p','مدیرهای مزون که ثبت‌نام کرده‌اند و منتظر تأیید شما هستند. با تأیید، زیردامنه ساخته می‌شود، پنل مدیریت باز می‌شود و برای مدیر پیامک و پیام ربات می‌رود.','lead')]),body=el('div',{class:'stack'});box.hidden=true;box.append(body);
  function report(a,r){
   var n=r.notified||{},bits=[];
   bits.push((n.bot&&n.bot.length)?'پیام ربات ('+n.bot.join('، ')+') فرستاده شد':'ربات مدیر وصل نیست؛ پیام ربات نرفت');
@@ -468,13 +568,13 @@ function home(){return api('/api/owner').then(function(d){
   var prev=el('span',{class:'hint slug-preview'});si.closest('.field').append(prev);
   function show(){var v=si.value;prev.textContent=v?'صفحهٔ مشتری: '+location.host+'/s/'+v:''}
   si.addEventListener('input',function(){var c=si.value.toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9-]/g,'').replace(/-+/g,'-');if(c!==si.value)si.value=c;show()});show()})();
- $('#app').replaceChildren(head,pendingCard(),tabsView([['مزون‌ها',[el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[list,create]),el('div',{class:'stack'},[accountsCard()])])]],['آمار',[dashboard(d.salons)]],['هشدار و ربات',[alertsCard(d),botCard(d.bot)]],['سرویس‌ها',[smsCard(d.sms||{}),imageCard(d.image)]]],'admin')) ;
+ $('#app').replaceChildren(head,pendingCard(),tabsView([['مزون‌ها',[el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[list,create]),el('div',{class:'stack'},[accountsCard()])])]],['آمار',[dashboard(d.salons)]],['اعتبار',[weightsCard(),ledgerCard(d.salons)]],['هشدار و ربات',[alertsCard(d),botCard(d.bot)]],['سرویس‌ها',[smsCard(d.sms||{}),imageCard(d.image)]]],'admin')) ;
 })}
 function smsCard(sms){
  var st=function(ok,on,off){return el('li',{class:ok?'on':'off'},[el('span',{class:'dot',html:ok?IC.check:IC.dash}),h('span',ok?on:off)])};
- return el('section',{class:'card'},[h('h2','پیامک (ملی پیامک)'),h('p','کد تأیید موبایل مشتری، و لینک مزون که مزون‌دار از ربات برای مشتری می‌فرستد.','lead'),el('ul',{class:'status'},[
+ return el('section',{class:'card'},[h('h2','پیامک (ملی پیامک)'),h('p','کد تأیید موبایل مشتری، و لینک مزون که مدیر مزون از ربات برای مشتری می‌فرستد.','lead'),el('ul',{class:'status'},[
   st(sms.otp,'کد تأیید فعال است؛ مشتری قبل از ساخت شبیه‌سازی شمارهٔ خودش را تأیید می‌کند.','MELIPAYAMAK_TOKEN تنظیم نشده؛ تأیید شمارهٔ مشتری خاموش است.'),
-  st(sms.invite,'پیامک لینک مزون از ربات فعال است.','MELIPAYAMAK_BODY_ID تنظیم نشده (شمارهٔ متن پیش‌فرض تأییدشده)؛ مزون‌دار هنوز نمی‌تواند لینک را پیامک کند.')
+  st(sms.invite,'پیامک لینک مزون از ربات فعال است.','MELIPAYAMAK_BODY_ID تنظیم نشده (شمارهٔ متن پیش‌فرض تأییدشده)؛ مدیر مزون هنوز نمی‌تواند لینک را پیامک کند.')
  ])]);
 }
 function imageCard(on){return el('section',{class:'card'},[h('h2','شبیه‌سازی تصویر'),el('ul',{class:'status'},[el('li',{class:on?'on':'off'},[el('span',{class:'dot',html:on?IC.check:IC.dash}),h('span',on?'کلید KIE تنظیم شده؛ مشتری‌ها می‌توانند مدل را روی عکس خودشان ببینند.':'KIE_API_KEY تنظیم نشده؛ مشتری فقط عکس و مدل را برای مزون می‌فرستد.')])])])}
@@ -529,7 +629,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  });
  var nName=el('input',{id:'t-name',type:'text',maxlength:'60',placeholder:'مثلاً مریم محمدی'}),nSpec=el('select',{id:'t-spec'},(d.specialties||[]).map(function(x){return el('option',{value:x,text:x})}));
  var addOut=el('div');
- var teamC=el('section',{class:'card'},[h('h2','تیم مزون'),h('p','هر مزون‌دار ربات را با گفتگوی خودش وصل می‌کند و یک لینک اختصاصی همیشگی می‌گیرد. هر کس با لینک او بیاید و هر کس که او لینک را برایش بفرستد، مشتری همان مزون‌دار می‌شود و درخواستش فقط به خود او می‌رسد. مدیر مزون هم می‌تواند در ربات با /team نیرو اضافه کند.','lead'),
+ var teamC=el('section',{class:'card'},[h('h2','تیم مزون'),h('p','هر مدیر مزون ربات را با گفتگوی خودش وصل می‌کند و یک لینک اختصاصی همیشگی می‌گیرد. هر کس با لینک او بیاید و هر کس که او لینک را برایش بفرستد، مشتری همان مدیر مزون می‌شود و درخواستش فقط به خود او می‌رسد. مدیر مزون هم می‌تواند در ربات با /team نیرو اضافه کند.','lead'),
   (d.team||[]).length?teamList:h('p','هنوز نیرویی اضافه نشده.','empty-note'),
   el('div',{class:'team__add'},[el('label',{class:'field'},[el('span',{class:'lbl',text:'اسم نیرو'}),nName]),el('label',{class:'field'},[el('span',{class:'lbl',text:'تخصص'}),nSpec]),el('button',{class:'btn btn--primary',type:'button',text:'افزودن',onclick:act(function(){return api('/api/s/'+slug+'/owner/team',{name:nName.value,specialty:nSpec.value}).then(function(r){var L=r.links||{};return salonPage().then(function(){toast(r.member.name+' اضافه شد؛ لینک‌هایش را از «لینک‌ها» بفرستید.')})})})})]),addOut]);
 
@@ -537,13 +637,13 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  var prof=el('section',{class:'card'},[h('h2','دربارهٔ مزون'),h('p','همهٔ این‌ها اختیاری است جز نام.','lead'),
   el('div',{class:'uploads'},[uploadBox('up-logo','لوگو',p.logo,function(id){images.logo=id}),uploadBox('up-cover','عکس کاور',p.cover,function(id){images.cover=id}),uploadBox('up-portrait','عکس مدیر',p.portrait,function(id){images.portrait=id})]),
   field('f-name','نام مزون',S.name),field('f-bio','معرفی کوتاه',p.bio,'area'),
-  el('div',{class:'two'},[field('f-manager','نام مدیر یا مزون‌دار',p.manager),field('f-hours','ساعات کاری',p.hours,'text','مثل شنبه تا پنج‌شنبه ۱۰ تا ۲۰'),field('f-phone','شمارهٔ تماس',p.phone?p.phone.replace(/^\+98/,'0'):'','tel'),field('f-address','آدرس',p.address)]),
+  el('div',{class:'two'},[field('f-manager','نام مدیر مزون',p.manager),field('f-hours','ساعات کاری',p.hours,'text','مثل شنبه تا پنج‌شنبه ۱۰ تا ۲۰'),field('f-phone','شمارهٔ تماس',p.phone?p.phone.replace(/^\+98/,'0'):'','tel'),field('f-address','آدرس',p.address)]),
   el('div',{class:'two'},[field('f-map','لینک نقشه',p.map,'url'),field('f-instagram','لینک اینستاگرام',p.instagram,'url'),field('f-telegram','لینک کانال یا آیدی تلگرام',p.telegram,'url'),field('f-website','وب‌سایت',p.website,'url')]),
   el('button',{class:'btn btn--primary',type:'button',text:'ذخیره',onclick:act(function(){var out={};['bio','manager','hours','phone','address','map','instagram','telegram','website'].forEach(function(k){out[k]=$('#f-'+k).value.trim()});if(out.telegram&&!/^https?:/.test(out.telegram))out.telegram='https://t.me/'+out.telegram.replace(/^@/,'');if(out.instagram&&!/^https?:/.test(out.instagram))out.instagram='https://instagram.com/'+out.instagram.replace(/^@/,'');Object.assign(out,images);return api('/api/s/'+slug+'/owner/profile',{name:$('#f-name').value,profile:out}).then(function(){toast('ذخیره شد.')})})})]);
 
  // Settings
  var model=el('select',{id:'s-model'},[el('option',{value:'pro',text:'بهترین کیفیت (Nano Banana Pro)'}),el('option',{value:'fast',text:'سریع‌تر و ارزان‌تر (Nano Banana 2.1)'})]);model.value=S.settings.image_model==='fast'?'fast':'pro';
- var set=el('section',{class:'card'},[h('h2','شبیه‌سازی'),el('label',{class:'field'},[el('span',{class:'lbl',text:'مدل ساخت تصویر'}),model,el('span',{class:'hint',text:'Pro طبیعی‌تر است و چهره را بهتر نگه می‌دارد، ولی هر تصویر حدود دو برابر هزینه دارد.'})]),check('s-gen','مشتری بتواند مدل را روی عکس خودش ببیند'+(d.image?'':' (کلید KIE هنوز تنظیم نشده)'),S.settings.generation_enabled),check('s-cat','نمایش لباس‌های نمونهٔ آماده به مشتری (پیش‌فرض خاموش: فقط لباس‌های خود مزون)',S.settings.catalog),check('s-own','مشتری بتواند عکس لباس دلخواه خودش را بارگذاری کند',S.settings.allow_own_dress),check('s-ref','انتقال از «عکس مدل من» و نمونه‌کارها آزمایش شده و کیفیتش تأیید شده است',S.settings.reference_verified),el('label',{class:'field'},[el('span',{class:'lbl',text:'سقف تصویر روزانهٔ این مزون'}),el('input',{id:'s-cap',type:'number',min:'0',step:'1',inputmode:'numeric',value:String(Number.isInteger(S.settings.daily_limit)?S.settings.daily_limit:50)}),el('span',{class:'hint',text:'جمع تصویرهایی که همهٔ مشتری‌ها در یک روز می‌سازند. ۰ یعنی بدون سقف. هر نفر جدا از این، در هر بخش ۳ تصویر دارد.'})]),el('label',{class:'field'},[el('span',{class:'lbl',text:'پاک شدن خودکار عکس مشتری‌ها (روز)'}),el('input',{id:'s-keep',type:'number',min:'0',max:'3650',step:'1',inputmode:'numeric',value:String(Number.isInteger(S.settings.retention_days)?S.settings.retention_days:30)}),el('span',{class:'hint',text:'عکس و نتیجه‌ای که مشتری برای مزون نفرستاده بعد از این تعداد روز پاک می‌شود. عکس درخواست‌ها تا بسته شدن درخواست و این تعداد روز بعدش می‌ماند. ۰ یعنی هیچ‌وقت پاک نشود.'})]),el('button',{class:'btn btn--ghost',type:'button',text:'ذخیرهٔ تنظیمات',onclick:act(function(){return api('/api/s/'+slug+'/owner/settings',{daily_limit:(function(v){return isNaN(v)?50:Math.max(0,v)})(parseInt($('#s-cap').value,10)),generation_enabled:$('#s-gen').checked,reference_verified:$('#s-ref').checked,catalog:$('#s-cat').checked,allow_own_dress:$('#s-own').checked,image_model:$('#s-model').value,retention_days:(function(v){return isNaN(v)?30:Math.max(0,v)})(parseInt($('#s-keep').value,10))}).then(function(){toast('تنظیمات ذخیره شد.')})})})]);
+ var set=el('section',{class:'card'},[h('h2','شبیه‌سازی'),el('label',{class:'field'},[el('span',{class:'lbl',text:'مدل ساخت تصویر'}),model,el('span',{class:'hint',text:'Pro طبیعی‌تر است و چهره را بهتر نگه می‌دارد، ولی هر تصویر حدود دو برابر هزینه دارد.'})]),check('s-gen','مشتری بتواند مدل را روی عکس خودش ببیند'+(d.image?'':' (کلید KIE هنوز تنظیم نشده)'),S.settings.generation_enabled),check('s-cat','نمایش لباس‌های نمونهٔ آماده به مشتری (پیش‌فرض خاموش: فقط لباس‌های خود مزون)',S.settings.catalog),check('s-own','مشتری بتواند عکس لباس دلخواه خودش را بارگذاری کند',S.settings.allow_own_dress),check('s-ref','انتقال از «عکس مدل من» و نمونه‌کارها آزمایش شده و کیفیتش تأیید شده است',S.settings.reference_verified),el('label',{class:'field'},[el('span',{class:'lbl',text:'سقف تصویر روزانهٔ این مزون'}),el('input',{id:'s-cap',type:'number',min:'0',step:'1',inputmode:'numeric',value:String(Number.isInteger(S.settings.daily_limit)?S.settings.daily_limit:50)}),el('span',{class:'hint',text:'جمع تصویرهایی که همهٔ مشتری‌ها در یک روز می‌سازند. ۰ یعنی بدون سقف. هر نفر جدا از این، در هر بخش ۳ تصویر دارد.'})]),(function(){var f=field('s-quota','تعداد امتحان هر عروس در هر بخش',String(S.settings.quota_per_line||4),'number','عددی بین ۱ تا ۲۰؛ پیش‌فرض ۴.');var i=f.querySelector('input');i.min='1';i.max='20';return f})(),el('label',{class:'field'},[el('span',{class:'lbl',text:'پاک شدن خودکار عکس مشتری‌ها (روز)'}),el('input',{id:'s-keep',type:'number',min:'0',max:'3650',step:'1',inputmode:'numeric',value:String(Number.isInteger(S.settings.retention_days)?S.settings.retention_days:30)}),el('span',{class:'hint',text:'عکس و نتیجه‌ای که مشتری برای مزون نفرستاده بعد از این تعداد روز پاک می‌شود. عکس درخواست‌ها تا بسته شدن درخواست و این تعداد روز بعدش می‌ماند. ۰ یعنی هیچ‌وقت پاک نشود.'})]),el('button',{class:'btn btn--ghost',type:'button',text:'ذخیرهٔ تنظیمات',onclick:act(function(){return api('/api/s/'+slug+'/owner/settings',{daily_limit:(function(v){return isNaN(v)?50:Math.max(0,v)})(parseInt($('#s-cap').value,10)),generation_enabled:$('#s-gen').checked,reference_verified:$('#s-ref').checked,catalog:$('#s-cat').checked,allow_own_dress:$('#s-own').checked,image_model:$('#s-model').value,quota_per_line:(function(v){return v>=1&&v<=20?v:4})(parseInt($('#s-quota').value,10)),retention_days:(function(v){return isNaN(v)?30:Math.max(0,v)})(parseInt($('#s-keep').value,10))}).then(function(){toast('تنظیمات ذخیره شد.')})})})]);
 
  // Portfolio
  var ports=el('div',{class:'ports'});
@@ -591,7 +691,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  }
  var cl=MGR?checklistCard():null;
  function tabs(defs){return tabsView(defs,slug)}
- var defs=MGR?[['نمای کلی',[cl,dashboard([{slug:MGR,name:S.name}]),share,mgrCredits()]],['درخواست‌ها',[leads]],['نمونه‌کارها',[port,social]],['مشخصات مزون',[prof]],['تیم',[teamC]],['ارتباط با مشتری',[tg,smsC]]]
+ var defs=MGR?[['نمای کلی',[cl,dashboard([{slug:MGR,name:S.name}]),share,mgrCredits()]],['درخواست‌ها',[leads]],['نمونه‌کارها',[port,social]],['مشخصات مزون',[prof]],['تیم',[teamC]],['ارتباط با مشتری',[tg,smsC]],['تنظیمات',[quotaCard(S),passwordCard(),rotateCard()]]]
   :[['نمای کلی',[share]],['درخواست‌ها',[leads]],['نمونه‌کارها',[port,social]],['مشخصات مزون',[prof]],['تیم',[teamC]],['ارتباط با مشتری',[tg,smsC]],['تنظیمات',[set]]];
  if(MGR)dashState.salon=MGR;
  $('#app').replaceChildren(head,tabs(defs));
