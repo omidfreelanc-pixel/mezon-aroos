@@ -1157,8 +1157,7 @@ function stepResult(){
  if(state.result){
   box.append(compareBlock());
   box.append(el('div',{class:'result-actions'},[
-   el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openViews,html:ICO.views+'<span>نمای سه‌زاویه</span>'}),
-   el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openSpin,html:ICO.rot360+'<span>چرخش ۳۶۰</span>'}),
+   el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openViews,html:ICO.views+'<span>زوایای دیگر</span>'}),
    el('button',{class:'btn btn--primary btn--sm',type:'button',onclick:openQR,html:ICO.phone+'<span>ارسال برای خودم</span>'}),
    el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){state.result=null;state.gen=null;state.idem=null;state.error='';state.busy=false;go(2)},text:'یک لباس دیگر'})
   ]));
@@ -1402,11 +1401,11 @@ function openViews(){
  if(!state.gen)return;
  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
  // The three angles come from one generated row: front 3/4, side profile and back of the dress.
- var ANG=['سه‌رخ جلو','نیم‌رخ','پشت لباس'],N=3;
+ var ANG=['روبه‌رو','نیم‌رخ راست','پشت لباس','نیم‌رخ چپ'],N=4;
  var panel=el('div',{class:'sheet__panel spin-panel'});
  panel.append(el('div',{class:'sheet__head'},[h('h2','از همهٔ زاویه‌ها'),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
  var a=el('div',{class:'spin__layer'}),b=el('div',{class:'spin__layer'});
- var stage=el('div',{class:'spin',tabindex:'0',role:'img','aria-label':'نمای سه‌زاویهٔ لباس؛ برای چرخاندن بکش، برای زوم دو انگشت یا دوبار لمس'},[a,b]);
+ var stage=el('div',{class:'spin',tabindex:'0',role:'img','aria-label':'زوایای لباس؛ برای چرخاندن بکش، برای زوم دو انگشت یا دوبار لمس'},[a,b]);
  var tip=el('p',{class:'spin__tip',text:'دارم زاویه‌های لباس را می‌سازم… معمولاً ۲ تا ۳ دقیقه طول می‌کشد.'}),bar=el('span',{class:'spin__bar'});
  var loading=el('div',{class:'spin__loading'},[el('div',{class:'spin__orbit'},[el('img',{src:media(state.result),alt:''})]),el('span',{class:'spin__ring'}),tip,el('span',{class:'spin__track'},[bar])]);
  stage.append(loading);
@@ -1418,7 +1417,7 @@ function openViews(){
  panel.append(el('div',{class:'mirror spin-wrap'},[stage]),controls,h('p','برای چرخاندن بکش؛ برای زوم دو انگشتی یا دوبار لمس. نیم‌رخ و پشت لباس تخمینی‌اند و اسکن سه‌بعدی نیست؛ طرح دقیق لباس را با مزون هماهنگ کن.','tiny muted spin__note'));
  openSheet(panel);
  var frame=0,front=a,timer=null,spinTimer=null,tipTimer=null,progTimer=null,src='';
- function paint(layer,n){layer.style.backgroundImage='url('+src+')';layer.style.backgroundSize='300% 100%';layer.style.backgroundPosition=(n*50)+'% 0'}
+ function paint(layer,n){layer.style.backgroundImage='url('+src+')';layer.style.backgroundSize=(N*100)+'% 100%';layer.style.backgroundPosition=(n*100/(N-1))+'% 0'}
  function show(n,instant){
   frame=(n%N+N)%N;var back=front===a?b:a;paint(back,frame);
   if(instant||reduce){paint(front,frame)}else{back.classList.add('is-on');front.classList.remove('is-on');front=back}
@@ -1447,24 +1446,38 @@ function openViews(){
   (function coast(now){var dt=now-last;last=now;acc+=v*dt/56;v*=Math.pow(0.992,dt);if(Math.abs(acc)>=1){var s=acc>0?1:-1;show(frame+s);acc-=s}if(Math.abs(v)>0.05&&panel.isConnected)timer=requestAnimationFrame(coast)})(last)}
  stage.addEventListener('pointerup',release);stage.addEventListener('pointercancel',release);
  stage.addEventListener('keydown',function(e){if(!src)return;if(e.key==='ArrowLeft'){auto(false);show(frame+1)}if(e.key==='ArrowRight'){auto(false);show(frame-1)}if(e.key===' '){e.preventDefault();auto(!spinTimer)}});
- function ready(id){
-  src=media(id);
+ // The front is her own finished photo; the other three are separate full-quality images (face and dress locked).
+ // They are laid side by side on one canvas so the viewer can turn and zoom with no waiting between angles.
+ function compose(ids){
+  var urls=[media(state.result)].concat(ids.map(media));
+  return Promise.all(urls.map(function(u){return new Promise(function(res,rej){var im=new Image();im.onload=function(){res(im)};im.onerror=function(){rej(new Error('x'))};im.src=u})})).then(function(ims){
+   var r0=ims[0].naturalWidth/ims[0].naturalHeight,H=Math.min(1400,ims[0].naturalHeight),W=Math.round(H*r0),c=document.createElement('canvas');c.width=W*N;c.height=H;var x=c.getContext('2d');
+   ims.forEach(function(im,i){x.drawImage(im,i*W,0,W,H)});
+   stage.style.aspectRatio=W+'/'+H;
+   return new Promise(function(res){c.toBlob(function(b){res(URL.createObjectURL(b))},'image/jpeg',0.92)});
+  });
+ }
+ function ready(ids){
+  compose(ids).then(function(u){src=u;go()}).catch(function(){cleanup();tip.textContent='نمایش زاویه‌ها ممکن نشد؛ دوباره امتحان کن.'});
+ }
+ function go(){
   thumbs.replaceChildren();for(var i=0;i<N;i++)(function(n){var t=el('button',{class:'spin__thumb',type:'button','aria-label':ANG[n]});paint(t,n);t.addEventListener('click',function(){auto(false);show(n)});thumbs.append(t)})(i);
   clearInterval(tipTimer);clearInterval(progTimer);bar.style.width='100%';
   stage.classList.add('is-ready');a.classList.add('is-on');controls.hidden=false;
   setTimeout(function(){loading.remove()},reduce?0:350);
   show(0,true);auto(true);
  }
- var tips=['دارم نمای سه‌رخ را می‌سازم…','نیم‌رخ لباس…','پشت لباس و دنباله…','هماهنگ‌کردن نور و رنگ لباس…','سه زاویه با هم ساخته می‌شوند؛ ۲ تا ۳ دقیقه صبر کن…'],ti=0,started=Date.now();
+ var tips=['دارم نیم‌رخ راست را می‌سازم…','پشت لباس و دنباله…','نیم‌رخ چپ…','هماهنگ‌کردن نور و رنگ لباس…','سه زاویه با هم ساخته می‌شوند؛ ۲ تا ۳ دقیقه صبر کن…'],ti=0,started=Date.now();
  tipTimer=setInterval(function(){if(!panel.isConnected){cleanup();return}tip.textContent=tips[ti++%tips.length]},2400);
  progTimer=setInterval(function(){bar.style.width=Math.round(3+92*(1-Math.exp(-(Date.now()-started)/70000)))+'%'},400);
- if(state.views&&state.views.gen===state.gen){ready(state.views.id);return}
- if(quotaLeft()===0){cleanup();tip.textContent='سهم امتحان «لباس عروس» برای شما تمام شد؛ نمای سه‌زاویه هم یک تصویر از همین سهم است.';return}
+ if(state.views&&state.views.gen===state.gen&&state.views.ids){ready(state.views.ids);return}
+ if(quotaLeft()===0){cleanup();tip.textContent='سهم امتحان «لباس عروس» برای شما تمام شد؛ زوایای دیگر هم از همین سهم حساب می‌شود.';return}
  api('views',{v:VISITOR,parent:state.gen,idem:state.viewsIdem||(state.viewsIdem=uuid())}).then(function(job){
-  spentQuota();var tries=0;
-  function check(){if(!panel.isConnected)return;return api('generation/'+job.id).then(function(d){
-   if(d.state==='success'){state.views={gen:state.gen,id:d.result_id};state.viewsIdem=null;ready(d.result_id);return}
-   if(d.state==='fail'||d.state==='unknown'||++tries>90){cleanup();tip.textContent='ساخت زاویه‌ها ممکن نشد؛ کمی بعد دوباره امتحان کن.';state.viewsIdem=null;return}
+  spentQuota();var tries=0,ids=job.ids||[job.id];
+  function check(){if(!panel.isConnected)return;return Promise.all(ids.map(function(i){return api('generation/'+i)})).then(function(ds){
+   var done=ds.filter(function(d){return d.state==='success'&&d.result_id});
+   if(done.length===ids.length){var out=done.map(function(d){return d.result_id});state.views={gen:state.gen,ids:out};state.viewsIdem=null;ready(out);return}
+   if(ds.some(function(d){return d.state==='fail'||d.state==='unknown'})||++tries>90){cleanup();tip.textContent='ساخت زاویه‌ها ممکن نشد؛ کمی بعد دوباره امتحان کن.';state.viewsIdem=null;return}
    return sleep(3000).then(check);
   })}
   return check();
@@ -1970,9 +1983,6 @@ function qrSvg(text){
  var d=Math.round(W*0.2),x=Math.round((W-d)/2),u=media(logo);
  return svg.replace('</svg>','<circle cx="'+W/2+'" cy="'+W/2+'" r="'+(d/2+6)+'" fill="#fff"/><image href="'+u+'" xlink:href="'+u+'" x="'+x+'" y="'+x+'" width="'+d+'" height="'+d+'" preserveAspectRatio="xMidYMid slice" clip-path="inset(0 round '+d/2+'px)"/></svg>');
 }
-function shareVideo(job,btn){
- btn.disabled=true;ensureSession().then(function(){return api('result-link',{v:VISITOR,gen:job})}).then(function(d){btn.disabled=false;if(navigator.share)return navigator.share({title:'لباس عروس من',url:d.url}).catch(function(){});if(navigator.clipboard)return navigator.clipboard.writeText(d.url).then(function(){toast('لینک کپی شد؛ ۲۴ ساعت معتبر است')});toast(d.url)}).catch(function(e){btn.disabled=false;toast(e.message||'ساخت لینک ممکن نشد','error')});
-}
 function openQR(job,what){
  if(!state.gen&&!job){toast('اول نتیجه را بساز');return}
  var panel=el('div',{class:'sheet__panel'});
@@ -2134,83 +2144,6 @@ function welcomeFlow(opts){
  }
 }
 /* ---------- true 360: a short turntable video of the bride in the dress; drag to turn it, pinch / double-tap to zoom ---------- */
-function openSpin(){
- if(!state.gen)return;
- track('view360','video');
- var panel=el('div',{class:'sheet__panel spin-panel'});
- panel.append(el('div',{class:'sheet__head'},[h('h2','چرخش ۳۶۰ درجه'),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
- var body=el('div',{class:'vspin'});panel.append(body);openSheet(panel);
- body.append(el('div',{class:'vspin__wait'},[el('img',{src:media(state.result),alt:''}),h('p','دارم ویدیوی چرخشی را می‌سازم… معمولاً ۱ تا ۳ دقیقه طول می‌کشد؛ این پنجره را باز نگه دار.','spin__tip')]));
- var gen=state.gen;
- function show(id,job,part2){
-  // The video is decoded ONCE into still frames (seeking a compressed video while dragging stutters and can go blank),
-  // then the bride drags/turns through those frames on a canvas: smooth, exact, and zoom works on a still image.
-  var parts=part2?[id,part2]:[id],per=part2?32:48,N=per*parts.length,frames=[],f=0,playing=true,last=0,done=0;
-  var bar=el('i'),wait=el('div',{class:'vspin__wait'},[el('img',{src:media(state.result),alt:''}),h('p','دارم ویدیو را برای چرخاندن آماده می‌کنم…','spin__tip'),el('span',{class:'upl__bar'},[bar])]);
-  body.replaceChildren(wait);
-  var size={W:0,H:0};
-  function decode(pid){
-   return fetch(media(pid)).then(function(r){if(!r.ok)throw new Error('x');return r.blob()}).then(function(b){
-    var v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';v.src=URL.createObjectURL(b);
-    return new Promise(function(res,rej){v.onloadeddata=function(){res(v)};v.onerror=function(){rej(new Error('x'))}});
-   }).then(function(v){
-    var W=Math.min(v.videoWidth,part2?540:720),H=Math.round(W*v.videoHeight/v.videoWidth),dur=v.duration||5,i=0;size={W:W,H:H};
-    function next(){
-     if(i>=per)return Promise.resolve();
-     return new Promise(function(res){var fin=false;function ok(){if(fin)return;fin=true;v.removeEventListener('seeked',ok);res()}v.addEventListener('seeked',ok);v.currentTime=Math.min(dur-0.04,i*dur/per);setTimeout(ok,1500)}).then(function(){var c=document.createElement('canvas');c.width=W;c.height=H;c.getContext('2d').drawImage(v,0,0,W,H);frames.push(c);i++;done++;bar.style.width=Math.round(done/N*100)+'%';return next()});
-    }
-    return next().then(function(){URL.revokeObjectURL(v.src)});
-   });
-  }
-  parts.reduce(function(p,pid){return p.then(function(){return decode(pid)})},Promise.resolve()).then(function(){return size}).then(function(d){
-   var cv=el('canvas',{width:d.W,height:d.H}),cx=cv.getContext('2d');
-   var stage=el('div',{class:'vspin__stage',dir:'ltr'},[cv]);
-   var play=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'⏸ توقف'});
-   var zin=el('button',{class:'btn btn--ghost btn--sm',type:'button','aria-label':'نزدیک‌تر',text:'＋ زوم'}),zout=el('button',{class:'btn btn--ghost btn--sm',type:'button','aria-label':'دورتر',text:'－ زوم'});
-   var lft=el('button',{class:'btn btn--ghost btn--sm',type:'button','aria-label':'چرخش به چپ',text:'◀'}),rgt=el('button',{class:'btn btn--ghost btn--sm',type:'button','aria-label':'چرخش به راست',text:'▶'});
-   var save=el('a',{class:'btn btn--ghost btn--sm',href:media(id),download:'lebas-aroos.mp4',text:'ذخیره ویدیو'});
-   var send=el('button',{class:'btn btn--primary btn--sm',type:'button',html:ICO.phone+'<span>ارسال برای خودم</span>'});
-   send.addEventListener('click',function(){openQR(job,'ویدیو')});
-   body.replaceChildren(stage,el('div',{class:'spin__row'},[lft,play,rgt,zout,zin]),el('div',{class:'spin__row'},[send]),h('p','برای چرخاندن بکش؛ برای زوم دو انگشتی بزن، دوبار لمس کن یا دکمهٔ زوم را بزن.','spin__tip'));
-   var z=1,tx=0,ty=0,pts={},pd=0,idx=-1;
-   function draw(){var k;if(part2){k=((Math.round(f)%N)+N)%N}else{var m=2*N-2,q=((Math.round(f)%m)+m)%m;k=q<N?q:m-q}if(k!==idx){idx=k;cx.drawImage(frames[k],0,0,d.W,d.H)}}
-   function lim(){var w=stage.clientWidth,hh=stage.clientHeight;return [(z-1)*w/2,(z-1)*hh/2]}
-   function apply(){var l=lim();tx=Math.max(-l[0],Math.min(l[0],tx));ty=Math.max(-l[1],Math.min(l[1],ty));cv.style.transform='translate('+tx+'px,'+ty+'px) scale('+z+')'}
-   function zoom(k){z=Math.max(1,Math.min(4,z*k));if(z<1.02){z=1;tx=0;ty=0}apply()}
-   function setPlay(on){playing=on;play.textContent=on?'⏸ توقف':'▶ پخش'}
-   function tick(ts){if(!panel.isConnected)return;if(playing){f+=(ts-(last||ts))/1000*(N/(part2?8:5))*0.9}last=ts;draw();requestAnimationFrame(tick)}
-   play.addEventListener('click',function(){setPlay(!playing)});
-   zin.addEventListener('click',function(){zoom(1.4)});zout.addEventListener('click',function(){zoom(1/1.4)});
-   lft.addEventListener('click',function(){setPlay(false);f-=2});rgt.addEventListener('click',function(){setPlay(false);f+=2});
-   function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
-   stage.addEventListener('pointerdown',function(e){try{stage.setPointerCapture(e.pointerId)}catch(x){}pts[e.pointerId]={x:e.clientX,y:e.clientY};var k=Object.keys(pts);if(k.length===2)pd=dist(pts[k[0]],pts[k[1]]);setPlay(false)});
-   stage.addEventListener('pointermove',function(e){
-    var p=pts[e.pointerId];if(!p)return;var k=Object.keys(pts);
-    if(k.length===2){pts[e.pointerId]={x:e.clientX,y:e.clientY};var nd=dist(pts[k[0]],pts[k[1]]);if(pd>0)zoom(nd/pd);pd=nd;return}
-    var dx=e.clientX-p.x,dy=e.clientY-p.y;pts[e.pointerId]={x:e.clientX,y:e.clientY};
-    if(z>1.02){tx+=dx;ty+=dy;apply()}else{f-=dx/stage.clientWidth*N*0.8}
-   });
-   ['pointerup','pointercancel'].forEach(function(ev){stage.addEventListener(ev,function(e){delete pts[e.pointerId];pd=0})});
-   stage.addEventListener('dblclick',function(){z=z>1.1?1:2.4;tx=0;ty=0;apply()});
-   stage.addEventListener('wheel',function(e){e.preventDefault();zoom(e.deltaY<0?1.12:0.89)},{passive:false});
-   requestAnimationFrame(tick);
-  }).catch(function(){body.replaceChildren(notice('danger','آماده‌سازی ویدیو ممکن نشد. دوباره امتحان کن.'))});
- }
- if(state.spin&&state.spin.gen===gen&&state.spin.id){show(state.spin.id,state.spin.job,state.spin.part2);return}
- ensureSession().then(function(){
-  if(!state.spinIdem||state.spinIdem.gen!==gen)state.spinIdem={gen:gen,id:uuid()};
-  return api('spin',{v:VISITOR,parent:gen,idem:state.spinIdem.id});
- }).then(function(job){
-  (function check(){
-   if(!panel.isConnected)return;
-   api('generation/'+job.id).then(function(d){
-    if(d.state==='success'&&d.result_id){state.spin={gen:gen,id:d.result_id,job:job.id,part2:d.part2};show(d.result_id,job.id,d.part2);return}
-    if(d.state==='fail'||d.state==='unknown'){state.spinIdem=null;body.replaceChildren(notice('danger','ساخت ویدیو انجام نشد. دوباره امتحان کن.'));return}
-    setTimeout(check,4000);
-   }).catch(function(){setTimeout(check,6000)});
-  })();
- }).catch(function(e){body.replaceChildren(e&&e.status===402?noImageCard(e.message):notice('danger',(e&&e.message)||'ساخت ویدیو ممکن نشد'))});
-}
 // Big preview of every angle of one dress; the customer looks first, then chooses it to try on.
 var ANGLE_NAMES=['جلو','کنار','پشت','جزئیات'];
 function openDress(p,imgs,pick){

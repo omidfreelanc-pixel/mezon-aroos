@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync,readdirSync} from 'node:fs';
 import {database,memoryBucket} from '../scripts/local-adapter.mjs';import app from '../worker/index.js';
-import {phone} from '../worker/domain.js';import {appHTML} from '../worker/ui.js';import {customerHTML} from '../worker/customer.js';import {tick,VIEWS_PROMPT} from '../worker/server.js';
+import {phone} from '../worker/domain.js';import {appHTML} from '../worker/ui.js';import {customerHTML} from '../worker/customer.js';import {tick,ANGLE_PROMPTS} from '../worker/server.js';
 
 const origin='https://test.example';
 const migrations=readdirSync(new URL('../drizzle/',import.meta.url)).filter(f=>f.endsWith('.sql')).sort();
@@ -173,7 +173,7 @@ test('salon can pick the faster model; a rejected model falls back once, network
  globalThis.fetch=async(url,opts)=>{const u=String(url);if(u.includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/x.jpg'}});if(u.includes('createTask')){const m=JSON.parse(opts.body).model;models.push(m);if(mode==='network')throw new Error('reset');if(mode==='reject'&&m!=='nano-banana-2')return Response.json({code:422,msg:'model not available'});return Response.json({code:200,data:{taskId:'t'+models.length}})}return new Response(png())};
  try{
   await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,image_model:'fast'},OWNER);
-  assert.equal((await call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:1},g)).status,200);assert.equal(models.at(-1),'nano-banana-2-1');
+  assert.equal((await call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:1},g)).status,200);assert.equal(models.at(-1),'nano-banana-2','normal model by default, 12 credits at 2K');
   await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,image_model:'pro'},OWNER);mode='reject';models=[];
   assert.equal((await call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:1},g)).status,200);assert.deepEqual(models,['nano-banana-pro','nano-banana-2']);
   mode='network';models=[];
@@ -636,12 +636,10 @@ test('mezon: one dress line, 15 ready-made dresses, prompts lock body size and i
  assert.equal(linePrompt('hair','catalog','x'),'','no other service lines exist');
 });
 
-test('mezon: the three-angle prompt is about the dress, not about hair',()=>{
- assert.match(VIEWS_PROMPT,/SAME bride[\s\S]*SAME dress/);assert.match(VIEWS_PROMPT,/3 equal tiles side by side in one row/);
- assert.match(VIEWS_PROMPT,/tile 1 = front 3\/4[\s\S]*tile 2 = exact side profile[\s\S]*tile 3 = back view[\s\S]*train/);
- assert.match(VIEWS_PROMPT,/plain light background/);assert.match(VIEWS_PROMPT,/body size and proportions/);
- assert(!/haircut|hair consultation|back of her head/i.test(VIEWS_PROMPT));
- assert.match(customerHTML,/نمای سه‌زاویه/);assert(!/مدل مو|رنگ مو|ناخن|مژه/.test(customerHTML+appHTML),'no salon wording on the pages');
+test('mezon: the other-angle prompts lock face and dress and are about the dress, not hair',()=>{
+ for(const k of ['side','back','left']){const p=ANGLE_PROMPTS[k];assert.match(p,/SAME bride/);assert.match(p,/Image 2 = her original photo[\s\S]*real face/);assert.match(p,/never invent lace/);assert.match(p,/same body size and proportions/);assert(!/haircut|hair consultation/i.test(p))}
+ assert.match(ANGLE_PROMPTS.side,/RIGHT side profile/);assert.match(ANGLE_PROMPTS.back,/BEHIND/);assert.match(ANGLE_PROMPTS.left,/LEFT side profile/);
+ assert.match(customerHTML,/زوایای دیگر/);assert(!/مدل مو|رنگ مو|ناخن|مژه/.test(customerHTML+appHTML),'no salon wording on the pages');
 });
 
 test('mezon: landing is public and the customer page is dress-only (limits temporarily off)',async()=>{
@@ -892,7 +890,7 @@ test('a bride messages the bot from the boutique link: photo in, personal link o
 
 test('360: turntable video is requested from the result, stored as mp4 and served with byte ranges',async()=>{
  const e=fixture(),s=await salon(e),g=await guest(e,s);e.KIE_API_KEY='mock';
- await call(e,'/api/s/'+s.slug+'/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true},OWNER);
+ await call(e,'/api/s/'+s.slug+'/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true,video_enabled:true},OWNER);
  const original=await upload(e,s,g),v='ab'.repeat(16);
  const sid=e.DB.sql.prepare('SELECT session_id FROM media WHERE id=?').get(original).session_id,salonId=e.DB.sql.prepare('SELECT salon_id FROM media WHERE id=?').get(original).salon_id;
  const base=crypto.randomUUID(),now=Date.now();
@@ -1377,4 +1375,24 @@ test('owner settings save only touches the keys sent; accounts return per-filter
  for(const k of ['all','pending','approved','trial','low','exhausted','nobot'])assert.equal(typeof l.data.counts[k],'number',k);
  assert.equal(l.data.counts.all,l.data.accounts.length);assert.equal(l.data.counts.approved,l.data.accounts.filter(a=>a.approved).length);
  const f=await call(e,'/api/owner/accounts?filter=pending',undefined,OWNER);assert.equal(f.data.counts.all,l.data.counts.all,'counts ignore the active filter');
+});
+
+test('other angles: one click makes side, back and left as three separate images on the normal model, with her original photo for the face',async()=>{
+ const e=fixture(),s=await salon(e),g=await guest(e,s);e.KIE_API_KEY='mock';
+ await call(e,'/api/s/'+s.slug+'/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true},OWNER);
+ const original=await upload(e,s,g),v='cd'.repeat(16),base=crypto.randomUUID(),now=Date.now();
+ const sid=e.DB.sql.prepare('SELECT session_id FROM media WHERE id=?').get(original).session_id,salonId=e.DB.sql.prepare('SELECT salon_id FROM media WHERE id=?').get(original).salon_id;
+ e.DB.sql.prepare("INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,result_id,created_at,updated_at,line,opts) VALUES(?,?,?,?,'single','success',?,?,?,?,'dress','{}')").run(base,salonId,sid,crypto.randomUUID(),original,original,now,now);
+ const previous=globalThis.fetch,tasks=[];
+ globalThis.fetch=async(url,init)=>{url=String(url);
+  if(url.includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/in'+tasks.length+'.jpg'}});
+  if(url.includes('createTask')){const b=JSON.parse(init.body);tasks.push(b);return Response.json({code:200,data:{taskId:'t'+tasks.length}})}
+  return new Response(png())};
+ try{
+  const r=await call(e,'/api/s/'+s.slug+'/views',{v,parent:base,idem:crypto.randomUUID()},g);assert.equal(r.status,200);assert.equal(r.data.ids.length,3);
+  assert.equal(tasks.length,3);assert.deepEqual(tasks.map(x=>x.model),['nano-banana-2','nano-banana-2','nano-banana-2']);
+  assert.match(tasks[0].input.prompt,/RIGHT side profile/);assert.match(tasks[1].input.prompt,/BEHIND/);assert.match(tasks[2].input.prompt,/LEFT side profile/);
+  assert.equal(tasks[1].input.image_input.length,2,'her result + her original photo');assert.equal(tasks[1].input.resolution,'2K');
+  const v2=await call(e,'/api/s/'+s.slug+'/spin',{v,parent:base,idem:crypto.randomUUID()},g);assert.equal(v2.status,403,'video is off by default');
+ }finally{globalThis.fetch=previous}
 });
