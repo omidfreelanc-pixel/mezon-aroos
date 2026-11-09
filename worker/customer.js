@@ -3,7 +3,7 @@ import {QR_JS} from './qr.js';
 import {PHOTO_CHECK_JS} from './pairing.js';
 const lineJSON=(line,list)=>({styles:list.map(x=>[x[0],x[1],x[2]]),filters:LINE_FILTERS[line]});
 const LINES_JSON=JSON.stringify({label:LINE_LABEL,photo:{dress:LINE_PHOTO.dress},dress:lineJSON('dress',DRESS_STYLES)});
-import {baseCSS,markSVG} from './design.js';
+import {baseCSS,markSVG,illos} from './design.js';
 
 const customerCSS=String.raw`
 /* ---------- hero: full-width cover, logo on its edge, the name on one line ---------- */
@@ -129,7 +129,7 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 @media (prefers-reduced-motion:reduce){.upl__scan,.upl__bar i,.photo__badge{animation:none}.photo__auto i{animation:none;width:100%}}
 
 .collapse{border-top:1px solid var(--line-2);padding-top:12px;font-size:13px;color:var(--muted)}
-.collapse summary{cursor:pointer;font-weight:600;color:var(--ink-2);list-style:none;display:flex;align-items:center;gap:7px}
+.collapse summary{min-height:44px;cursor:pointer;font-weight:600;color:var(--ink-2);list-style:none;display:flex;align-items:center;gap:7px}
 .collapse summary::-webkit-details-marker{display:none}
 .collapse summary svg{width:17px;height:17px;color:var(--accent)}
 .collapse p{margin-top:8px;line-height:1.95}
@@ -169,7 +169,7 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .summary b{display:block;font-size:14px;color:var(--ink)}
 .stage{width:min(100%,360px);margin:18px auto 0}
 .stage .mirror__glass{aspect-ratio:3/4;display:grid;place-items:center}
-.stage__empty{position:relative;z-index:1;color:var(--muted);font-size:13px;text-align:center;padding:24px;max-width:22ch;line-height:1.9}
+.stage__empty svg{width:96px;height:auto;display:block;margin:0 auto 6px;opacity:.9}.stage__empty{position:relative;z-index:1;color:var(--muted);font-size:13px;text-align:center;padding:24px;max-width:22ch;line-height:1.9}
 .compare-wrap{width:min(100%,400px);margin:18px auto 0}
 .compare{position:relative;aspect-ratio:3/4;overflow:hidden;border-radius:999px 999px calc(var(--r) - 5px) calc(var(--r) - 5px);background:var(--glass-2);touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:ew-resize;direction:ltr}
 .compare img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}
@@ -192,7 +192,7 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .rate-line{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line-2)}
 .rating{display:flex;gap:4px}
 .social{margin-top:16px;display:grid;gap:12px}.soc-card{border:1px solid var(--line-2);border-radius:18px;padding:14px;background:var(--surface,#fff);display:grid;gap:10px}.soc-card p{margin:0;font-size:14px;line-height:1.95}.soc-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.soc-stat{font-size:13px;color:var(--muted)}.soc-c{border-top:1px dashed var(--line-2);padding-top:8px;font-size:14px;line-height:1.9;overflow-wrap:anywhere}.soc-c b{display:block;font-size:12.5px;color:var(--muted)}
-.rating button{width:42px;height:42px;border-radius:50%;border:0;background:transparent;font-size:22px;color:#c3ccc8;transition:color .14s var(--ease),transform .14s var(--ease)}
+.rating button svg{width:26px;height:26px;margin:auto}.rating button{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;border:0;background:transparent;color:#c3ccc8;transition:color .14s var(--ease),transform .14s var(--ease)}
 .rating button:hover{transform:scale(1.1)}
 .rating button.is-on{color:var(--honey)}
 .result-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px}
@@ -231,7 +231,7 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 
 
 .hero__tools{display:flex;gap:8px;align-items:center}
-.help-btn{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-weight:700;font-size:17px;display:grid;place-items:center}
+.help-btn{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-weight:700;font-size:17px;display:grid;place-items:center}
 .help-btn:hover{border-color:#b3c0bb}
 /* tour */
 .tour{position:fixed;inset:0;z-index:100;animation:tourIn .25s var(--ease)}
@@ -286,7 +286,7 @@ body.is-touring{overflow:hidden}
 .mine{padding:16px 18px;box-shadow:inset 0 3px 0 var(--accent),var(--lift)}
 .mine--booked{box-shadow:inset 0 3px 0 var(--ok),var(--lift)}.mine--declined{box-shadow:inset 0 3px 0 var(--honey),var(--lift)}
 .mine__head{display:flex;gap:12px;align-items:center}
-.mine__icon{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--glass);font-size:20px;flex:none}
+.mine__icon{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--glass);color:var(--accent-ink);flex:none}.mine__icon svg{width:22px;height:22px}.ic-inline{display:flex;align-items:center;gap:7px}.ic-inline svg{width:17px;height:17px;flex:none}.soc-stat.ic-inline{gap:5px}.soc-stat.ic-inline span+svg{margin-inline-start:8px}.rev__bad.ic-inline svg,.rev__warn.ic-inline svg{margin-top:0}
 .mine__head b{display:block;font-size:15px}
 .mine__meta{font-size:12.5px;color:var(--muted)}
 .mine__steps{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);position:relative}
@@ -316,10 +316,11 @@ body.is-touring{overflow:hidden}
 .kqrs{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;align-items:center;margin:10px 0}.kqrs p{flex-basis:100%;margin:0;font-size:15px}.kqr{display:grid;gap:6px;justify-items:center;font-weight:700}.kqr .qr__code{width:150px}
 .rev{display:grid;gap:12px;justify-items:center;padding:4px 4px 14px}.rev__img{max-height:38vh;max-width:70%;border-radius:12px;box-shadow:var(--lift)}.rev__list{display:grid;gap:8px;width:100%}.rev__bad,.rev__warn{border-radius:12px;padding:10px 14px;font-size:15px;line-height:1.7}.rev__bad{background:#fde8e8;color:#8a1c1c}.rev__warn{background:#fff3d6;color:#6b4a00}.rev__btns{display:grid;gap:8px;width:100%}.pairsteps{margin:0 0 12px;padding:0 22px;font-size:15px;color:var(--muted,#6a5d60);line-height:1.9}
 .qr{display:grid;justify-items:center;gap:14px;padding:6px 4px 14px}.qr__code{width:min(100%,300px);background:#fff;border-radius:16px;padding:10px;box-shadow:var(--lift)}.qr__code svg{display:block;width:100%;height:auto}.qr__note{text-align:center;font-size:13.5px;color:var(--ink-2);line-height:1.9;margin:0}
+.offline-bar{position:fixed;inset-inline:12px;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:96;display:flex;gap:8px;align-items:center;max-width:520px;margin:auto;padding:11px 16px;border-radius:14px;background:#6e1f2b;color:#fff;font-size:13.5px;box-shadow:0 18px 40px -20px rgba(0,0,0,.5)}.offline-bar[hidden]{display:none}
 .kiosk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}.kiosk img{-webkit-user-drag:none}
 .kiosk .btn{min-height:56px;font-size:17px}
 .kov{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#f6f4f1;padding:20px}.kov__card{width:min(92vw,520px);text-align:center;display:grid;gap:14px}.kov__card h1{font-size:30px;margin:0}.kov__card h2{margin:0}.kov__card p{margin:0;line-height:1.9}.kov__fine{font-size:13px;color:var(--muted)}
-.kend{position:fixed;left:12px;top:12px;z-index:900;border:0;border-radius:999px;padding:10px 16px;background:rgba(35,23,15,.82);color:#fff;font:inherit;font-size:14px}
+.kend{position:fixed;left:12px;bottom:calc(var(--safe-b) + 12px);z-index:900;border:0;border-radius:999px;min-height:48px;padding:0 20px;background:var(--ink);color:#fff;font:inherit;font-size:14px;font-weight:600;box-shadow:var(--float)}.kend:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 6px var(--ink)}
 .kcam .btn--ghost{color:#fff;border-color:rgba(255,255,255,.6)}.kcam{background:#111;color:#fff;grid-template-rows:1fr auto}.kcam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}.kcam__guide{position:absolute;inset:6% 0 18%;display:grid;place-items:center;pointer-events:none}.kcam__guide svg{height:100%}.kcam__count{position:absolute;inset:0;display:grid;place-items:center;font-size:140px;font-weight:700;text-shadow:0 4px 24px rgba(0,0,0,.6);pointer-events:none}.kcam__tip{position:absolute;top:14px;left:0;right:0;text-align:center;font-size:15px;text-shadow:0 2px 10px rgba(0,0,0,.7)}.kcam__btns{position:absolute;bottom:18px;left:0;right:0;display:flex;gap:12px;justify-content:center}
 /* ---------- professional camera screen: dimmed room, an arched frame with a soft bridal silhouette, a ring countdown ---------- */
 .kcam{background:#0b1c1c}.kcam video{filter:saturate(1.02)}
@@ -408,7 +409,7 @@ body.is-touring{overflow:hidden}
 .spin__thumb.is-on{border-color:var(--accent);opacity:1}
 .spin__note{text-align:center;margin-top:10px}
 .layout--solo{grid-template-columns:minmax(0,1fr)!important;max-width:760px;margin:0 auto}
-.about-btn{display:inline-flex;align-items:center;gap:7px;min-height:42px;padding:0 15px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;font-size:13.5px}
+.about-btn{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 15px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;font-size:13.5px}
 .about-btn:hover{border-color:#b3c0bb}
 .about-btn svg{width:18px;height:18px;color:var(--accent)}
 .hero__tag{margin-top:6px;font-size:14.5px;line-height:1.9;color:var(--ink-2);max-width:52ch}
@@ -443,7 +444,7 @@ body.is-touring{overflow:hidden}
 .how li::before{content:counter(how,persian);width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:#fff;font-size:12px;font-weight:700;margin-top:1px}
 .sent{display:grid;justify-items:center;gap:12px;text-align:center;padding:10px 0 4px}
 .sent__mark{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--ok-soft);color:var(--ok)}
-.sent__mark svg{width:32px;height:32px}
+.sent__mark svg{width:32px;height:32px}.sent__mark--anim{width:auto;height:auto;background:none}.sent__mark--anim svg{width:84px;height:84px}
 .sent h2{font-family:var(--display);font-weight:800;font-size:24px}
 .sent p{color:var(--ink-2);line-height:1.95;max-width:40ch}
 .fatal{display:grid;gap:14px;justify-items:start;padding:28px;margin:40px auto;max-width:460px}
@@ -495,7 +496,7 @@ img[loading="lazy"].is-in{opacity:1}
 .fx{position:absolute;width:64px;height:64px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))}
 .build__pct{position:absolute;inset-inline:0;bottom:14px;display:flex;justify-content:center;align-items:baseline;gap:2px;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.45)}
 .build__pct b{font-family:var(--display);font-weight:800;font-size:40px;line-height:1}.build__pct span{font-size:20px;font-weight:700}
-.build__spark{position:absolute;color:#ffe9b8;font-size:18px;animation:twinkle 1.8s ease-in-out infinite;text-shadow:0 0 10px rgba(255,220,150,.9)}
+.build__noimg{position:absolute;inset:0;display:grid;place-items:center}.build__spark{position:absolute;color:#ffe9b8;font-size:18px;animation:twinkle 1.8s ease-in-out infinite;text-shadow:0 0 10px rgba(255,220,150,.9)}
 .build__spark--1{top:14%;inset-inline-start:16%}.build__spark--2{top:38%;inset-inline-end:12%;animation-delay:.6s;font-size:14px}.build__spark--3{top:62%;inset-inline-start:22%;animation-delay:1.2s;font-size:22px}
 @keyframes twinkle{0%,100%{opacity:0;transform:scale(.4) rotate(0)}50%{opacity:1;transform:scale(1) rotate(25deg)}}
 /* a bottle bobbing and a wand gliding */
@@ -523,6 +524,7 @@ const clientJS=String.raw`
 var LINES=__LINES__;
 var MARK=__MARK__;
 var SLUG=window.__SLUG||location.pathname.split('/').filter(Boolean)[1]||'';
+var ILLO=__ILLO__;
 var ICO={
  camera:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.2a2 2 0 0 0 1.7-.9l.6-1a2 2 0 0 1 1.7-.9h2.6a2 2 0 0 1 1.7.9l.6 1a2 2 0 0 0 1.7.9h1.2A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg>',
  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4.5" y="10" width="15" height="10" rx="2.6"/><path d="M8.5 10V7.8a3.5 3.5 0 0 1 7 0V10"/></svg>',
@@ -533,6 +535,10 @@ var ICO={
  instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17" cy="7" r="1"/></svg>',
  globe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.6 5.4 3.6 8.5S14.4 18.1 12 20.5c-2.4-2.4-3.6-5.4-3.6-8.5S9.6 5.9 12 3.5z"/></svg>',
  send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4 3.5 10.6l6.3 2.6 2.6 6.3z"/><path d="M20 4l-7.6 15.5"/></svg>',
+ star:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.5l6-.8z"/></svg>',
+ chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 3.5V17A2.5 2.5 0 0 1 4 14.5z"/></svg>',
+ ban:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></svg>',
+ hand:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12h7"/></svg>',
  spark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 16.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>',
  download:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7.5 11 4.5 4.5L16.5 11"/><path d="M4.5 19.5h15"/></svg>',
  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>',
@@ -703,7 +709,7 @@ function renderSteps(){
   if(k)list.append(el('span',{class:'steps__line'+(state.step>=n?' is-done':''),'aria-hidden':'true'}));
   var cls='steps__item'+(state.step===n?' is-active':'')+(state.step>n?' is-done':'');
   var b=el('button',{class:cls,type:'button',role:'listitem','aria-current':state.step===n?'step':'false'},[
-   el('span',{class:'steps__num',html:state.step>n?'✓':fa(n)}),
+   el('span',{class:'steps__num',html:state.step>n?ICO.check:fa(n)}),
    el('span',{class:'steps__label',text:x[0]})
   ]);
   b.addEventListener('click',function(){go(n)});
@@ -854,7 +860,7 @@ function stepModel(){
  if(tabs.length>1)box.append(seg);
  if(state.tab==='salon'){
   var items=(state.pub.portfolio||[]).filter(function(p){return (p.published||p.try_on)&&(p.line||'dress')==='dress'});
-  if(!items.length)box.append(notice('info',state.pub.catalog||state.pub.own_dress?'گالری این مزون هنوز لباسی ندارد. تا اضافه شدن لباس‌ها، از «'+TAB_LABEL.dress[1]+'» یا «'+TAB_LABEL.dress[2]+'» استفاده کن.':'گالری این مزون هنوز لباسی ندارد و به‌زودی پر می‌شود. می‌توانی از دکمهٔ «دربارهٔ مزون» با خود مزون در تماس باشی.'));
+  if(!items.length)box.append(el('div',{class:'empty'},[el('span',{html:ILLO.dresses}),h('b','گالری مزون هنوز لباسی ندارد'),h('p',state.pub.catalog||state.pub.own_dress?'تا اضافه شدن لباس‌ها، از «'+TAB_LABEL.dress[1]+'» یا «'+TAB_LABEL.dress[2]+'» استفاده کن.':'به‌زودی پر می‌شود. از دکمهٔ «دربارهٔ مزون» می‌توانی با خود مزون در تماس باشی.')]));
   else{
    // Same vertical grid as the ready-made looks.
    var grid0=el('div',{class:'looks looks--salon'});
@@ -978,7 +984,7 @@ function ratingBlock(){
  var stars=el('div',{class:'rating',role:'group','aria-label':'امتیاز به شباهت'});
  for(var i=1;i<=5;i++){
   (function(n){
-   var b=el('button',{class:'rating__star'+(state.rating>=n?' is-on':''),type:'button','aria-label':fa(n)+' از ۵','aria-pressed':state.rating>=n?'true':'false',text:'★'});
+   var b=el('button',{class:'rating__star'+(state.rating>=n?' is-on':''),type:'button','aria-label':fa(n)+' از ۵','aria-pressed':state.rating>=n?'true':'false',html:ICO.star});
    b.addEventListener('click',function(){state.rating=n;saveRating(n);renderFlow()});
    stars.append(b);
   })(i);
@@ -1002,18 +1008,18 @@ function socialBlock(){
      el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'نه، ممنون',onclick:function(){answer(false)}})
     ])
    ]));
-  }else if(S.consent===1){wrap.append(h('p','💛 ممنون! اجازهٔ انتشار این تصویر در سوشال «'+salon+'» ثبت شد.','soc-stat'))}
+  }else if(S.consent===1){wrap.append(h('p','ممنون! اجازهٔ انتشار این تصویر در سوشال «'+salon+'» ثبت شد.','soc-stat'))}
   var nm=el('input',{type:'text',maxlength:'40',placeholder:'اسمت (برای متن پست)',autocomplete:'given-name',value:S.name||''});
   nm.addEventListener('input',function(){S.name=nm.value});
   var card=el('div',{class:'soc-card'},[
    h('p','این تصویر را برای دوستان و خانواده بفرست؛ هر کس روی لینک بزند می‌تواند لایک کند و نظر بنویسد.'),
-   el('div',{class:'soc-row'},[nm,el('button',{class:'btn btn--soft btn--sm',type:'button',text:'📤 اشتراک‌گذاری',onclick:share})]),
-   h('div','❤️ '+fa(S.likes)+' · 💬 '+fa(S.comments.length),'soc-stat')
+   el('div',{class:'soc-row'},[nm,el('button',{class:'btn btn--soft btn--sm',type:'button',html:ICO.send+'<span>اشتراک‌گذاری</span>',onclick:share})]),
+   el('div',{class:'soc-stat ic-inline',html:ICO.heart+'<span>'+fa(S.likes)+'</span>'+ICO.chat+'<span>'+fa(S.comments.length)+'</span>'})
   ]);
   S.comments.forEach(function(c){card.append(el('div',{class:'soc-c'},[el('b',{text:c.name}),el('span',{text:c.body})]))});
   wrap.append(card);
  }
- function answer(yes){api('social',{gen:gen,consent:yes}).then(function(){S.consent=yes?1:2;paint();if(yes)toast('ممنون! ثبت شد 💛')}).catch(function(e){toast(e.message,'error')})}
+ function answer(yes){api('social',{gen:gen,consent:yes}).then(function(){S.consent=yes?1:2;paint();if(yes)toast('ممنون! ثبت شد')}).catch(function(e){toast(e.message,'error')})}
  function share(){
   api('share',{gen:gen,name:(S.name||'').trim()}).then(function(d){
    track('share_post','');
@@ -1071,10 +1077,10 @@ function buildNote(){var t=Date.now()-(state.genT0||Date.now());return t>85000?'
 function buildStage(){
  var B=BUILD,pct=buildPct(),src=state.original?media(state.original):'';
  var stage=el('div',{class:'stage mirror build',style:'--wash:#c9a14a'},[el('div',{class:'mirror__glass'},[
-  src?el('img',{class:'build__photo',src:src,alt:''}):null,
+  src?el('img',{class:'build__photo',src:src,alt:''}):el('span',{class:'build__noimg',html:ILLO.loader}),
   el('span',{class:'build__scan','aria-hidden':'true'}),
   el('div',{class:'build__fx',html:FX}),
-  el('span',{class:'build__spark build__spark--1','aria-hidden':'true',text:'✦'}),el('span',{class:'build__spark build__spark--2','aria-hidden':'true',text:'✦'}),el('span',{class:'build__spark build__spark--3','aria-hidden':'true',text:'✧'}),
+  el('span',{class:'build__spark build__spark--1','aria-hidden':'true',html:ICO.spark}),el('span',{class:'build__spark build__spark--2','aria-hidden':'true',html:ICO.spark}),el('span',{class:'build__spark build__spark--3','aria-hidden':'true',html:ICO.spark}),
   el('div',{class:'build__pct'},[el('b',{class:'build__num',text:fa(pct)}),el('span',{text:'٪'})])
  ])]);
  var at=Math.min(B.steps.length-1,Math.floor(pct/100*B.steps.length));
@@ -1155,7 +1161,7 @@ function stepResult(){
    box.append(el('div',{class:'flow__nav'},[!hasChoice()&&state.original?el('button',{class:'btn btn--ghost',type:'button',onclick:function(){go(2)},text:'انتخاب'}):null,sendButton()]));
    box.append(sendNote());
   }else{
-   box.append(el('div',{class:'stage mirror'},[el('div',{class:'mirror__glass'},[el('span',{class:'stage__empty',text:'نتیجه همین‌جا، در قاب آینه، ظاهر می‌شود'})])]));
+   box.append(el('div',{class:'stage mirror'},[el('div',{class:'mirror__glass'},[el('span',{class:'stage__empty',html:ILLO.results+'<span style="display:block">نتیجه همین‌جا، در قاب آینه، ظاهر می‌شود</span>'})])]));
    box.append(el('div',{class:'flow__nav'},[
     el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>'+(state.error?'تلاش دوباره':'بساز')+'</span>'}),
     el('button',{class:'btn btn--ghost',type:'button',onclick:openRequest,html:ICO.send+'<span>بدون شبیه‌سازی بفرست</span>'})
@@ -1232,7 +1238,7 @@ function precheck(file,use){
 function photoReview(src,r,use){
  var panel=el('div',{class:'sheet__panel'});
  panel.append(el('div',{class:'sheet__head'},[h('h2',r.hard.length?'این عکس مناسب نیست':'یک نکته دربارهٔ عکس'),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
- var list=el('div',{class:'rev__list'},r.hard.map(function(x){return el('div',{class:'rev__bad',text:'⛔ '+x})}).concat(r.soft.map(function(x){return el('div',{class:'rev__warn',text:'⚠️ '+x})})));
+ var list=el('div',{class:'rev__list'},r.hard.map(function(x){return (function(){var d=el('div',{class:'rev__bad ic-inline',html:ICO.ban});d.append(h('span',x));return d})()}).concat(r.soft.map(function(x){return (function(){var d=el('div',{class:'rev__warn ic-inline',html:ICO.warn});d.append(h('span',x));return d})()})));
  var btns=[el('button',{class:'btn btn--primary',type:'button',text:'عکس دیگر می‌گیرم',onclick:function(){closeSheet();pickNow()}})];
  if(!r.hard.length)btns.push(el('button',{class:'btn btn--ghost',type:'button',text:'با همین عکس ادامه بده',onclick:function(){closeSheet();use()}}));
  panel.append(el('div',{class:'rev'},[el('img',{src:src,alt:'',class:'rev__img'}),list,el('div',{class:'rev__btns'},btns)]));
@@ -1471,7 +1477,7 @@ function demoCompare(cls){
 }
 
 /* ---------- "your request" card: what the salon did with it ---------- */
-var MINE={new:['⏳','فرستاده شد؛ منتظر تماس مزون باش','sent'],called:['📞','مزون گفته با تو تماس گرفته','called'],booked:['🎉','نوبتت هماهنگ شد','booked'],declined:['✋','مزون گفت این مدل در مزون اجرا نمی‌شود','declined'],cancelled:['🚫','مزون درخواستت را بست','declined']};
+var MINE={new:[ICO.clock,'فرستاده شد؛ منتظر تماس مزون باش','sent'],called:[ICO.phone,'مزون گفته با تو تماس گرفته','called'],booked:[ICO.check,'نوبتت هماهنگ شد','booked'],declined:[ICO.hand,'مزون گفت این مدل در مزون اجرا نمی‌شود','declined'],cancelled:[ICO.ban,'مزون درخواستت را بست','declined']};
 function loadMine(){
  var flag=null;try{flag=localStorage.getItem('ayneh-sent-'+SLUG)}catch(e){}
  if(!flag&&!state.sentOnce)return;
@@ -1488,7 +1494,7 @@ function renderMine(d){
  if(r.salon_status==='declined'||r.salon_status==='cancelled')actions.append(el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:function(){go(state.original?2:1)},text:'امتحان یک مدل دیگر'}));
  if(!r.followed&&follow&&r.salon_status==='new'){if(follow.telegram)actions.append(el('a',{class:'btn btn--ghost btn--sm',href:follow.telegram,target:'_blank',rel:'noopener',onclick:function(){track('follow','telegram')},text:'خبرم کن در تلگرام'}));if(follow.bale)actions.append(el('a',{class:'btn btn--ghost btn--sm',href:follow.bale,target:'_blank',rel:'noopener',onclick:function(){track('follow','bale')},text:'خبرم کن در بله'}))}
  box.replaceChildren(el('div',{class:'panel mine mine--'+st[2]},[
-  el('div',{class:'mine__head'},[el('span',{class:'mine__icon','aria-hidden':'true',text:st[0]}),el('div',{},[h('b',late?'مزون هنوز جواب نداده':st[1]),h('span',(r.look?r.look+'، ':'')+fmt(r.created_at),'mine__meta')])]),
+  el('div',{class:'mine__head'},[el('span',{class:'mine__icon','aria-hidden':'true',html:st[0]}),el('div',{},[h('b',late?'مزون هنوز جواب نداده':st[1]),h('span',(r.look?r.look+'، ':'')+fmt(r.created_at),'mine__meta')])]),
   el('ol',{class:'mine__steps'},steps.map(function(t,i){return el('li',{class:i<reached?'is-on':''},[el('span',{}),el('b',{text:t})])})),
   late?h('p','معمولاً مزون‌ها در یکی دو روز تماس می‌گیرند. اگر عجله داری، مستقیم زنگ بزن.','mine__note'):null,
   actions.childNodes.length?actions:null
@@ -1735,7 +1741,7 @@ function openRequest(){
    if(follow.bale)fl.push(el('a',{class:'btn btn--soft btn--block',href:follow.bale,target:'_blank',rel:'noopener',onclick:function(){track('follow','bale')},html:ICO.send+'<span>خبرم کن در بله</span>'}));
    setTimeout(loadMine,600);
    panel.replaceChildren(el('div',{class:'sent'},[
-    el('span',{class:'sent__mark',html:ICO.check}),
+    el('span',{class:'sent__mark sent__mark--anim',html:ILLO.success}),
     h('h2',d.delivered?'برای مزون فرستاده شد':d.waiting?'درخواستت ثبت شد':'در صف ارسال است'),
     h('p',d.delivered?'«'+s.name+'» عکس و مدلت را در تلگرام دریافت کرد. منتظر تماس مزون'+(tg?' یا پیامش در تلگرام':'')+' باش.':(d.waiting?'درخواستت ذخیره شد و به‌زودی به دست مزون‌دارت در «'+s.name+'» می‌رسد. منتظر تماسش باش.':'تلگرام الان جواب نداد؛ درخواستت ذخیره شد و چند دقیقهٔ دیگر خودکار برای مزون فرستاده می‌شود.')),
     fl.length?el('div',{class:'sent__follow'},[h('p','می‌خواهی وقتی مزون جواب داد خبردار شوی؟ یک بار ربات را باز کن و Start بزن.','sent__hint')].concat(fl)):null,
@@ -1793,7 +1799,7 @@ function openWant(it){
    var tel=p.phone||'';
    setTimeout(loadMine,600);
    panel.replaceChildren.apply(panel,[el('div',{class:'sent'},[
-    el('span',{class:'sent__mark',html:ICO.check}),
+    el('span',{class:'sent__mark sent__mark--anim',html:ILLO.success}),
     h('h2',d.duplicate?'قبلاً ثبت شده بود':'درخواستت ثبت شد'),
     h('p',d.duplicate?'برای همین لباس درخواست بازِ تو پیش مزون است؛ دوباره نفرستادیم.':'«'+s.name+'» درخواست «'+(it.look||'این لباس')+'» را'+(d.delivered?' همین الان':'')+' دریافت کرد.')]),
     el('ol',{class:'how'},[
@@ -1842,7 +1848,7 @@ var SHARE_IC={
  more:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>'
 };
 function shareUrl(){return location.origin+'/s/'+SLUG+(state.tag?'?r='+state.tag:'')}
-function shareText(){return 'این رو ببین! توی صفحهٔ «'+state.pub.salon.name+'» می‌تونی لباس عروس دلخواهت رو روی عکس تمام‌قد خودت امتحان کنی؛ رایگان و بدون نصب 👇'}
+function shareText(){return 'این رو ببین! توی صفحهٔ «'+state.pub.salon.name+'» می‌تونی لباس عروس دلخواهت رو روی عکس تمام‌قد خودت امتحان کنی؛ رایگان و بدون نصب'}
 function renderInvite(){
  var box=$('#invite');if(!box||!state.pub)return;
  var pics=el('span',{class:'invite__pics','aria-hidden':'true'});
@@ -1940,6 +1946,8 @@ function openSaved(){
 
 /* ---------- sheet ---------- */
 /* ---------- QR to the bride's phone, and the boutique touch-screen (kiosk) mode (?kiosk=1) ---------- */
+/* offline banner */
+(function(){var bar=document.createElement('div');bar.className='offline-bar';bar.setAttribute('role','status');bar.hidden=navigator.onLine!==false;bar.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M3.5 9.5a12 12 0 0 1 17 0M7 13a7 7 0 0 1 10 0M10.4 16.4a2.4 2.4 0 0 1 3.2 0M4 4l16 16"/></svg><span>اینترنت قطع است؛ تا وصل‌شدن دوباره، دکمه‌ها کار نمی‌کنند.</span>';document.body.append(bar);function u(){bar.hidden=navigator.onLine}window.addEventListener('online',u);window.addEventListener('offline',u)})();
 var KIOSK=/[?&]kiosk=1(&|$)/.test(location.search);
 var DESK=KIOSK||!!(window.matchMedia&&matchMedia('(min-width:900px) and (hover:hover)').matches);
 function qrSvg(text){
@@ -2083,7 +2091,7 @@ function welcomeFlow(opts){
   function logo(){return P.logo?el('img',{class:'logo',src:media(P.logo),alt:''}):null}
   function stepName(){
    var nm=el('input',{type:'text',placeholder:'نام و نام خانوادگی',value:state.cname||'',autocomplete:'name'}),err=el('div',{class:'wl__err'}),go=el('button',{class:'btn btn--primary btn--lg',type:'button',text:'ادامه'});
-   card.replaceChildren(logo(),h('h2','به «'+name+'» خوش آمدی 🌸'),h('p','برای شروع، نام و نام خانوادگی‌ات را بنویس.'),nm,err,go);
+   card.replaceChildren(logo(),h('h2','به «'+name+'» خوش آمدی'),h('p','برای شروع، نام و نام خانوادگی‌ات را بنویس.'),nm,err,go);
    function next(){var v=nm.value.replace(/\s+/g,' ').trim();if(v.length<2){err.textContent='نام و نام خانوادگی را بنویس';return}stepPhone(v)}
    go.addEventListener('click',next);nm.addEventListener('keydown',function(e){if(e.key==='Enter')next()});setTimeout(function(){nm.focus()},200);
   }
@@ -2094,7 +2102,7 @@ function welcomeFlow(opts){
    go.addEventListener('click',next);ph.addEventListener('keydown',function(e){if(e.key==='Enter')next()});setTimeout(function(){ph.focus()},200);
   }
   function stepWelcome(first){
-   card.replaceChildren(logo(),el('div',{class:'wl__big',text:'سلام '+first+' جان 💍'}),h('h2','به «'+name+'» خیلی خوش اومدی'),h('p','صفحهٔ مزون برایت باز می‌شود…'));
+   card.replaceChildren(logo(),el('div',{class:'wl__big',text:'سلام '+first+' جان'}),h('h2','به «'+name+'» خیلی خوش اومدی'),h('p','صفحهٔ مزون برایت باز می‌شود…'));
    setTimeout(function(){ov.classList.add('is-out');setTimeout(function(){ov.remove();finish(false)},700)},2200);
   }
  }
@@ -2232,7 +2240,7 @@ export const customerHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><h
 <meta property="og:title" content="مزون آینه | لباس عروس را روی اندام خودت ببین">
 <meta property="og:description" content="لباس عروس را انتخاب کن، عکس تمام‌قدت را اضافه کن و نتیجه را برای بررسی به مزون بفرست.">
 <meta property="og:type" content="website">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest">
 <link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/estedad-arabic.woff2" as="font" type="font/woff2" crossorigin>
 <title>مزون آینه | لباس عروس را روی اندام خودت ببین</title>
@@ -2256,4 +2264,4 @@ export const customerHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><h
 <script>__JS__</script>
 </body></html>`
  .replace('__CSS__',()=>baseCSS+customerCSS)
- .replace('__JS__',()=>clientJS.replace('/*__QR__*/',()=>QR_JS).replace('/*__CHECK__*/',()=>PHOTO_CHECK_JS).replace('__LINES__',()=>LINES_JSON).replace('__MARK__',()=>JSON.stringify(markSVG)));
+ .replace('__JS__',()=>clientJS.replace('/*__QR__*/',()=>QR_JS).replace('/*__CHECK__*/',()=>PHOTO_CHECK_JS).replace('__LINES__',()=>LINES_JSON).replace('__MARK__',()=>JSON.stringify(markSVG)).replace('__ILLO__',()=>JSON.stringify(illos)));

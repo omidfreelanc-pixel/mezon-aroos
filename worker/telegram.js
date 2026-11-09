@@ -170,7 +170,7 @@ async function handle(req,env,p){
   // plain words and the owner is alerted.
   console.error(p+' webhook',e?.message);
   const why=e instanceof Problem?e.message:'یک مشکل پیش آمد و کار انجام نشد';
-  if(ctx.say)await ctx.say('⚠️ '+why+'. دوباره امتحان کنید؛ اگر باز نشد، به مدیر مزون آینه خبر بدهید.').catch(()=>{});
+  if(ctx.say)await ctx.say('⚠️ '+why+'. دوباره امتحان کنید؛ اگر باز نشد، به تیم مزون آینه خبر بدهید.').catch(()=>{});
   await notifyOwner(env,{salon:ctx.salon,kind:'error',level:'error',text:'خطای ربات'+(ctx.staff&&ctx.role==='staff'?' برای '+ctx.staff.name:'')+': '+String(e?.message||e).slice(0,200)});
   return J({ok:false});
  }
@@ -179,7 +179,7 @@ async function handle(req,env,p){
 async function strangerMessage(ctx){
  const l=await one(ctx.db,'SELECT l.salon_status,l.look,s.name AS salon_name,s.profile AS salon_profile FROM leads l JOIN salons s ON s.id=l.salon_id WHERE l.follow_chat=? AND l.follow_platform=? ORDER BY l.created_at DESC LIMIT 1',ctx.chat,ctx.p);
  if(l){const tel=parse(l.salon_profile).phone;await ctx.say('این ربات فقط وضعیت درخواستت را خبر می‌دهد و پیامت را به مزون نمی‌رساند.\n\nوضعیت درخواستت در «'+l.salon_name+'»'+(l.look?' ('+l.look+')':'')+': '+STATUS[l.salon_status||'new']+'.'+(tel?'\n📞 برای صحبت با مزون: '+local(tel):''));return}
- await ctx.say('این گفتگو به هیچ مزونی وصل نیست.\n• اگر مزون‌دار یا مدیر مزون هستید، لینک اتصال را از مدیر مزون آینه یا مدیر مزونتان بگیرید و باز کنید.\n• اگر مشتری هستید، از صفحهٔ مزون درخواست بفرستید و بعد «خبرم کن» را بزنید.');
+ await ctx.say('این گفتگو به هیچ مزونی وصل نیست.\n• اگر مزون‌دار یا مدیر مزون هستید، لینک اتصال را از تیم مزون آینه یا مدیر مزونتان بگیرید و باز کنید.\n• اگر مشتری هستید، از صفحهٔ مزون درخواست بفرستید و بعد «خبرم کن» را بزنید.');
 }
 const photoOf=m=>m.photo?.length?m.photo[m.photo.length-1]:(m.document&&/^image\/(jpeg|png|webp)$/.test(m.document.mime_type||'')?m.document:null);
 
@@ -188,7 +188,7 @@ async function onStart(ctx,arg){
  if(/^[a-f0-9]{24}$/.test(arg)){
   const salon=await one(db,'SELECT * FROM salons WHERE telegram_code_hash=? AND telegram_code_expires>?',await hash(arg),Date.now());
   if(!salon){const t=await one(db,'SELECT * FROM team WHERE invite_hash=? AND invite_expires>? AND active=1',await hash(arg),Date.now());if(t){await linkStaff(ctx,t);return}}
-  if(!salon){await ctx.say('این لینک اتصال منقضی یا قبلاً استفاده شده است. لینک تازه را از مدیر مزون آینه بگیرید.');return}
+  if(!salon){await ctx.say('این لینک اتصال منقضی یا قبلاً استفاده شده است. لینک تازه را از تیم مزون آینه بگیرید.');return}
   // A chat serves one salon; linking moves it.
   await run(db,'UPDATE salons SET '+P.col+'=NULL WHERE '+P.col+'=? AND id<>?',ctx.chat,salon.id);
   await run(db,'UPDATE salons SET '+P.col+'=?,telegram_code_hash=NULL,telegram_code_expires=NULL WHERE id=?',ctx.chat,salon.id);
@@ -463,7 +463,7 @@ async function consentCallback(ctx,q,data){
 }
 
 /* ---------- customer follow: she taps "خبرم کن" on the page and starts the bot ---------- */
-const STATUS={new:'هنوز منتظر تماس مزون',called:'مزون با شما تماس گرفته',booked:'نوبت هماهنگ شد',cancelled:'درخواست بسته شد',declined:'مزون گفت این مدل قابل اجرا نیست'};
+const STATUS={new:'هنوز منتظر تماس مزون',called:'مزون با شما تماس گرفته',booked:'نوبت هماهنگ شد',cancelled:'درخواست بسته شد',declined:'فعلاً امکان‌پذیر نیست؛ مزون با تو در تماس است'};
 async function follow(ctx,token){
  const lead=await one(ctx.db,'SELECT l.*,s.name AS salon_name FROM leads l JOIN salons s ON s.id=l.salon_id WHERE l.follow_hash=?',await hash(token));
  if(!lead){await ctx.say('این لینک پیگیری منقضی شده یا درست نیست.');return}
@@ -478,7 +478,7 @@ const customerText=(status,salon,origin)=>{const prof=parse(salon.profile),tel=p
  if(status==='called')return '📞 «'+salon.name+'» اعلام کرد که با شما تماس گرفته است. اگر تماسی نداشتید، خودتان زنگ بزنید.'+tel;
  if(status==='booked')return '✅ «'+salon.name+'» نوبت شما را هماهنگ کرد. منتظر دیدنتان هستند!';
  if(status==='cancelled')return '«'+salon.name+'» درخواستت را بست. اگر هنوز لباسی می‌خواهی، مدل دیگری را امتحان کن یا با مزون تماس بگیر'+(origin?':\n'+origin+'/s/'+salon.slug:'.')+tel;
- if(status==='declined')return '«'+salon.name+'» گفت مدلی که انتخاب کردید در مزون قابل اجرا نیست. می‌توانید مدل دیگری را امتحان کنید'+(origin?':\n'+origin+'/s/'+salon.slug:'.')+tel;
+ if(status==='declined')return '«'+salon.name+'»: درخواستت فعلاً امکان‌پذیر نیست؛ مزون با تو در تماس است. اگر خواستی می‌توانی مدل دیگری را هم امتحان کنی'+(origin?':\n'+origin+'/s/'+salon.slug:'.')+tel;
  return '⏳ «'+salon.name+'» هنوز درخواستت را جواب نداده. اگر عجله داری، مستقیم تماس بگیر.'+tel;
 };
 
@@ -570,7 +570,7 @@ async function shareInvites(ctx,numbers,member=null){
 async function sendInvites(env,db,salon,chat,numbers,say,member=null){
  // A member's text carries their own code, so whoever opens it becomes their customer.
  const slugArg=member?salon.slug+'?r='+member.ref_code:salon.slug;
- if(!inviteReady(env)){await say('ارسال پیامک برای مشتری هنوز فعال نشده است. از مدیر مزون آینه بخواهید فعالش کند.');return}
+ if(!inviteReady(env)){await say('ارسال پیامک برای مشتری هنوز فعال نشده است. از تیم مزون آینه بخواهید فعالش کند.');return}
  const lines=[];
  for(const n of numbers){
   const local=n.replace(/^\+98/,'0');

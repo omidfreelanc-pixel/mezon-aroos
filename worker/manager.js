@@ -1,6 +1,7 @@
 // Salon manager accounts: username + password chosen at registration, a signed cookie per salon subdomain,
 // and the salon's own subdomain (<label>.<main domain>), assigned when the project owner approves the account.
-import {must,Problem,limited} from './domain.js';
+import {must,Problem,limited,uid,hash,digits} from './domain.js';
+import {smsReady,sendOtp} from './sms.js';
 import {same} from './auth.js';
 
 const enc=new TextEncoder();
@@ -67,4 +68,53 @@ export async function managerLogin(req,env,db,salon,ip,secure){
  const given=await pwHash(pw,salon.mgr_salt);
  must(user===salon.mgr_user&&same(given,salon.mgr_hash),'نام کاربری یا رمز عبور نادرست است',401);
  return mgrCookie(env,salon.slug,secure,String(salon.mgr_hash||'').slice(0,12));
+}
+
+// ---- password change and reset ----
+const newSalt=()=>hex(crypto.getRandomValues(new Uint8Array(16)));
+async function storePassword(db,salon,password){
+ checkCreds(salon.mgr_user,password);const salt=newSalt(),h=await pwHash(password,salt);
+ await run(db,'UPDATE salons SET mgr_salt=?,mgr_hash=? WHERE id=?',salt,h,salon.id);
+ return {...salon,mgr_salt:salt,mgr_hash:h};
+}
+// Signed-in manager changes the password: the current one is required. Old cookies die (they carry a hash prefix),
+// the answer carries a fresh cookie. Returns the Set-Cookie value.
+export async function changePassword(req,env,db,salon,secure){
+ must(await mgrSlug(req,env,salon)===salon.slug,'برای تغییر رمز، اول وارد پنل شوید',401);
+ await limited(db,'mgrpw:'+salon.id,10,'تلاش‌های تغییر رمز زیاد شد؛ فردا دوباره امتحان کنید');
+ const b=await req.json().catch(()=>({})),cur=String(b.current||''),next=String(b.password||'');
+ must(same(await pwHash(cur,salon.mgr_salt),salon.mgr_hash),'رمز فعلی درست نیست',401);
+ must(next!==cur,'رمز تازه باید با رمز فعلی فرق داشته باشد');
+ const s2=await storePassword(db,salon,next);
+ return mgrCookie(env,s2.slug,secure,String(s2.mgr_hash).slice(0,12));
+}
+const maskPhone=p=>{const n='0'+String(p).replace(/^\+98/,'');return n.slice(0,4)+'•••'+n.slice(-4)};
+// Forgot password: a one-time code is texted to the mobile the salon registered with.
+export async function forgotPassword(env,db,salon,ip){
+ must(salon.mgr_user&&salon.mgr_hash,'برای این مزون حساب مدیر ساخته نشده است',404);
+ must(smsReady(env),'بازیابی رمز با پیامک هنوز فعال نشده است؛ با تیم مزون آینه تماس بگیرید',503);
+ const t=await one(db,'SELECT phone FROM trials WHERE salon_id=?',salon.id);
+ must(t?.phone,'شمارهٔ ثبت‌نام این مزون پیدا نشد؛ با تیم مزون آینه تماس بگیرید',404);
+ const key='mgrreset:'+salon.id,prev=await one(db,'SELECT created_at FROM otps WHERE session_id=? ORDER BY created_at DESC LIMIT 1',key);
+ must(!prev||Date.now()-prev.created_at>=60000,'برای گرفتن دوبارهٔ کد یک دقیقه صبر کنید',429);
+ await limited(db,'mgrforgot:'+salon.id,3,'امروز چند بار کد بازیابی گرفته شده؛ فردا دوباره امتحان کنید');
+ await limited(db,'mgrforgot-ip:'+ip,10,'از این شبکه چند بار کد بازیابی خواسته شده؛ فردا دوباره امتحان کنید');
+ const code=await sendOtp(env,t.phone),id=uid(),now=Date.now();
+ await run(db,'DELETE FROM otps WHERE session_id=?',key);
+ await run(db,'INSERT INTO otps(id,session_id,phone,first_name,last_name,code_hash,expires_at,created_at) VALUES(?,?,?,?,?,?,?,?)',id,key,t.phone,'','',await hash(id+':'+code),now+10*60000,now);
+ return {ok:true,phone_hint:maskPhone(t.phone),expires_in:600,resend_in:60};
+}
+// Reset with the texted code and a new password. Returns a Set-Cookie value for an approved salon, else ''.
+export async function resetPassword(req,env,db,salon,ip,secure){
+ await limited(db,'mgrreset-ip:'+ip,20,'تلاش‌ها زیاد شد؛ فردا دوباره امتحان کنید');
+ const b=await req.json().catch(()=>({})),given=digits(String(b.code||'')).replace(/\s/g,''),key='mgrreset:'+salon.id;
+ must(/^\d{3,12}$/.test(given),'کد پیامک‌شده را درست وارد کنید');
+ const o=await one(db,'SELECT * FROM otps WHERE session_id=? ORDER BY created_at DESC LIMIT 1',key);
+ must(o,'اول کد بازیابی بگیرید');must(o.expires_at>Date.now(),'کد منقضی شده؛ کد تازه بگیرید',410);
+ const spent=await run(db,'UPDATE otps SET attempts=attempts+1 WHERE id=? AND attempts<5',o.id);
+ must(spent.meta.changes,'تعداد تلاش‌ها تمام شد؛ کد تازه بگیرید',429);
+ must(same(await hash(o.id+':'+given),o.code_hash),'کد درست نیست');
+ const s2=await storePassword(db,salon,String(b.password||''));
+ await run(db,'DELETE FROM otps WHERE session_id=?',key);
+ return salon.approved?await mgrCookie(env,s2.slug,secure,String(s2.mgr_hash).slice(0,12)):'';
 }

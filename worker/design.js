@@ -67,7 +67,7 @@ img{display:block;max-width:100%}
 .btn--danger{background:transparent;color:var(--danger);border-color:#e6c3c8}
 .btn--danger:hover{background:var(--danger-soft)}
 .btn--block{width:100%}
-.btn--sm{min-height:40px;padding:0 14px;font-size:13px;border-radius:12px}
+.btn--sm{min-height:44px;padding:0 14px;font-size:13px;border-radius:12px}
 .btn[disabled]{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
 
 .panel{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--lift)}
@@ -115,16 +115,43 @@ img{display:block;max-width:100%}
 @media(min-width:700px){.sheet{margin:auto}.sheet__panel{border-radius:var(--r-lg);padding:26px}.sheet__panel::before{display:none}}
 .sheet__head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
 .sheet__head h2{font-family:var(--display);font-weight:800;font-size:22px}
-.sheet__x{width:40px;height:40px;border:0;border-radius:50%;background:var(--glass);font-size:22px;line-height:1;color:var(--ink-2);flex:none}
+.sheet__x{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:50%;background:var(--glass);font-size:22px;line-height:1;color:var(--ink-2);flex:none}
 .sheet__x:hover{background:var(--glass-2)}
 
 .toast{position:fixed;inset-inline:16px;bottom:calc(var(--safe-b) + 100px);z-index:95;margin:auto;max-width:520px;background:var(--ink);color:#fff;padding:14px 18px;border-radius:16px;font-size:14px;box-shadow:var(--float);opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .2s var(--ease),transform .2s var(--ease)}
 .toast.is-on{opacity:1;transform:none}
 .toast.is-error{background:#6e1f2b}
 
+/* --- empty states, loader, success --- */
+.empty{display:grid;justify-items:center;gap:6px;text-align:center;padding:22px 12px 18px;color:var(--muted)}
+.empty svg{width:140px;height:auto;max-width:60%;margin-bottom:6px}
+.empty b{font-family:var(--display);font-weight:800;font-size:16.5px;color:var(--ink)}
+.empty p{font-size:13.5px;line-height:1.9;max-width:34ch}
+.draw-check{width:84px;height:84px;display:block;margin:0 auto}
+.draw-check circle{fill:var(--ok-soft);transform-origin:center;animation:pop .45s var(--ease) both}
+.draw-check path{fill:none;stroke:var(--ok);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:50;stroke-dashoffset:50;animation:draw .5s .25s var(--ease) forwards}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+@keyframes draw{to{stroke-dashoffset:0}}
+.loader-illo{width:150px;height:auto;display:block;margin:0 auto}
+.loader-illo .sweep{animation:sweep 2.2s ease-in-out infinite;transform-origin:center}
+@keyframes sweep{0%,100%{opacity:.15;transform:translateX(-14px)}50%{opacity:.7;transform:translateX(14px)}}
+@media (prefers-reduced-motion:reduce){.draw-check path{stroke-dashoffset:0}.loader-illo .sweep{animation:none;opacity:.4}}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 `;
 
 // Brand mark: an arched fitting mirror with a small gown outline in the glass.
 export const markSVG='<svg viewBox="0 0 32 40" fill="none" aria-hidden="true"><path d="M4 38V16a12 12 0 0 1 24 0v22z" fill="#0c6b6b"/><path d="M8 34V16.5a8 8 0 0 1 16 0V34z" fill="#e8edeb"/><path d="M14.5 17.5 16 14l1.5 3.5-1.2 4L21.5 33h-11l5.2-11.5z" stroke="#23170f" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 export const favicon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40"><path d="M4 38V16a12 12 0 0 1 24 0v22z" fill="#0c6b6b"/><path d="M8 34V16.5a8 8 0 0 1 16 0V34z" fill="#e8edeb"/><path d="M14.5 17.5 16 14l1.5 3.5-1.2 4L21.5 33h-11l5.2-11.5z" stroke="#23170f" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" fill="none"/></svg>';
+
+// Vector illustrations (no emoji, no raster): shared by the manager panel and customer page.
+const T='#0c6b6b',G='#e8edeb',G2='#d3e9e6',I='#23170f',H='#b9822e';
+const frame='<path d="M30 112V50a30 30 0 0 1 60 0v62z" fill="#fafbfa" stroke="'+T+'" stroke-width="3"/><path d="M38 108V50a22 22 0 0 1 44 0v58z" fill="'+G+'"/>';
+const gown='<path d="M60 40l4 10-3 8 13 44H46l13-44-3-8z" fill="none" stroke="'+I+'" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>';
+export const illos={
+ dresses:'<svg viewBox="0 0 120 120" fill="none" aria-hidden="true">'+frame+'<path d="M60 54l3 7-2 6 10 36H49l10-36-2-6z" fill="'+G2+'" stroke="'+T+'" stroke-width="2.4" stroke-linejoin="round"/><path d="M96 24v10M91 29h10" stroke="'+H+'" stroke-width="3" stroke-linecap="round"/><circle cx="22" cy="40" r="3" fill="'+H+'"/></svg>',
+ leads:'<svg viewBox="0 0 120 120" fill="none" aria-hidden="true"><rect x="22" y="30" width="76" height="62" rx="12" fill="#fafbfa" stroke="'+T+'" stroke-width="3"/><path d="M28 40l32 24 32-24" stroke="'+T+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M88 18c0 5-8 8-8 14 0-6-8-9-8-14a4 4 0 0 1 8-1 4 4 0 0 1 8 1z" fill="'+H+'" transform="translate(6 -6) scale(.9)"/></svg>',
+ results:'<svg viewBox="0 0 120 120" fill="none" aria-hidden="true">'+frame+'<circle cx="60" cy="48" r="9" fill="'+G2+'"/><path d="M42 96l14-20 10 12 8-9 8 17z" fill="'+G2+'" stroke="'+T+'" stroke-width="2.4" stroke-linejoin="round"/><path d="M26 30l3-6 3 6 6 3-6 3-3 6-3-6-6-3z" fill="'+H+'"/></svg>',
+ loader:'<svg class="loader-illo" viewBox="0 0 120 120" fill="none" aria-hidden="true">'+frame+gown+'<rect class="sweep" x="50" y="22" width="14" height="84" rx="7" fill="#fff"/></svg>',
+ success:'<svg class="draw-check" viewBox="0 0 84 84" aria-hidden="true"><circle cx="42" cy="42" r="38"/><path d="M26 43l11 11 21-23"/></svg>',
+ offline:'<svg viewBox="0 0 120 120" fill="none" aria-hidden="true"><path d="M20 52a56 56 0 0 1 80 0M32 66a38 38 0 0 1 56 0M45 80a20 20 0 0 1 30 0" stroke="'+T+'" stroke-width="3.5" stroke-linecap="round"/><circle cx="60" cy="94" r="4.5" fill="'+T+'"/><path d="M26 22l68 80" stroke="'+H+'" stroke-width="4" stroke-linecap="round"/></svg>'
+};

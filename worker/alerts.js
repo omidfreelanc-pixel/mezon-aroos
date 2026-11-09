@@ -4,6 +4,7 @@
 // failed delivery), requests unanswered for 24 hours, and bot errors. No customer mobiles or photos.
 import {hash} from './domain.js';
 import {call,PLATFORMS,platformReady} from './telegram.js';
+import {sendNotice} from './sms.js';
 import {dressStats} from './dresses.js';
 
 const one=(db,sql,...a)=>db.prepare(sql).bind(...a).first();
@@ -61,6 +62,42 @@ export async function notifyOwner(env,{salon=null,kind='info',level='info',text,
  }catch(e){console.error('notifyOwner',e?.message)}
 }
 
+// A message to the salon's own manager: every bot chat the salon linked, plus a text message when the
+// approved notice text is configured and the salon has a registered mobile. Never throws.
+export async function notifySalon(env,salon,message){
+ const out={bot:[],sms:false};if(!env?.DB||!salon)return out;
+ for(const P of Object.values(PLATFORMS)){
+  const chat=salon[P.col];if(!chat||!platformReady(env,P.name))continue;
+  try{await call(env,P.name,'sendMessage',{chat_id:chat,text:message});out.bot.push(P.name)}catch(e){console.error('salon notice',e?.message)}
+ }
+ try{const t=await one(env.DB,'SELECT phone FROM trials WHERE salon_id=?',salon.id);if(t?.phone&&await sendNotice(env,t.phone,message))out.sms=true}catch(e){console.error('salon notice sms',e?.message)}
+ return out;
+}
+
+// Salons that need a human today: no visitors for 7 days, credit nearly gone, no bot linked two days after
+// approval, requests unanswered for a day, or a trial that ran out without being approved.
+export async function atRiskSalons(db,now=Date.now()){
+ const out=[];
+ for(const s of await all(db,"SELECT * FROM salons WHERE slug<>'demo' ORDER BY created_at")){
+  const why=[],cfg=parse(s.settings);
+  const t=await one(db,'SELECT * FROM trials WHERE salon_id=?',s.id);
+  if(!s.approved){
+   if(t&&t.started_at&&t.expires_at<now)why.push('مهلت آزمایشی تمام شد و هنوز تأیید نشده');
+   else if(t&&now-t.created_at>3*DAY&&!t.started_at)why.push('بیش از ۳ روز است ثبت‌نام کرده و هنوز تصویری نساخته');
+  }else{
+   const v=Number((await one(db,"SELECT COUNT(*) n FROM events_log WHERE salon_id=? AND kind='view' AND created_at>?",s.id,now-7*DAY))?.n||0);
+   if(!v)why.push('۷ روز است بازدیدی نداشته');
+   const used=Number((await one(db,"SELECT COUNT(*) n FROM generations WHERE salon_id=? AND state<>'fail' AND refunded=0",s.id))?.n||0);
+   if(s.credit_limit>0&&(s.credit_limit-used)*100<=s.credit_limit*5)why.push('اعتبار تصویر رو به پایان است');
+   if(!(s.telegram_chat_id||s.bale_chat_id)&&!cfg.trial)why.push('ربات را وصل نکرده');
+   const late=Number((await one(db,"SELECT COUNT(*) n FROM leads WHERE salon_id=? AND status='sent' AND salon_status='new' AND created_at<?",s.id,now-DAY))?.n||0);
+   if(late)why.push(fa(late)+' درخواست بیش از ۲۴ ساعت بی‌جواب');
+  }
+  if(why.length)out.push({slug:s.slug,name:s.name,approved:!!s.approved,reasons:why});
+ }
+ return out;
+}
+
 // Requests nobody acted on for 24 hours (sent to the owner once each).
 export async function alertUnanswered(env,now=Date.now()){
  const db=env.DB;let n=0;
@@ -109,6 +146,8 @@ export async function digest(env,now=Date.now()){
   }
  }
  if(!salons.length)lines.push('هنوز مزونی ساخته نشده.');
+ const risk=await atRiskSalons(db,now);
+ if(risk.length){lines.push('','🚨 مزون‌های در معرض ریسک ('+fa(risk.length)+')');for(const r of risk)lines.push('   • '+r.name+': '+r.reasons.join('، '))}
  lines.splice(1,0,'جمع: '+fa(tv)+' بازدیدکننده، '+fa(tl)+' درخواست');
  return lines.join('\n');
 }

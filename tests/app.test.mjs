@@ -556,14 +556,16 @@ test('free trial salon: built from the landing form, one per mobile, 5 images an
   assert.equal((await call(e,'/api/trial',{...body,website:'x'})).status,200);assert.equal(e.DB.sql.prepare('SELECT count(*) n FROM trials').get().n,0,'honeypot is dropped');
   const r=await call(e,'/api/trial',body);assert.equal(r.status,200,JSON.stringify(r));assert.match(r.data.path,/^\/s\/t-[a-f0-9]{8}$/);assert.equal(r.data.images,5);assert.equal(r.data.hours,10);
   assert.equal((await call(e,'/api/trial',body)).status,409,'one trial per mobile');
-  const slug=r.data.path.slice(3),row=e.DB.sql.prepare('SELECT * FROM trials').get();assert.ok(Math.abs(row.expires_at-row.created_at-36000000)<1000);
+  const slug=r.data.path.slice(3),row=e.DB.sql.prepare('SELECT * FROM trials').get();assert.equal(row.started_at,null,'the 10-hour clock has not started at signup');assert.equal(r.data.expires_at,null);assert.equal(r.data.sandbox,true);
   assert(toOwner(tg).find(t=>/مزون رز/.test(t)&&new RegExp(slug).test(t)),'owner chat got the trial link');
   const pub=await call(e,'/api/s/'+slug+'/public');assert.equal(pub.status,200);assert.equal(pub.data.trial.images_left,5);assert.equal(pub.data.trial.brand,'#8E3050');
   const g=await guest(e,{slug}),original=await upload(e,{slug},g);
   const gen=()=>call(e,'/api/s/'+slug+'/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:0},g);
-  assert.equal((await gen()).status,403,'unapproved salon cannot generate');assert.equal(tasks,0);
-  e.DB.sql.prepare('UPDATE salons SET approved=1 WHERE slug=?').run(slug);
-  for(let i=0;i<5;i++)assert.equal((await gen()).status,200);assert.equal(tasks,5);
+  assert.equal((await call(e,'/api/s/'+slug+'/public')).data.trial.started,false);
+  // sandbox: an unapproved trial salon can already make its 5 images; the clock starts with the first one
+  assert.equal((await gen()).status,200);assert.equal(tasks,1);
+  const t1=e.DB.sql.prepare('SELECT * FROM trials').get();assert.ok(t1.started_at>0);assert.ok(Math.abs(t1.expires_at-t1.started_at-36000000)<1000);
+  for(let i=0;i<4;i++)assert.equal((await gen()).status,200);assert.equal(tasks,5);assert.equal(e.DB.sql.prepare('SELECT approved FROM salons WHERE slug=?').get(slug).approved,0,'still not approved');
   const sixth=await gen();assert.equal(sixth.status,402);assert.equal(tasks,5,'no paid task after the budget');
   assert.equal((await call(e,'/api/s/'+slug+'/public')).data.trial.images_left,0);
   e.DB.sql.prepare('UPDATE trials SET expires_at=?, images_used=0').run(Date.now()-1000);
@@ -1008,7 +1010,7 @@ test('credits: 100 per salon by default, unapproved salons cannot generate, admi
   const gen=()=>call(e,'/api/s/'+slug+'/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:0},g);
   e.DB.sql.prepare('UPDATE salons SET credit_limit=2 WHERE slug=?').run(slug);
   assert.equal((await gen()).status,200);assert.equal((await gen()).status,200);
-  const capped=await gen();assert.equal(capped.status,402);assert.match(capped.data.error,/ظرفیت/);
+  const capped=await gen();assert.equal(capped.status,402);assert.equal(capped.data.error,'الان امکان ساخت تصویر نیست؛ درخواستت را برای مزون بفرست');
   // unapproved: blocked even with credit
   e.DB.sql.prepare('UPDATE salons SET credit_limit=100,approved=0 WHERE slug=?').run(slug);
   assert.equal((await gen()).status,403);
@@ -1134,3 +1136,234 @@ test('PII retention: old names and phones go unless a lead is open; invites expi
  const ss=e.DB.sql.prepare("SELECT * FROM sessions WHERE id='s-new'").get();
  await eraseSession(e,e.DB,{id:s.id},ss);assert.equal(row('s-new').cust_name,'');assert.equal(row('s-new').verified_phone,null);
 });
+
+// ======================= Backend + AI team: sandbox, credits, security, data =======================
+function paid(){const e=tgEnv(fixture());e.KIE_API_KEY='mock';e.SESSION_SECRET='s3cret-test';e.APP_ORIGIN='https://ayneh.test';const tg=mockTelegram();const net=globalThis.fetch;let tasks=0;
+ globalThis.fetch=async(url,opts)=>{const u=String(url);if(u.includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/f.png'}});if(u.includes('createTask')){tasks++;return Response.json({code:200,data:{taskId:'t'+tasks}})}return net(url,opts)};
+ return {e,tg,tasks:()=>tasks,done(){globalThis.fetch=net;tg.restore()}};}
+const sessOf=(e,s)=>e.DB.sql.prepare('SELECT id FROM sessions WHERE salon_id=? ORDER BY created_at DESC').get(s.id).id;
+const insertGen=(e,s,sid,original,{kind='single',state='success',refunded=0}={})=>{const id=crypto.randomUUID();e.DB.sql.prepare("INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,result_id,style,created_at,updated_at,line,opts,refunded) VALUES(?,?,?,?,?,?,?,?,0,?,?,'dress','{}',?)").run(id,s.id,sid,crypto.randomUUID(),kind,state,original,state==='success'?original:null,Date.now(),Date.now(),refunded);return id};
+const settingsBody=(extra={})=>({generation_enabled:true,reference_verified:true,...extra});
+const NO_IMG='الان امکان ساخت تصویر نیست؛ درخواستت را برای مزون بفرست';
+const trialBody={name:'سارا',salon:'مزون رز',city:'تهران',phone:'۰۹۱۲۱۲۳۴۵۶۷',brand:'#8E3050',consent:true,username:'sara.rose',password:'Passw0rd!x',subdomain:'rose'};
+
+test('A sandbox: an unapproved trial salon can make its 5 images; the 10-hour clock starts at the first image, not at signup; approval ends the trial strip',async()=>{
+ const P=paid(),{e}=P;try{
+  const r=await call(e,'/api/trial',trialBody);assert.equal(r.status,200,JSON.stringify(r));const slug=r.data.path.slice(3);
+  e.DB.sql.prepare('UPDATE trials SET created_at=?').run(Date.now()-3*86400000);
+  const pub=await call(e,'/api/s/'+slug+'/public');assert.equal(pub.data.trial.expired,false,'days of waiting do not use the trial up');assert.equal(pub.data.sandbox,true);assert.equal(pub.data.trial.started,false);
+  const g=await guest(e,{slug}),original=await upload(e,{slug},g);
+  const gen=()=>call(e,'/api/s/'+slug+'/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:0},g);
+  assert.equal((await gen()).status,200);assert.equal((await call(e,'/api/s/'+slug+'/public')).data.trial.started,true);
+  assert.equal((await call(e,'/api/m/'+e.DB.sql.prepare('SELECT manage_token t FROM salons WHERE slug=?').get(slug).t)).data.sandbox.images_left,4);
+  const ap=await call(e,'/api/owner/account',{slug,approved:true,subdomain:'rose'},OWNER);assert.equal(ap.status,200,JSON.stringify(ap));
+  const after=await call(e,'/api/s/'+slug+'/public');assert.equal(after.data.trial,null);assert.equal(after.data.sandbox,false);
+  await call(e,'/api/s/'+slug+'/owner/settings',settingsBody({quota_per_line:20}),OWNER);
+  for(let i=0;i<5;i++)assert.equal((await gen()).status,200,'approval gives the full credit, no 5-image strip');
+ }finally{P.done()}});
+
+test('B low credit: the manager is told at 20% and at 5% (once each), brides get a neutral message, requests without an image still work, lost tries are counted',async()=>{
+ const P=paid(),{e,tg}=P;try{
+  const s=await salon(e,'low-salon');await linkSalon(e,s,777);
+  assert.equal((await call(e,'/api/s/low-salon/owner/settings',settingsBody({quota_per_line:20}),OWNER)).status,200);
+  e.DB.sql.prepare('UPDATE salons SET credit_limit=10 WHERE slug=?').run('low-salon');
+  const g=await guest(e,s),original=await upload(e,s,g),v='a'.repeat(16);
+  const gen=()=>call(e,'/api/s/low-salon/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:0,v},g);
+  const said=()=>toOwner(tg,777).filter(t=>/اعتبار/.test(t));
+  for(let i=0;i<7;i++)assert.equal((await gen()).status,200);assert.equal(said().length,0,'nothing above 20%');
+  assert.equal((await gen()).status,200);assert.equal(said().length,1);assert.match(said()[0],/۲۰٪/);
+  assert.equal((await gen()).status,200);assert.equal(said().length,1,'20% is told once');
+  assert.equal((await gen()).status,200);assert.equal(said().length,2);assert.match(said()[1],/۵٪/);
+  const out=await gen();assert.equal(out.status,402);assert.equal(out.data.error,NO_IMG);assert.equal(said().length,2,'5% is told once');
+  assert.equal(e.DB.sql.prepare("SELECT count(*) n FROM events_log WHERE kind='no_credit'").get().n,1);
+  const st=await call(e,'/api/owner/stats?salon=low-salon',undefined,OWNER);assert.equal(st.data.lost.no_credit,1);assert.equal(st.data.lost.visitors,1);assert.equal(st.data.credits.left,0);
+  // the bride can still send her request with her own photo
+  const l=await call(e,'/api/s/low-salon/leads',lead(original),g);assert.equal(l.status,200,JSON.stringify(l));
+  // a recharge re-arms the alerts
+  await call(e,'/api/owner/account',{slug:'low-salon',add:100},OWNER);const fl=e.DB.sql.prepare('SELECT alert20,alert5 FROM salons WHERE slug=?').get('low-salon');assert.equal(fl.alert20,0);assert.equal(fl.alert5,0);
+ }finally{P.done()}});
+
+test('C credit weights: single 1, views 1, spin 3 by default; changeable by the platform owner; the panel shows usage by kind; the gate uses the weight',async()=>{
+ const P=paid(),{e}=P;try{
+  const {creditGate,creditsOf,DEFAULT_WEIGHTS}=await import('../worker/credits.js');assert.deepEqual(DEFAULT_WEIGHTS,{single:1,views:1,spin:3});
+  const s=await salon(e,'w-salon'),g=await guest(e,s),original=await upload(e,s,g),sid=sessOf(e,s);
+  insertGen(e,s,sid,original);insertGen(e,s,sid,original,{kind:'views'});insertGen(e,s,sid,original,{kind:'spin'});insertGen(e,s,sid,original,{state:'fail'});
+  const tok=e.DB.sql.prepare('SELECT manage_token t FROM salons WHERE slug=?').get('w-salon').t,pnl=await call(e,'/api/m/'+tok);
+  assert.equal(pnl.data.used,5);assert.equal(pnl.data.left,95);assert.deepEqual(pnl.data.by_kind.spin,{count:1,weight:3,credits:3});assert.equal(pnl.data.by_kind.single.count,1);
+  e.DB.sql.prepare('UPDATE salons SET credit_limit=7 WHERE slug=?').run('w-salon');const row=()=>e.DB.sql.prepare('SELECT * FROM salons WHERE slug=?').get('w-salon');
+  await assert.rejects(creditGate(e.DB,e,row(),'spin'),/الان امکان ساخت تصویر نیست/,'2 credits left < spin weight 3');
+  assert.equal((await creditGate(e.DB,e,row(),'single')).weight,1);
+  assert.equal((await call(e,'/api/owner/credit-weights',{spin:5})).status,401);
+  assert.equal((await call(e,'/api/owner/credit-weights',{spin:-1},OWNER)).status,400);
+  const w=await call(e,'/api/owner/credit-weights',{spin:1},OWNER);assert.equal(w.data.weights.spin,1);
+  assert.equal((await creditGate(e.DB,e,row(),'spin')).weight,1);assert.equal((await creditsOf(e.DB,row())).used,3);
+  const acc=(await call(e,'/api/owner/accounts',undefined,OWNER)).data.accounts.find(a=>a.slug==='w-salon');assert.equal(acc.by_kind.spin.weight,1);
+ }finally{P.done()}});
+
+test('D manager password: change needs the current one and ends old sessions; forgot sends a code to the registration mobile (rate limited); reset sets a new one',async()=>{
+ const P=paid(),{e}=P;try{
+  const r=await call(e,'/api/trial',trialBody);const slug=r.data.path.slice(3);
+  assert.equal((await call(e,'/api/s/'+slug+'/manager/forgot',{})).status,503,'no SMS configured');
+  e.MELIPAYAMAK_TOKEN='dev-mock';
+  await call(e,'/api/owner/account',{slug,approved:true,subdomain:'rose'},OWNER);
+  const login=pw=>call(e,'/api/s/'+slug+'/manager/login',{username:'sara.rose',password:pw});
+  const first=await login('Passw0rd!x');assert.equal(first.status,200);
+  assert.equal((await call(e,'/api/s/'+slug+'/manager/password',{current:'Passw0rd!x',password:'NewPassw0rd!'})).status,401,'must be signed in');
+  assert.equal((await call(e,'/api/s/'+slug+'/manager/password',{current:'wrong-one-123',password:'NewPassw0rd!'},{cookie:first.cookie})).status,401);
+  assert.equal((await call(e,'/api/s/'+slug+'/manager/password',{current:'Passw0rd!x',password:'short'},{cookie:first.cookie})).status,400);
+  const ch=await call(e,'/api/s/'+slug+'/manager/password',{current:'Passw0rd!x',password:'NewPassw0rd!'},{cookie:first.cookie});assert.equal(ch.status,200,JSON.stringify(ch));
+  assert.equal((await call(e,'/api/s/'+slug+'/owner',undefined,{cookie:first.cookie})).status,401,'the old session is gone');
+  assert.equal((await call(e,'/api/s/'+slug+'/owner',undefined,{cookie:ch.cookie})).status,200,'the new cookie works');
+  assert.equal((await login('Passw0rd!x')).status,401);assert.equal((await login('NewPassw0rd!')).status,200);
+  // forgot
+  const f=await call(e,'/api/s/'+slug+'/manager/forgot',{});assert.equal(f.status,200,JSON.stringify(f));assert.match(f.data.phone_hint,/^0912•••4567$/);
+  assert.equal((await call(e,'/api/s/'+slug+'/manager/forgot',{})).status,429,'resend cooldown');
+  assert.equal((await call(e,'/api/s/'+slug+'/manager/reset',{code:'99999',password:'ResetPassw0rd!'})).status,400);
+  assert.equal((await call(e,'/api/s/'+slug+'/manager/reset',{code:'12345',password:'short'})).status,400);
+  const rs=await call(e,'/api/s/'+slug+'/manager/reset',{code:'12345',password:'ResetPassw0rd!'});assert.equal(rs.status,200,JSON.stringify(rs));assert.equal(rs.data.login,true);
+  assert.equal((await call(e,'/api/s/'+slug+'/manager/reset',{code:'12345',password:'AnotherPassw0rd!'})).status,400,'a used code is gone');
+  assert.equal((await login('NewPassw0rd!')).status,401);assert.equal((await login('ResetPassw0rd!')).status,200);
+ }finally{P.done()}});
+
+test('E /m/<token> goes to the manager page once the salon is approved with a manager; rotation kills the old link',async()=>{
+ const P=paid(),{e}=P;try{
+  const r=await call(e,'/api/trial',trialBody);const slug=r.data.path.slice(3),tok=r.data.panel.split('/m/')[1];
+  const get=(p)=>app.fetch(new Request(origin+p,{redirect:'manual'}),e);
+  assert.equal((await get('/m/'+tok)).status,200,'unapproved: the token page');
+  await call(e,'/api/owner/account',{slug,approved:true,subdomain:'rose'},OWNER);
+  const red=await get('/m/'+tok);assert.equal(red.status,302);assert.equal(red.headers.get('location'),'https://rose.ayneh.test/manager');
+  assert.equal((await get('/m/'+tok+'?panel=1')).status,200,'?panel=1 keeps the token page reachable');
+  const login=await call(e,'/api/s/'+slug+'/manager/login',{username:'sara.rose',password:'Passw0rd!x'});
+  assert.equal((await call(e,'/api/s/'+slug+'/manager/rotate-token',{})).status,401);
+  const rot=await call(e,'/api/s/'+slug+'/manager/rotate-token',{},{cookie:login.cookie});assert.equal(rot.status,200);const t2=rot.data.panel.split('/m/')[1];
+  assert.notEqual(t2,tok);assert.equal((await call(e,'/api/m/'+tok)).status,404);assert.equal((await call(e,'/api/m/'+t2)).status,200);
+  const rot2=await call(e,'/api/owner/rotate-token',{slug},OWNER);assert.equal(rot2.status,200);assert.equal((await call(e,'/api/m/'+t2)).status,404);
+ }finally{P.done()}});
+
+test('F bad-result reaction: reason is logged for evals, credit and quota come back once per generation, rate shows in stats, refunds are capped per session',async()=>{
+ const P=paid(),{e}=P;try{
+  const s=await salon(e,'rx-salon'),g=await guest(e,s),original=await upload(e,s,g),sid=sessOf(e,s);
+  const ids=[0,1,2,3].map(()=>insertGen(e,s,sid,original));
+  const left=async()=>(await call(e,'/api/s/rx-salon/owner/credits',undefined,OWNER)).data.left;
+  assert.equal(await left(),96);
+  const down=(id,extra={})=>call(e,'/api/s/rx-salon/reaction',{gen:id,r:'down',reason:'face',...extra},g);
+  const d1=await down(ids[0],{note:'چهره عوض شده'});assert.equal(d1.status,200);assert.equal(d1.data.refunded,true);assert.equal(await left(),97);
+  assert.equal((await down(ids[0])).status,200);assert.equal(await left(),97,'once per generation');
+  const log=e.DB.sql.prepare('SELECT * FROM reaction_log WHERE generation_id=?').get(ids[0]);assert.equal(log.reason,'face');assert.equal(log.note,'چهره عوض شده');assert.equal(log.refunded,1);
+  assert.equal((await down(ids[1],{reason:'nonsense'})).status,200);assert.equal(e.DB.sql.prepare('SELECT reason FROM reaction_log WHERE generation_id=?').get(ids[1]).reason,'other');
+  assert.equal((await call(e,'/api/s/rx-salon/reaction',{gen:ids[2],r:'up'},g)).data.refunded,false);assert.equal(await left(),98);
+  assert.equal((await down(ids[2])).data.refunded,true);
+  const d4=await down(ids[3]);assert.equal(d4.data.refunded,false,'3 refunds per session at most');assert.equal(e.DB.sql.prepare('SELECT reason FROM reaction_log WHERE generation_id=?').get(ids[3]).reason,'face','still logged');
+  assert.equal(e.DB.sql.prepare("SELECT count(*) n FROM credit_ledger WHERE method='refund'").get().n,3);
+  const st=await call(e,'/api/owner/stats?salon=rx-salon',undefined,OWNER);assert.equal(st.data.reactions.down,3+1);assert.equal(st.data.reactions.refunded,3);assert.equal(st.data.reactions.reasons.face,3);assert.equal(st.data.reactions.reasons.other,1);assert.ok(st.data.reactions.rate>0);
+  assert.ok((await call(e,'/api/s/rx-salon/public')).data.reaction_reasons.face);
+ }finally{P.done()}});
+
+test('F2 refunded generations free the bride\'s quota too',async()=>{
+ const P=paid(),{e}=P;try{
+  const s=await salon(e,'rq-salon'),g=await guest(e,s),original=await upload(e,s,g),sid=sessOf(e,s);
+  const ids=[0,1,2,3].map(()=>insertGen(e,s,sid,original));
+  assert.equal((await call(e,'/api/s/rq-salon/session',undefined,g)).data.quota.left.dress,0);
+  await call(e,'/api/s/rq-salon/reaction',{gen:ids[0],r:'down',reason:'body'},g);
+  assert.equal((await call(e,'/api/s/rq-salon/session',undefined,g)).data.quota.left.dress,1);
+ }finally{P.done()}});
+
+test('G photo precheck: tiny, huge or strangely shaped photos are refused with a helpful message; landscape only warns; unreadable headers pass',async()=>{
+ const {imageInfo,precheck}=await import('../worker/precheck.js');
+ const pngSize=(w,h)=>{const b=png();b.set([0,0,0,13,73,72,68,82],8);new DataView(b.buffer).setUint32(16,w);new DataView(b.buffer).setUint32(20,h);return b};
+ const jpg=(w,h)=>{const b=new Uint8Array(150);b.set([255,216,255,224,0,4,0,0,255,192,0,17,8,h>>8,h&255,w>>8,w&255,3]);return b};
+ assert.deepEqual(imageInfo(pngSize(800,1200)),{w:800,h:1200});assert.deepEqual(imageInfo(jpg(900,1600)),{w:900,h:1600});
+ const webp=new Uint8Array(40);webp.set([82,73,70,70,0,0,0,0,87,69,66,80,86,80,56,88]);webp[24]=(1000-1)&255;webp[25]=(1000-1)>>8;webp[27]=(1500-1)&255;webp[28]=(1500-1)>>8;assert.deepEqual(imageInfo(webp),{w:1000,h:1500});
+ assert.equal(imageInfo(png()).w,0,'a bare signature has no readable size');assert.deepEqual(precheck(png()),{width:0,height:0,warnings:[]}.width===0?precheck(png()):{},'bare signature is let through');
+ const e=fixture(),s=await salon(e),g=await guest(e,s),up=(b,kind='original')=>call(e,'/api/s/salon-a/upload?kind='+kind,b,g);
+ const tiny=await up(pngSize(100,100));assert.equal(tiny.status,400);assert.match(tiny.data.error,/خیلی کوچک/);
+ assert.match((await up(pngSize(5000,500))).data.error,/کشیده/);assert.match((await up(pngSize(12000,9000))).data.error,/بزرگ/);
+ const ok=await up(pngSize(800,1200));assert.equal(ok.status,200);assert.equal(ok.data.width,800);assert.equal(ok.data.height,1200);assert.deepEqual(ok.data.warnings,[]);
+ const land=await up(pngSize(1200,800));assert.equal(land.status,200);assert.equal(land.data.warnings[0].code,'landscape');
+ assert.equal((await up(png())).status,200,'unreadable size is not blocked');
+ assert.equal(e.DB.sql.prepare("SELECT count(*) n FROM media WHERE kind='original'").get().n,3,'refused photos are not stored');
+ for(let i=0;i<9;i++)assert.equal((await up(pngSize(800,1200))).status,200);
+ assert.equal((await up(pngSize(800,1200))).status,429,'at most 12 photos per session');
+});
+
+test('H per-bride quota is a salon setting (1 to 20, default 4); the manager hears once when a bride hits the cap',async()=>{
+ const P=paid(),{e,tg}=P;try{
+  const s=await salon(e,'cap-salon');await linkSalon(e,s,777);const g=await guest(e,s),original=await upload(e,s,g);
+  assert.equal((await call(e,'/api/s/cap-salon/session',undefined,g)).data.quota.per,4);
+  for(const bad of [0,21,2.5,'x'])assert.equal((await call(e,'/api/s/cap-salon/owner/settings',settingsBody({quota_per_line:bad}),OWNER)).status,400);
+  assert.equal((await call(e,'/api/s/cap-salon/owner/settings',settingsBody({quota_per_line:2}),OWNER)).status,200);
+  assert.equal((await call(e,'/api/s/cap-salon/owner',undefined,OWNER)).data.salon.settings.quota_per_line,2);
+  assert.equal((await call(e,'/api/s/cap-salon/session',undefined,g)).data.quota.per,2);
+  const gen=()=>call(e,'/api/s/cap-salon/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:original,style:0},g);
+  const lead_=()=>toOwner(tg,777).filter(t=>/💍/.test(t));
+  assert.equal((await gen()).status,200);assert.equal(lead_().length,0);
+  assert.equal((await gen()).status,200);assert.equal(lead_().length,1,'told when she reaches the cap');
+  assert.equal((await gen()).status,429);assert.equal(lead_().length,1,'only once per bride');
+  assert.equal((await call(e,'/api/s/cap-salon/owner/settings',settingsBody(),OWNER)).status,200);
+  assert.equal((await call(e,'/api/s/cap-salon/owner',undefined,OWNER)).data.salon.settings.quota_per_line,2,'other saves keep it');
+ }finally{P.done()}});
+
+test('I credit ledger: every grant, adjustment and refund is recorded; accounts list needs no per-salon queries; search, filter and CSV work',async()=>{
+ const P=paid(),{e}=P;try{
+  for(let i=0;i<3;i++)await salon(e,'led-'+i);
+  const calls=()=>{let n=0;const orig=e.DB.prepare.bind(e.DB);e.DB.prepare=(...a)=>{n++;return orig(...a)};return {n:()=>n,stop(){e.DB.prepare=orig}}};
+  let c=calls();assert.equal((await call(e,'/api/owner/accounts',undefined,OWNER)).status,200);const small=c.n();c.stop();
+  for(let i=3;i<15;i++)await salon(e,'led-'+i);
+  c=calls();const big=await call(e,'/api/owner/accounts',undefined,OWNER);const large=c.n();c.stop();
+  assert.equal(big.data.accounts.length,15);assert.equal(small,large,'same number of queries for 3 and 15 salons');
+  await call(e,'/api/owner/account',{slug:'led-1',add:50,note:'پرداخت کارت'},OWNER);
+  const rq=await call(e,'/api/m/'+e.DB.sql.prepare('SELECT manage_token t FROM salons WHERE slug=?').get('led-1').t+'/recharge',{amount:300});assert.equal(rq.status,200);
+  await call(e,'/api/owner/recharge',{id:rq.data.requests[0].id,action:'approve'},OWNER);
+  const all_=await call(e,'/api/owner/ledger?salon=led-1',undefined,OWNER);assert.equal(all_.status,200);
+  assert.deepEqual(all_.data.entries.map(x=>[x.method,x.amount,x.limit_after]),[['recharge',300,450],['admin',50,150],['opening',100,100]]);
+  assert.equal(all_.data.entries[1].ref,'پرداخت کارت');assert.equal(all_.data.entries[0].by,'owner@test');
+  assert.equal((await call(e,'/api/owner/ledger?method=admin',undefined,OWNER)).data.total,1);
+  assert.equal((await call(e,'/api/owner/ledger?q='+encodeURIComponent('پرداخت'),undefined,OWNER)).data.total,1);
+  assert.equal((await call(e,'/api/owner/ledger')).status,401);
+  const csv=await app.fetch(new Request(origin+'/api/owner/ledger.csv?salon=led-1',{headers:{'oai-authenticated-user-id':'owner-a','oai-authenticated-user-email':'owner@test'}}),e);
+  assert.equal(csv.status,200);assert.match(csv.headers.get('content-type'),/text\/csv/);const body=await csv.text();assert.equal(body.split('\r\n').length,4);
+  const q=await call(e,'/api/owner/accounts?q=led-12',undefined,OWNER);assert.equal(q.data.total,1);
+  assert.equal((await call(e,'/api/owner/accounts?filter=pending',undefined,OWNER)).data.total,0);
+  e.DB.sql.prepare("UPDATE salons SET credit_limit=0 WHERE slug='led-2'").run();assert.equal((await call(e,'/api/owner/accounts?filter=exhausted',undefined,OWNER)).data.accounts[0].slug,'led-2');
+  assert.equal((await call(e,'/api/owner/accounts?limit=5&offset=10',undefined,OWNER)).data.accounts.length,5);
+ }finally{P.done()}});
+
+test('J digest lists at-risk salons; ?src= on view events is whitelisted and aggregated in stats',async()=>{
+ const P=paid(),{e}=P;try{
+  const s=await salon(e,'risk-salon'),{digest}=await import('../worker/alerts.js');
+  assert.match(await digest(e),/در معرض ریسک[\s\S]*risk-salon|در معرض ریسک[\s\S]*مزون risk-salon/);
+  const t=(src,v,q='')=>call(e,'/api/s/risk-salon/track'+q,{kind:'view',v,src},{});
+  await t(undefined,'a'.repeat(16),'?src=QR');await t('ig','b'.repeat(16));await t('evil','c'.repeat(16));await t('qr','d'.repeat(16));
+  await call(e,'/api/s/risk-salon/track',{kind:'photo',v:'e'.repeat(16),src:'qr'});
+  const st=await call(e,'/api/owner/stats?salon=risk-salon',undefined,OWNER);const by=Object.fromEntries(st.data.sources.map(x=>[x.src,x.visitors]));
+  assert.deepEqual(by,{qr:2,ig:1,'':1});
+  e.DB.sql.prepare("INSERT INTO events_log(id,salon_id,visitor,kind,meta,created_at) VALUES(?,?,?,'sent','',?)").run(crypto.randomUUID(),s.id,'a'.repeat(16),Date.now());
+  const st2=await call(e,'/api/owner/stats?salon=risk-salon',undefined,OWNER);assert.equal(st2.data.sources.find(x=>x.src==='qr').sent,1);
+  const all_=await call(e,'/api/owner/stats',undefined,OWNER);assert.ok(all_.data.atRisk.some(x=>x.slug==='risk-salon'));
+ }finally{P.done()}});
+
+test('K data: the manager deletes one request with its photos and exports requests as CSV; other salons cannot',async()=>{
+ const P=paid(),{e}=P;try{
+  const a=await salon(e,'dat-a'),b=await salon(e,'dat-b');await linkSalon(e,a,777);await linkSalon(e,b,778);
+  const g=await guest(e,a),o1=await upload(e,a,g),o2=await upload(e,a,g);
+  const l1=await call(e,'/api/s/dat-a/leads',lead(o1,{name:'=cmd|calc'}),g),l2=await call(e,'/api/s/dat-a/leads',lead(o2,{name:'مریم'}),g);assert.equal(l1.status,200,JSON.stringify(l1));assert.equal(l2.status,200);
+  const csv=await app.fetch(new Request(origin+'/api/s/dat-a/owner/leads.csv',{headers:{'oai-authenticated-user-id':'owner-a','oai-authenticated-user-email':'owner@test'}}),e);const body=await csv.text();
+  assert.equal(csv.status,200);assert.match(body,/"'=cmd\|calc"/);assert.match(body,/مریم/);assert.match(body,/09121234567/);
+  assert.equal((await call(e,'/api/s/dat-b/owner/leads/delete',{id:l1.data.id},OWNER)).status,404,'not another salon\'s request');
+  assert.equal((await call(e,'/api/s/dat-a/owner/leads/delete',{id:l1.data.id})).status,401);
+  const del=await call(e,'/api/s/dat-a/owner/leads/delete',{id:l1.data.id},OWNER);assert.equal(del.status,200);assert.equal(del.data.photos,1);
+  assert.equal(e.DB.sql.prepare('SELECT count(*) n FROM leads WHERE id=?').get(l1.data.id).n,0);assert.equal(e.DB.sql.prepare('SELECT count(*) n FROM media WHERE id=?').get(o1).n,0,'its photo is gone');
+  assert.equal(e.DB.sql.prepare('SELECT count(*) n FROM media WHERE id=?').get(o2).n,1,'the other request keeps its photo');
+  assert.equal((await call(e,'/api/s/dat-a/owner/leads/delete',{id:l1.data.id},OWNER)).status,404);
+ }finally{P.done()}});
+
+test('wording: the bride is never told «declined»; the platform owner is «تیم مزون آینه», the salon owner «مدیر مزون»',async()=>{
+ const P=paid(),{e,tg}=P;try{
+  const s=await salon(e,'wd-salon');await linkSalon(e,s,777);const g=await guest(e,s),original=await upload(e,s,g);
+  const l=await call(e,'/api/s/wd-salon/leads',lead(original),g);assert.equal(l.status,200);
+  assert.equal((await call(e,'/api/s/wd-salon/owner/leads/status',{id:l.data.id,status:'declined'},OWNER)).status,200);
+  const r=await call(e,'/api/s/wd-salon/requests',undefined,g);assert.equal(r.data.requests[0].status_text,'فعلاً امکان‌پذیر نیست؛ مزون با تو در تماس است');
+  assert.doesNotMatch(JSON.stringify(r.data),/قابل اجرا/);
+  const stranger=await call(e,'/api/salons',{slug:'zz-salon',name:'x'},{user:'stranger',email:'a@b'});assert.match(stranger.data.error,/تیم مزون آینه/);
+  const { BRIDE_STATUS_FA }=await import('../worker/dresses.js');assert.equal(BRIDE_STATUS_FA.declined,'فعلاً امکان‌پذیر نیست؛ مزون با تو در تماس است');
+ }finally{P.done()}});

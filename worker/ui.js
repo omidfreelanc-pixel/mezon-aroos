@@ -1,7 +1,7 @@
 // Owner console (/ and /admin). Salons have no panel: they use the Telegram bot.
 // Only the project owner signs in here to create salons, fill in their details and hand
 // each salon its one-time Telegram link.
-import {baseCSS,markSVG} from './design.js';
+import {baseCSS,markSVG,illos} from './design.js';
 import {QR_JS} from './qr.js';
 
 const css=String.raw`
@@ -55,8 +55,8 @@ h3.sub{font-size:15px;margin:16px 0 4px}
 .rtree .node{display:inline-flex;gap:6px;align-items:center;padding:3px 10px;border-radius:999px;background:var(--surface-2)}
 .rtree .node--sent{background:#d9ece6;font-weight:700}
 .rtree .node small{color:var(--muted);font-weight:400}
-.rtree details>summary .node::before{content:'▸';font-size:11px;color:var(--muted)}
-.rtree details[open]>summary .node::before{content:'▾'}
+.rtree details>summary .node::before{content:'';width:6px;height:6px;border:solid var(--muted);border-width:0 0 2px 2px;transform:rotate(45deg);margin-inline-end:2px}
+.rtree details[open]>summary .node::before{transform:rotate(-45deg)}
 .tree-pick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
 .dgrid.dgrid--1{grid-template-columns:minmax(0,1fr)}
 .hbar{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;gap:10px;align-items:center;font-size:13.5px;border-radius:8px;outline-offset:3px}
@@ -80,7 +80,7 @@ h3.sub{font-size:15px;margin:16px 0 4px}
 .dtip{position:fixed;left:0;top:0;z-index:200;background:var(--ink);color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;pointer-events:none;box-shadow:var(--float)}
 .dtip__main{font-weight:700}.dtip__sub{opacity:.75;font-size:12px}
 .dtable{font-size:13px}
-.dtable summary{cursor:pointer;color:var(--accent-ink);font-weight:600;font-size:12.5px}
+.dtable summary,.card details>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--accent-ink);font-weight:600;font-size:12.5px}
 .dtable table,.stable table{width:100%;border-collapse:collapse;margin-top:8px}
 .dtable th,.dtable td,.stable th,.stable td{padding:7px 8px;border-bottom:1px solid var(--line-2);text-align:right}
 .dtable td:not(:first-child),.stable td:not(:first-child){font-variant-numeric:tabular-nums}
@@ -103,6 +103,7 @@ main#app{max-width:1080px;margin:0 auto;padding:6px 20px 80px;min-height:70vh}
 .card>h2{font-family:var(--display);font-weight:800;font-size:21px;margin-bottom:6px}
 .card>.lead{color:var(--muted);font-size:13.5px;line-height:1.9;margin-bottom:16px}
 .stack{display:grid;gap:16px}
+.card input[type=text]{min-height:48px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;width:100%}
 .salons{display:grid;gap:12px}
 .salon{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 18px;border-radius:18px;background:var(--surface);border:1px solid var(--line-2)}
 .salon strong{font-size:17px;display:block}
@@ -110,6 +111,7 @@ main#app{max-width:1080px;margin:0 auto;padding:6px 20px 80px;min-height:70vh}
 .salon .grow{min-width:160px}
 .status{list-style:none;margin:0;padding:0;display:grid;gap:4px}
 .status li{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.75;padding:5px 0}
+.dot svg,.act__ic svg,.ic-line svg,.is-done b svg{width:14px;height:14px;display:block}.act__ic svg{width:18px;height:18px;margin-top:3px}.ic-row{display:flex;gap:6px;align-items:center;color:var(--muted)}.ic-line{display:inline-flex}.act--warn .act__ic{color:var(--warn)}.act--danger .act__ic{color:var(--danger)}.act--ok .act__ic{color:var(--ok)}
 .status .dot{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:700;margin-top:1px}
 .status .on .dot{background:var(--ok-soft);color:var(--ok)}
 .status .off{color:var(--muted)}
@@ -152,6 +154,7 @@ input[dir=ltr],textarea[dir=ltr],.field input[type=url],.field input[type=tel],#
 .log__row:last-child{border-bottom:0}
 .seg-ctl--wrap{display:flex;flex-wrap:wrap;gap:4px;max-width:100%}.seg-ctl--wrap button{flex:0 1 auto;white-space:nowrap;padding:7px 10px;font-size:12.5px}.log__row--lead{flex-wrap:wrap}.log__row--lead select{min-height:40px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;font:inherit}.log__row--lead .tel{color:var(--accent-ink);font-weight:600;text-decoration:none}.log__row--lead .grow{min-width:60%}
 .log__row small{color:var(--muted);font-size:12px}
+.offline-bar{position:fixed;inset-inline:12px;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:96;display:flex;gap:8px;align-items:center;max-width:520px;margin:auto;padding:11px 16px;border-radius:14px;background:#6e1f2b;color:#fff;font-size:13.5px;box-shadow:0 18px 40px -20px rgba(0,0,0,.5)}.offline-bar[hidden]{display:none}
 .empty-note{color:var(--muted);font-size:13.5px;line-height:1.9;padding:8px 0}
 .login{max-width:420px;margin:30px auto 0}
 .login .mirror{width:120px;margin:0 auto 18px}
@@ -178,6 +181,11 @@ function field(id,label,value,type,hint){var input=type==='area'?el('textarea',{
 function check(id,label,on){var i=el('input',{type:'checkbox',id:id});i.checked=!!on;return el('label',{class:'check'},[i,el('span',{text:label})])}
 function badge(t,tone){return el('span',{class:'badge'+(tone?' badge--'+tone:''),text:t})}
 var path=location.pathname.split('/').filter(Boolean),MGR=window.__MGR||'',slug=MGR||(path[0]==='admin'?path[1]||'':'');
+var IC={info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8v.2"/></svg>',ok:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12.4 2.8 2.8L16.4 9.6"/></svg>',warn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.6 2.8 19.4h18.4z"/><path d="M12 10v4.4M12 17v.2"/></svg>',bad:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg>',check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.6 4.4 4.4L19 7.4"/></svg>',dash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M7 12h10"/></svg>',cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.6"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>'};
+var ILLO=__ILLO__;
+function empty(kind,title,text){return el('div',{class:'empty'},[el('span',{html:ILLO[kind]}),h('b',title),text?h('p',text):null])}
+/* offline banner */
+(function(){var bar=document.createElement('div');bar.className='offline-bar';bar.setAttribute('role','status');bar.hidden=navigator.onLine!==false;bar.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M3.5 9.5a12 12 0 0 1 17 0M7 13a7 7 0 0 1 10 0M10.4 16.4a2.4 2.4 0 0 1 3.2 0M4 4l16 16"/></svg><span>اینترنت قطع است؛ تا وصل‌شدن دوباره، دکمه‌ها کار نمی‌کنند.</span>';document.body.append(bar);function u(){bar.hidden=navigator.onLine}window.addEventListener('online',u);window.addEventListener('offline',u)})();
 var TG='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.4 4.2 2.9 11.3c-1.2.5-1.2 1.2-.2 1.5l4.7 1.5 1.8 5.6c.2.6.1.9.8.9.5 0 .7-.2 1-.5l2.3-2.2 4.7 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.3-.5-1.9-1.4-1.5zM9.2 14.6l8.6-5.4c.4-.2.8-.1.5.2l-7.3 6.6-.3 3z"/></svg>';
 
 (function boot(){api('/api/me').then(function(me){
@@ -351,13 +359,13 @@ function leadsCard(slug){
   list.classList.add('is-refreshing');
   return api('/api/s/'+slug+'/owner/leads?status='+cur).then(function(r){
    list.classList.remove('is-refreshing');paintChips(r.counts);
-   if(!r.leads.length){list.replaceChildren(h('p','درخواستی با این وضعیت نیست.','empty-note'));return}
+   if(!r.leads.length){list.replaceChildren(empty('leads','درخواستی با این وضعیت نیست','وقتی مشتری «این لباس را می‌خواهم» را بزند، اینجا دیده می‌شود.'));return}
    list.replaceChildren.apply(list,r.leads.map(function(l){
     var sel=el('select',{'aria-label':'وضعیت '+l.name},LSTATUS.map(function(x){return el('option',{value:x[0],text:x[1]})}));sel.value=l.salon_status;
     sel.addEventListener('change',function(){sel.disabled=true;api('/api/s/'+slug+'/owner/leads/status',{id:l.id,status:sel.value}).then(function(){toast('وضعیت عوض شد.');return load()},function(e){toast(e.message,true);sel.value=l.salon_status}).then(function(){sel.disabled=false})});
     var tel='0'+String(l.phone).replace(/^\+98/,'');
     return el('div',{class:'log__row log__row--lead'},[
-     el('div',{class:'grow'},[h('b',l.name),el('br'),el('a',{href:'tel:'+tel,dir:'ltr',class:'tel',text:tel.replace(/\d/g,function(c){return '۰۱۲۳۴۵۶۷۸۹'[c]})}),el('br'),h('small',[l.intent==='want'?'می‌خواهم · ':'',l.look||'بدون لباس',' · ',fmt(l.created_at),l.staff?' · '+l.staff:''].join('')),l.visit_note?el('div',{},[h('small','🗓 '+l.visit_note)]):null]),
+     el('div',{class:'grow'},[h('b',l.name),el('br'),el('a',{href:'tel:'+tel,dir:'ltr',class:'tel',text:tel.replace(/\d/g,function(c){return '۰۱۲۳۴۵۶۷۸۹'[c]})}),el('br'),h('small',[l.intent==='want'?'می‌خواهم · ':'',l.look||'بدون لباس',' · ',fmt(l.created_at),l.staff?' · '+l.staff:''].join('')),l.visit_note?el('div',{class:'ic-row'},[el('span',{class:'ic-line',html:IC.cal}),h('small',l.visit_note)]):null]),
      l.waiting?badge('منتظر وصل شدن '+(l.staff||'نیرو'),'warn'):badge(label[l.status]||l.status,tone[l.status]),
      l.status==='failed'?el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'ارسال دوباره',onclick:act(function(){return api('/api/s/'+slug+'/owner/leads/retry',{id:l.id}).then(load)})}):null,
      sel]);
@@ -370,7 +378,7 @@ function leadsCard(slug){
 function setupLine(s){var st=s.setup||{filled:0,total:11,missing:[]};var done=st.filled>=st.total;
  return el('div',{class:'setup'},[el('span',{class:'setup__bar'},[el('span',{style:'width:'+Math.round(st.filled/st.total*100)+'%'})]),h('small',(done?'صفحه کامل است':'صفحه '+fa(st.filled)+' از '+fa(st.total)+' — مانده: '+st.missing.join('، ')))])}
 // The owner's own alerts: link a Telegram chat, preview tonight's digest, and the activity log.
-var LEVEL={info:['ℹ️',''],good:['✅','ok'],warn:['⚠️','warn'],error:['❌','danger']},KIND={setup:'راه‌اندازی',team:'تیم',stuck:'گیرکرده',credit:'اعتبار',noanswer:'بی‌جواب',error:'خطا'};
+var LEVEL={info:[IC.info,''],good:[IC.ok,'ok'],warn:[IC.warn,'warn'],error:[IC.bad,'danger']},KIND={setup:'راه‌اندازی',team:'تیم',stuck:'گیرکرده',credit:'اعتبار',noanswer:'بی‌جواب',error:'خطا'};
 function alertsCard(d){
  var a=d.alerts||{chats:[]},on=a.chats.length>0,out=el('div');
  var c=el('section',{class:'card'},[h('h2','گزارش‌ها و هشدارها'),h('p','هشدار فوری (وصل شدن یا نشدن مزون و مزون‌دار، صفحهٔ نیمه‌کاره، درخواست بی‌جواب یا گیرکرده، خطای ربات) و هر شب ساعت ۲۱ خلاصهٔ روز در گفتگوی تلگرام خودت با ربات.','lead'),
@@ -381,14 +389,14 @@ function alertsCard(d){
   on?el('button',{class:'btn btn--danger btn--sm',type:'button',text:'قطع گزارش‌ها',onclick:act(function(){if(!confirm('گزارش‌ها دیگر به تلگرام نیاید؟'))return;return api('/api/owner/alerts-unlink',{}).then(home)})}):null
  ]),out);
  var acts=d.activity||[],list=el('div',{class:'acts'});
- acts.forEach(function(x){var l=LEVEL[x.level]||LEVEL.info;list.append(el('div',{class:'act act--'+(l[1]||'info')},[el('span',{class:'act__ic',text:l[0]}),el('div',{class:'grow'},[h('span',x.text),el('br'),h('small',(KIND[x.kind]||x.kind)+' · '+fmt(x.created_at))])]))});
+ acts.forEach(function(x){var l=LEVEL[x.level]||LEVEL.info;list.append(el('div',{class:'act act--'+(l[1]||'info')},[el('span',{class:'act__ic',html:l[0]}),el('div',{class:'grow'},[h('span',x.text),el('br'),h('small',(KIND[x.kind]||x.kind)+' · '+fmt(x.created_at))])]))});
  c.append(h('h3','رویدادهای اخیر','sub'),acts.length?list:h('p','هنوز رویدادی ثبت نشده.','empty-note'));
  return c;
 }
 function copyLink(label,url){return el('div',{class:'linkbox'},[h('b',label,'linkbox__label'),el('code',{text:url}),el('button',{class:'btn btn--soft btn--sm',type:'button',text:'کپی',onclick:function(){navigator.clipboard&&navigator.clipboard.writeText(url).then(function(){toast('لینک کپی شد.')})}})])}
 
 function botCard(bot){
- var st=function(ok,on,off){return el('li',{class:ok?'on':'off'},[h('span',ok?'✓':'–','dot'),h('span',ok?on:off)])};
+ var st=function(ok,on,off){return el('li',{class:ok?'on':'off'},[el('span',{class:'dot',html:ok?IC.check:IC.dash}),h('span',ok?on:off)])};
  var t=bot.telegram||{},b=bot.bale||{};
  var c=el('section',{class:'card'},[h('h2','ربات‌ها'),h('p','همهٔ مزون‌ها از یک ربات تلگرام و یک ربات بله استفاده می‌کنند. هر مزون می‌تواند یکی یا هر دو را وصل کند و درخواست‌ها در هر دو می‌رسد.','lead'),el('ul',{class:'status'},[
   st(t.ready&&!!t.username,'تلگرام: @'+t.username,'تلگرام: TELEGRAM_BOT_TOKEN و TELEGRAM_BOT_USERNAME تنظیم نشده.'),
@@ -420,10 +428,10 @@ function pendingCard(){
  var box=el('section',{class:'card'},[h('h2','درخواست‌های ثبت‌نام مزون'),h('p','مزون‌دارهایی که ثبت‌نام کرده‌اند و منتظر تأیید شما هستند. با تأیید، زیردامنه ساخته می‌شود، پنل مدیریت باز می‌شود و برای مدیر پیامک و پیام ربات می‌رود.','lead')]),body=el('div',{class:'stack'});box.hidden=true;box.append(body);
  function report(a,r){
   var n=r.notified||{},bits=[];
-  bits.push((n.bot&&n.bot.length)?'✅ پیام ربات ('+n.bot.join('، ')+') فرستاده شد':'⚠️ ربات مدیر وصل نیست؛ پیام ربات نرفت');
-  bits.push(n.sms===true?'✅ پیامک فرستاده شد':n.sms===false?'❌ پیامک نرفت':'ℹ️ پیامک فعال نیست (متن تأییدشدهٔ پیامک تنظیم نشده)');
-  (n.errors||[]).forEach(function(x){bits.push('⚠️ '+x)});
-  return el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong','✅ '+a.name+' فعال شد'),h('small','https://'+r.subdomain+'.'+location.hostname.replace(/^www\./,'')+'  ·  /manager'),h('small',bits.join(' | '))])])
+  bits.push((n.bot&&n.bot.length)?'پیام ربات ('+n.bot.join('، ')+') فرستاده شد':'ربات مدیر وصل نیست؛ پیام ربات نرفت');
+  bits.push(n.sms===true?'پیامک فرستاده شد':n.sms===false?'پیامک نرفت':'پیامک فعال نیست (متن تأییدشدهٔ پیامک تنظیم نشده)');
+  (n.errors||[]).forEach(function(x){bits.push('هشدار: '+x)});
+  return el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong',a.name+' فعال شد'),h('small','https://'+r.subdomain+'.'+location.hostname.replace(/^www\./,'')+'  ·  /manager'),h('small',bits.join(' | '))])])
  }
  function load(){return api('/api/owner/accounts').then(function(d){
   var list=d.accounts.filter(function(a){return !a.approved});
@@ -432,7 +440,7 @@ function pendingCard(){
   list.forEach(function(a){
    var sub=el('input',{type:'text',value:a.desired||'',placeholder:'زیردامنه، مثلاً rose'});sub.setAttribute('dir','ltr');sub.setAttribute('autocapitalize','off');
    sub.addEventListener('input',function(){sub.value=sub.value.toLowerCase().replace(/[^a-z0-9-]/g,'')});
-   var row=el('div',{class:'salon pend'},[el('div',{class:'grow'},[h('strong',a.name),h('small',(a.phone?'📞 '+a.phone+' · ':'')+(a.manager?'کاربر: '+a.manager:'بدون نام کاربری')),badge(a.bot?'ربات مدیر وصل است':'ربات مدیر هنوز وصل نشده',a.bot?'ok':'warn'),sub]),
+   var row=el('div',{class:'salon pend'},[el('div',{class:'grow'},[h('strong',a.name),h('small',(a.phone?'تلفن '+a.phone+' · ':'')+(a.manager?'کاربر: '+a.manager:'بدون نام کاربری')),badge(a.bot?'ربات مدیر وصل است':'ربات مدیر هنوز وصل نشده',a.bot?'ok':'warn'),sub]),
     el('button',{class:'btn btn--primary btn--sm',type:'button',text:'تأیید و فعال‌سازی',onclick:act(function(){
      var v=sub.value.trim();if(!v)throw new Error('زیردامنه را بنویسید');
      return api('/api/owner/account',{slug:a.slug,approved:true,subdomain:v}).then(function(r){toast('مزون فعال شد');row.replaceWith(report(a,r));return load()})})})]);
@@ -453,7 +461,7 @@ function home(){return api('/api/owner').then(function(d){
  var head=el('div',{class:'page-head'},[el('div',{},[h('h1','داشبورد'),h('p','مشتری‌ها چطور از صفحه‌ها استفاده می‌کنند و مزون‌ها چقدر جواب می‌دهند. با تب‌های زیر بین مزون‌ها، آمار و تنظیمات جابه‌جا شوید.')])]);
  var list=el('div',{class:'salons'});
  d.salons.forEach(function(s){list.append(el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong',s.name),h('small','/s/'+s.slug)]),badge(s.telegram&&s.bale?'تلگرام و بله وصل':s.telegram?'تلگرام وصل':s.bale?'بله وصل':'ربات وصل نیست',s.telegram||s.bale?'ok':'warn'),h('small',fa(s.portfolio)+' نمونه‌کار، '+fa(s.leads)+' درخواست'+(s.team?'، تیم '+fa(s.team_linked)+'/'+fa(s.team)+' وصل':'')),setupLine(s),(s.waiting||s.overdue)?el('div',{class:'row',style:'gap:6px'},[s.waiting?badge(fa(s.waiting)+' درخواست منتظر وصل شدن','warn'):null,s.overdue?badge(fa(s.overdue)+' بی‌جواب بیش از ۲۴ ساعت','danger'):null]):null,el('a',{class:'btn btn--ghost btn--sm',href:'/s/'+s.slug,target:'_blank',rel:'noopener',text:'صفحهٔ مشتری'}),el('a',{class:'btn btn--primary btn--sm',href:'/admin/'+s.slug,text:'تنظیمات'})]))});
- if(!d.salons.length)list.append(h('p','هنوز مزونی ثبت نشده؛ از فرم «مزون تازه» اولین مزون را بسازید.','empty-note'));
+ if(!d.salons.length)list.append(empty('dresses','هنوز مزونی ثبت نشده','از فرم «مزون تازه» اولین مزون را بسازید.'));
  var create=el('section',{class:'card'},[h('h2','مزون تازه'),field('name','نام مزون'),field('slug','نشانی انگلیسی صفحه','', 'text','فقط حروف انگلیسی، عدد و خط تیره؛ حروف بزرگ و فاصله خودکار درست می‌شوند.'),el('button',{class:'btn btn--primary',type:'button',text:'ساخت مزون',onclick:act(function(){return api('/api/salons',{name:$('#name').value,slug:$('#slug').value.trim()}).then(function(s){location.href='/admin/'+s.slug})})})]);
  // The page address is cleaned as it is typed: lowercase, spaces become dashes, nothing else allowed.
  (function(){var si=create.querySelector('#slug');if(!si)return;si.setAttribute('dir','ltr');si.setAttribute('autocapitalize','off');si.setAttribute('autocorrect','off');si.setAttribute('spellcheck','false');si.setAttribute('inputmode','url');si.setAttribute('placeholder','aliadli-salon');
@@ -463,13 +471,13 @@ function home(){return api('/api/owner').then(function(d){
  $('#app').replaceChildren(head,pendingCard(),tabsView([['مزون‌ها',[el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[list,create]),el('div',{class:'stack'},[accountsCard()])])]],['آمار',[dashboard(d.salons)]],['هشدار و ربات',[alertsCard(d),botCard(d.bot)]],['سرویس‌ها',[smsCard(d.sms||{}),imageCard(d.image)]]],'admin')) ;
 })}
 function smsCard(sms){
- var st=function(ok,on,off){return el('li',{class:ok?'on':'off'},[h('span',ok?'✓':'–','dot'),h('span',ok?on:off)])};
+ var st=function(ok,on,off){return el('li',{class:ok?'on':'off'},[el('span',{class:'dot',html:ok?IC.check:IC.dash}),h('span',ok?on:off)])};
  return el('section',{class:'card'},[h('h2','پیامک (ملی پیامک)'),h('p','کد تأیید موبایل مشتری، و لینک مزون که مزون‌دار از ربات برای مشتری می‌فرستد.','lead'),el('ul',{class:'status'},[
   st(sms.otp,'کد تأیید فعال است؛ مشتری قبل از ساخت شبیه‌سازی شمارهٔ خودش را تأیید می‌کند.','MELIPAYAMAK_TOKEN تنظیم نشده؛ تأیید شمارهٔ مشتری خاموش است.'),
   st(sms.invite,'پیامک لینک مزون از ربات فعال است.','MELIPAYAMAK_BODY_ID تنظیم نشده (شمارهٔ متن پیش‌فرض تأییدشده)؛ مزون‌دار هنوز نمی‌تواند لینک را پیامک کند.')
  ])]);
 }
-function imageCard(on){return el('section',{class:'card'},[h('h2','شبیه‌سازی تصویر'),el('ul',{class:'status'},[el('li',{class:on?'on':'off'},[h('span',on?'✓':'–','dot'),h('span',on?'کلید KIE تنظیم شده؛ مشتری‌ها می‌توانند مدل را روی عکس خودشان ببینند.':'KIE_API_KEY تنظیم نشده؛ مشتری فقط عکس و مدل را برای مزون می‌فرستد.')])])])}
+function imageCard(on){return el('section',{class:'card'},[h('h2','شبیه‌سازی تصویر'),el('ul',{class:'status'},[el('li',{class:on?'on':'off'},[el('span',{class:'dot',html:on?IC.check:IC.dash}),h('span',on?'کلید KIE تنظیم شده؛ مشتری‌ها می‌توانند مدل را روی عکس خودشان ببینند.':'KIE_API_KEY تنظیم نشده؛ مشتری فقط عکس و مدل را برای مزون می‌فرستد.')])])])}
 
 function uploadBox(id,title,current,onDone){
  var input=el('input',{type:'file',accept:'image/jpeg,image/png,image/webp',id:id,class:'sr-only'});
@@ -485,7 +493,7 @@ function shrink(file){return createImageBitmap(file).then(function(b){var c=docu
 function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  var S=d.salon,p=S.profile||{},images={logo:p.logo,cover:p.cover,portrait:p.portrait};
  document.title=S.name+' | مدیریت مزون آینه';
- var head=el('div',{class:'page-head'},[el('div',{},[MGR?null:el('a',{class:'back',href:'/admin',text:'→ همهٔ مزون‌ها'}),h('h1',S.name),h('p','اطلاعاتی که اینجا وارد می‌کنید در بخش «دربارهٔ مزون» صفحهٔ مشتری دیده می‌شود.'),setupLine({setup:d.setup})]),el('div',{class:'row'},[MGR?null:el('a',{class:'btn btn--ghost',href:'/admin?salon='+encodeURIComponent(S.slug),text:'آمار این مزون'}),el('a',{class:'btn btn--ghost',href:MGR?'/':'/s/'+S.slug,target:'_blank',rel:'noopener',text:'دیدن صفحهٔ مشتری'})])]);
+ var head=el('div',{class:'page-head'},[el('div',{},[MGR?null:el('a',{class:'back',href:'/admin',html:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg><span>همهٔ مزون‌ها</span>'}),h('h1',S.name),h('p','اطلاعاتی که اینجا وارد می‌کنید در بخش «دربارهٔ مزون» صفحهٔ مشتری دیده می‌شود.'),setupLine({setup:d.setup})]),el('div',{class:'row'},[MGR?null:el('a',{class:'btn btn--ghost',href:'/admin?salon='+encodeURIComponent(S.slug),text:'آمار این مزون'}),el('a',{class:'btn btn--ghost',href:MGR?'/':'/s/'+S.slug,target:'_blank',rel:'noopener',text:'دیدن صفحهٔ مشتری'})])]);
 
  // Telegram
  var linked=[S.telegram?'تلگرام':'',S.bale?'بله':''].filter(Boolean),on=linked.length>0;
@@ -493,7 +501,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  tg.append(el('div',{class:'tg-state tg-state--'+(on?'on':'off')},[el('span',{html:TG}),el('div',{},[h('b',on?'وصل است: '+linked.join(' و '):'هنوز وصل نیست'),h('span',on?'درخواست مشتری‌ها برای مزون می‌رود؛ مزون زیرش یک دکمه می‌زند و مشتری خبردار می‌شود. هر عکسی که مزون بفرستد نمونه‌کار می‌شود.':'تا وصل نشود، مشتری‌ها نمی‌توانند درخواست آنلاین بفرستند و فقط اطلاعات تماس مزون را می‌بینند.')])]));
  var linkOut=el('div');
  var copyRow=function(label,url){return el('div',{class:'linkbox'},[h('b',label,'linkbox__label'),el('code',{text:url}),el('button',{class:'btn btn--soft btn--sm',type:'button',text:'کپی',onclick:function(){navigator.clipboard&&navigator.clipboard.writeText(url).then(function(){toast('لینک کپی شد.')})}})])};
- function pollBot(){var n=0,t=setInterval(function(){api('/api/s/'+slug+'/owner').then(function(x){if(x.salon.telegram||x.salon.bale){clearInterval(t);toast('✅ ربات وصل شد');salonPage()}}).catch(function(){});if(++n>60)clearInterval(t)},3000)}
+ function pollBot(){var n=0,t=setInterval(function(){api('/api/s/'+slug+'/owner').then(function(x){if(x.salon.telegram||x.salon.bale){clearInterval(t);toast('ربات وصل شد');salonPage()}}).catch(function(){});if(++n>60)clearInterval(t)},3000)}
  function connectBot(pl){var w=window.open('about:blank','_blank');return api('/api/s/'+slug+'/owner/telegram-link',{}).then(function(r){var url=(r.links||{})[pl];if(!url){if(w)w.close();throw new Error('ربات هنوز تنظیم نشده')}if(w)w.location.href=url;else location.href=url;toast('در برنامه دکمهٔ Start را بزنید؛ اتصال خودکار انجام می‌شود…');pollBot()})}
  [['telegram',d.bot.telegram,'تلگرام'],['bale',d.bot.bale,'بله']].forEach(function(x){if(x[1]&&x[1].ready&&x[1].username)tg.append(el('button',{class:'btn btn--primary',type:'button',style:'margin-inline-end:8px;margin-top:8px',text:(on?'اتصال دوباره به ':'اتصال به ')+x[2],onclick:act(function(){return connectBot(x[0])})}))});
  if(!(d.bot.telegram&&d.bot.telegram.ready&&d.bot.telegram.username)&&!(d.bot.bale&&d.bot.bale.ready&&d.bot.bale.username))tg.append(el('p',{class:'notice notice--warn',text:'ربات هنوز روی سایت تنظیم نشده است.'}));
@@ -540,7 +548,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  // Portfolio
  var ports=el('div',{class:'ports'});
  function pinfo(it){var mode=el('select',{'aria-label':'نوع'},[['','نوع عرضه'],['sale','فروش'],['rent','اجاره'],['both','فروش و اجاره']].map(function(o){return el('option',{value:o[0],text:o[1]})})),stock=el('select',{'aria-label':'موجودی'},[['','موجودی'],['available','موجود'],['ask','بپرسید']].map(function(o){return el('option',{value:o[0],text:o[1]})})),price=el('input',{type:'text',maxlength:'60',placeholder:'قیمت (مثلاً ۱۲ تا ۱۵ میلیون)',value:it.price||''});mode.value=it.mode||'';stock.value=it.stock||'';var save=function(){return api('/api/s/'+slug+'/owner/portfolio/info',{id:it.id,mode:mode.value,price:price.value,stock:stock.value})};[mode,stock,price].forEach(function(x){x.addEventListener('change',function(){save().catch(function(){})})});var inq=el('button',{class:'btn btn--sm',type:'button',text:'استعلام',title:'قیمت نمایش داده نشود؛ مشتری برای استعلام تماس بگیرد',onclick:function(){price.value='استعلام قیمت: تماس بگیرید';save().catch(function(){})}});return el('div',{class:'row'},[mode,stock,price,inq])}
- d.portfolio.forEach(function(it){var ids=[];try{ids=JSON.parse(it.images)}catch(e){}ports.append(el('div',{class:'port'},[ids[0]?el('img',{src:'/api/s/'+slug+'/media/'+ids[0],alt:'',loading:'lazy'}):null,h('b',it.title),it.stylist?h('small','کار '+it.stylist):null,ids.length<2?h('small','⚠ فقط '+ids.length+' عکس؛ برای ویدیوی ۳۶۰ حداقل نمای جلو و پشت لازم است'):null,pinfo(it),el('button',{class:'btn btn--danger btn--sm',type:'button',text:'حذف',onclick:act(function(){if(!confirm('«'+it.title+'» از صفحهٔ مزون حذف شود؟'))return;return api('/api/s/'+slug+'/owner/portfolio/delete',{id:it.id}).then(salonPage)})})]))});
+ d.portfolio.forEach(function(it){var ids=[];try{ids=JSON.parse(it.images)}catch(e){}ports.append(el('div',{class:'port'},[ids[0]?el('img',{src:'/api/s/'+slug+'/media/'+ids[0],alt:'',loading:'lazy'}):null,h('b',it.title),it.stylist?h('small','کار '+it.stylist):null,ids.length<2?h('small','فقط '+ids.length+' عکس؛ برای ویدیوی ۳۶۰ حداقل نمای جلو و پشت لازم است'):null,pinfo(it),el('button',{class:'btn btn--danger btn--sm',type:'button',text:'حذف',onclick:act(function(){if(!confirm('«'+it.title+'» از صفحهٔ مزون حذف شود؟'))return;return api('/api/s/'+slug+'/owner/portfolio/delete',{id:it.id}).then(salonPage)})})]))});
  // Add from here too: pick photos, a title for each (the file name by default) and the section.
  var addFiles=el('input',{type:'file',accept:'image/jpeg,image/png,image/webp',multiple:'multiple'}),addList=el('div',{class:'port-add__list'});
  addFiles.addEventListener('change',function(){addList.replaceChildren.apply(addList,Array.prototype.map.call(addFiles.files,function(f){return el('input',{type:'text',maxlength:'150',value:f.name.replace(/\.[a-z]+$/i,'').replace(/[-_]+/g,' '),'aria-label':'اسم کار '+f.name})}))});
@@ -559,7 +567,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
    .then(function(){return api('/api/s/'+slug+'/owner/portfolio/add',{media_ids:ids,title:title,line:'dress'})}).then(function(){toast('لباس با '+ids.length+' عکس ثبت شد.');salonPage()})})});
  var intake=el('div',{class:'port-add'},[h('b','ثبت سریع لباس (۴ زاویه)'),h('p','برای ساخت عکس و ویدیوی درست، از هر لباس واقعی ۴ نما بگیرید: جلو، کنار، پشت و جزئیات. نور یکنواخت و پس‌زمینهٔ ساده؛ لباس کامل در کادر.','lead'),dTitle].concat(slotEls,[dBtn]));
  var add=el('div',{class:'port-add'},[h('b','افزودن نمونه‌کار از همین‌جا'),el('label',{class:'field'},[el('span',{class:'lbl',text:'عکس‌ها'}),addFiles]),addList,addBtn]);
- var port=el('section',{class:'card'},[h('h2','نمونه‌کارها'),h('p','مزون عکس را برای ربات تلگرام می‌فرستد و همان لحظه اینجا و روی صفحهٔ مشتری می‌نشیند. از همین‌جا هم می‌توانید اضافه کنید.','lead'),d.portfolio.length?ports:h('p','هنوز نمونه‌کاری نیامده.','empty-note'),intake,add]);
+ var port=el('section',{class:'card'},[h('h2','نمونه‌کارها'),h('p','مزون عکس را برای ربات تلگرام می‌فرستد و همان لحظه اینجا و روی صفحهٔ مشتری می‌نشیند. از همین‌جا هم می‌توانید اضافه کنید.','lead'),d.portfolio.length?ports:empty('dresses','هنوز نمونه‌کاری نیامده','اولین لباس را با فرم «ثبت لباس با عکس» پایین همین کارت اضافه کنید.'),intake,add]);
 
  var leads=leadsCard(slug),social=socialCard(slug);
 
@@ -567,7 +575,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  // SMS: the manager texts the page link to a customer from the approved shared-line text
  var smsIn=el('textarea',{rows:'2',placeholder:'۰۹۱۲۱۲۳۴۵۶۷  ۰۹۳۵۱۲۳۴۵۶۷'}),smsOut=el('div',{class:'stack'});smsIn.setAttribute('dir','ltr');
  var smsC=el('section',{class:'card'},[h('h2','پیامک لینک برای مشتری'),h('p','شمارهٔ موبایل مشتری را بنویسید (تا ۵ شماره، با فاصله یا ویرگول جدا)؛ لینک صفحهٔ مزون برایش پیامک می‌شود تا لباس را روی خودش امتحان کند.','lead')]);
- if(d.sms_invite)smsC.append(smsIn,el('button',{class:'btn btn--primary',type:'button',text:'ارسال پیامک',onclick:act(function(){return api('/api/s/'+slug+'/owner/invite',{numbers:smsIn.value}).then(function(r){smsOut.replaceChildren.apply(smsOut,r.results.map(function(x){return h('small',(x.ok?'✅ ':'⚠️ ')+x.phone+(x.msg?' — '+x.msg:' — فرستاده شد'))}));if(r.results.some(function(x){return x.ok}))smsIn.value=''})})}),smsOut);
+ if(d.sms_invite)smsC.append(smsIn,el('button',{class:'btn btn--primary',type:'button',text:'ارسال پیامک',onclick:act(function(){return api('/api/s/'+slug+'/owner/invite',{numbers:smsIn.value}).then(function(r){smsOut.replaceChildren.apply(smsOut,r.results.map(function(x){return h('small',(x.ok?'ارسال شد: ':'نرفت: ')+x.phone+(x.msg?' — '+x.msg:' — فرستاده شد'))}));if(r.results.some(function(x){return x.ok}))smsIn.value=''})})}),smsOut);
  else smsC.append(h('p','ارسال پیامک هنوز فعال نشده است. تا آن موقع می‌توانید لینک صفحه را از ربات یا پیام‌رسان‌ها برای مشتری بفرستید.','notice notice--warn'));
  var pageUrl=location.origin+(MGR&&location.hostname.split('.').length>2?'/':'/s/'+slug);
  var share=el('section',{class:'card'},[h('h2','لینک صفحهٔ مزون'),h('p','این لینک را به مشتری‌ها بدهید یا در اینستاگرام بگذارید.','lead'),copyRow('صفحهٔ مشتری‌ها',pageUrl),(function(){var q=qrcode(0,'M');q.addData(pageUrl);q.make();var svg=q.createSvgTag({cellSize:6,margin:2,scalable:true});var wrap=el('div',{class:'qrbox',dir:'ltr',html:svg,style:'width:180px;max-width:100%;margin:14px auto 6px;background:#fff;padding:8px;border-radius:14px'});var row=el('div',{class:'row',style:'display:flex;gap:8px;flex-wrap:wrap;justify-content:center'},[el('button',{class:'btn btn--soft btn--sm',type:'button',text:'اشتراک‌گذاری',onclick:function(){if(navigator.share)navigator.share({title:'امتحان لباس عروس',url:pageUrl}).catch(function(){});else{navigator.clipboard&&navigator.clipboard.writeText(pageUrl);toast('لینک کپی شد.')}}}),el('button',{class:'btn btn--soft btn--sm',type:'button',text:'چاپ QR',onclick:function(){var w=window.open('','_blank');if(!w)return;w.document.write('<!doctype html><meta charset=utf-8><title>QR</title><body style="text-align:center;font-family:sans-serif;padding:40px"><div style="width:320px;margin:auto">'+svg+'</div><p>برای امتحان لباس، کد را با گوشی اسکن کنید</p>');w.document.close();w.focus();w.print()}})]);return el('div',{},[wrap,row])})()]);
@@ -578,7 +586,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
   if(items.every(function(x){return x[1]}))return null;
   var done=items.filter(function(x){return x[1]}).length;
   var ol=el('ol',{});
-  items.forEach(function(x,i){ol.append(el('li',{class:x[1]?'is-done':''},[el('b',{text:x[1]?'✓':fa(i+1)}),el('span',{text:x[0]}),x[2]&&!x[1]?el('button',{class:'btn btn--soft btn--sm',type:'button',style:'margin-inline-start:auto',text:'برو',onclick:function(){var t=Array.prototype.filter.call(document.querySelectorAll('button.tab'),function(b){return b.textContent===x[2]})[0];if(t)t.click();window.scrollTo({top:0,behavior:'smooth'})}}):null]))});
+  items.forEach(function(x,i){ol.append(el('li',{class:x[1]?'is-done':''},[el('b',{html:x[1]?IC.check:'',text:x[1]?undefined:fa(i+1)}),el('span',{text:x[0]}),x[2]&&!x[1]?el('button',{class:'btn btn--soft btn--sm',type:'button',style:'margin-inline-start:auto',text:'برو',onclick:function(){var t=Array.prototype.filter.call(document.querySelectorAll('button.tab'),function(b){return b.textContent===x[2]})[0];if(t)t.click();window.scrollTo({top:0,behavior:'smooth'})}}):null]))});
   return el('section',{class:'card checklist'},[h('h2','شروع سریع'),h('p',fa(done)+' از '+fa(items.length)+' قدم انجام شده. با این چهار قدم مزون آمادهٔ دریافت مشتری می‌شود.','lead'),ol]);
  }
  var cl=MGR?checklistCard():null;
@@ -591,7 +599,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
 $('#logout').addEventListener('click',function(){(MGR?api('/api/s/'+MGR+'/manager/logout',{}):api('/api/logout',{})).then(function(){location.href='/'})});
 `;
 
-export const appHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#e8edeb"><meta name="robots" content="noindex"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin><title>مزون آینه | مدیریت مزون‌ها</title><style>__CSS__</style></head><body>
+export const appHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#e8edeb"><meta name="robots" content="noindex"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin><title>مزون آینه | مدیریت مزون‌ها</title><style>__CSS__</style></head><body>
 <a class="skip" href="#app">پرش به محتوای اصلی</a>
 <header class="appbar"><a href="/admin" class="appbar__brand">__MARKHTML__<span>مزون آینه</span></a><button class="btn btn--ghost btn--sm" id="logout" type="button" hidden>خروج</button></header>
 <main id="app"><div class="loading">در حال باز کردن…</div></main>
@@ -601,4 +609,4 @@ export const appHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><
 </body></html>`
  .replace('__CSS__',()=>baseCSS+css)
  .replace('__MARKHTML__',()=>markSVG)
- .replace('__JS__',()=>clientJS.replace('/*__QR__*/',()=>QR_JS).replace('__MARK__',()=>JSON.stringify(markSVG)));
+ .replace('__JS__',()=>clientJS.replace('/*__QR__*/',()=>QR_JS).replace('__MARK__',()=>JSON.stringify(markSVG)).replace('__ILLO__',()=>JSON.stringify(illos)));

@@ -13,16 +13,20 @@ const run=(db,sql,...a)=>db.prepare(sql).bind(...a).run();
 const one=(db,sql,...a)=>db.prepare(sql).bind(...a).first();
 
 export const trialOf=(db,salonId)=>one(db,'SELECT * FROM trials WHERE salon_id=?',salonId);
-export const trialLive=t=>!!t&&Date.now()<t.expires_at;
-export function trialPublic(t){if(!t)return null;return {expires_at:t.expires_at,expired:!trialLive(t),images_limit:t.images_limit,images_left:Math.max(0,t.images_limit-t.images_used),brand:t.brand||''};}
+// The clock starts at the first image (started_at), not at signup; a trial that never made an image does not expire.
+export const trialLive=t=>!!t&&(!t.started_at||Date.now()<t.expires_at);
+export function trialPublic(t){if(!t)return null;return {expires_at:t.started_at?t.expires_at:null,started:!!t.started_at,hours:TRIAL_HOURS,expired:!trialLive(t),images_limit:t.images_limit,images_left:Math.max(0,t.images_limit-t.images_used),brand:t.brand||''};}
 
-// Takes one image from the trial's budget, atomically. Called before any paid request is created.
-export async function spendTrialImage(db,t){
+// Takes `w` images from the trial's budget (a 360 clip weighs more than a photo), atomically. The 10-hour clock
+// starts here, with the first image. Called before any paid request is created.
+export async function spendTrialImage(db,t,w=1){
  if(!t)return;
  must(trialLive(t),'مهلت ۱۰ ساعتهٔ صفحهٔ آزمایشی تمام شده است؛ برای ادامه با ما تماس بگیرید',410);
- const r=await run(db,'UPDATE trials SET images_used=images_used+1 WHERE id=? AND images_used<images_limit AND expires_at>?',t.id,Date.now());
+ if(!t.started_at){const now=Date.now();await run(db,'UPDATE trials SET started_at=?,expires_at=? WHERE id=? AND started_at IS NULL',now,now+TRIAL_HOURS*3600000,t.id)}
+ const r=await run(db,'UPDATE trials SET images_used=images_used+? WHERE id=? AND images_used+?<=images_limit AND (started_at IS NULL OR expires_at>?)',w,t.id,w,Date.now());
  must(r.meta.changes,'سهمیهٔ '+t.images_limit+' تصویر صفحهٔ آزمایشی تمام شده است؛ برای ادامه با ما تماس بگیرید',402);
 }
+export const refundTrialImage=(db,salonId,w=1)=>run(db,'UPDATE trials SET images_used=MAX(0,images_used-?) WHERE salon_id=?',w,salonId);
 
 const rand=()=>Array.from(crypto.getRandomValues(new Uint8Array(4)),x=>x.toString(16).padStart(2,'0')).join('');
 
@@ -57,14 +61,15 @@ export async function createTrial(db,env,origin,b){
   must(await hash(o.id+':'+given)===o.code_hash,'کد درست نیست');
   await run(db,'DELETE FROM otps WHERE session_id=?',key);
  }
- const salt=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join(''),token=newToken(),id=uid(),salonId=uid(),slug='t-'+rand(),now=Date.now(),expires=now+TRIAL_HOURS*3600000;
+ const salt=Array.from(crypto.getRandomValues(new Uint8Array(16)),x=>x.toString(16).padStart(2,'0')).join(''),token=newToken(),id=uid(),salonId=uid(),slug='t-'+rand(),now=Date.now();
  await db.batch([
   db.prepare('INSERT INTO salons(id,slug,owner_id,name,created_at,profile,settings,approved,manage_token,desired_sub,mgr_user,mgr_salt,mgr_hash) VALUES(?,?,?,?,?,?,?,0,?,?,?,?,?)').bind(salonId,slug,'trial',salon,now,JSON.stringify(city?{address:city}:{}),JSON.stringify({generation_enabled:true,catalog:true,reference_verified:true,trial:true}),token,wantSub,username,salt,await pwHash(password,salt)),
-  db.prepare('INSERT INTO trials(id,salon_id,name,phone,brand,created_at,expires_at,images_limit) VALUES(?,?,?,?,?,?,?,?)').bind(id,salonId,name,tel,brand,now,expires,TRIAL_IMAGES),
+  db.prepare('INSERT INTO trials(id,salon_id,name,phone,brand,created_at,expires_at,images_limit) VALUES(?,?,?,?,?,?,?,?)').bind(id,salonId,name,tel,brand,now,0,TRIAL_IMAGES),
+  db.prepare("INSERT INTO credit_ledger(id,salon_id,amount,method,ref,by_who,limit_after,created_at) VALUES(?,?,100,'opening','trial','system',100,?)").bind(uid(),salonId,now),
   db.prepare('INSERT INTO inquiries(id,name,salon,city,phone,note,chosen,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(uid(),name,salon,city,tel,note,'صفحهٔ آزمایشی '+slug+(chosen?' · '+chosen:''),now)
  ]);
  const url=(env.APP_ORIGIN||origin)+'/s/'+slug;
  const bot=(await newLinkCode(db,{id:salonId},env).catch(()=>({links:{}}))).links||{};
- await notifyOwner(env,{kind:'trial',level:'good',text:'صفحهٔ آزمایشی «'+salon+'»'+(city?' ('+city+')':'')+' ساخته شد',detail:'👤 '+name+'\n📞 '+tel+'\n🔗 '+url+'\n👤 نام کاربری: '+username+(wantSub?'\n🌐 زیردامنهٔ درخواستی: '+wantSub:'')+'\n🛠 پنل مزون‌دار: '+(env.APP_ORIGIN||origin)+'/m/'+token+'\n⏳ ساخت تصویر تا تأیید شما بسته است'+'\n⏳ '+TRIAL_HOURS+' ساعت · '+TRIAL_IMAGES+' تصویر'+(chosen?'\n✨ '+chosen:'')+(note?'\n📝 '+note:'')});
- return {ok:true,bot,path:'/s/'+slug,url,panel:(env.APP_ORIGIN||origin)+'/m/'+token,expires_at:expires,images:TRIAL_IMAGES,hours:TRIAL_HOURS};
+ await notifyOwner(env,{kind:'trial',level:'good',text:'صفحهٔ آزمایشی «'+salon+'»'+(city?' ('+city+')':'')+' ساخته شد',detail:'👤 '+name+'\n📞 '+tel+'\n🔗 '+url+'\n👤 نام کاربری: '+username+(wantSub?'\n🌐 زیردامنهٔ درخواستی: '+wantSub:'')+'\n🛠 پنل مزون‌دار: '+(env.APP_ORIGIN||origin)+'/m/'+token+'\n🧪 سندباکس فعال: '+TRIAL_IMAGES+' تصویر بدون نیاز به تأیید؛ ساعت '+TRIAL_HOURS+'گانه از اولین تصویر شروع می‌شود'+(chosen?'\n✨ '+chosen:'')+(note?'\n📝 '+note:'')});
+ return {ok:true,bot,path:'/s/'+slug,url,panel:(env.APP_ORIGIN||origin)+'/m/'+token,expires_at:null,sandbox:true,images:TRIAL_IMAGES,hours:TRIAL_HOURS};
 }

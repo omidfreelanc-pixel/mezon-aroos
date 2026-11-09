@@ -1,5 +1,7 @@
 import {DRESS_STYLES} from './lines.js';
 import {dressStats} from './dresses.js';
+import {creditsOf,weightsOf,CREDIT_KINDS} from './credits.js';
+import {atRiskSalons} from './alerts.js';
 // Numbers for the owner dashboard. Everything comes from anonymous events (events_log), the
 // generations table and, for the salon response figures, the last 30 days of submissions.
 // Days are Tehran calendar days.
@@ -62,5 +64,20 @@ export async function stats(db,{days=30,salonId=null,now=Date.now()}={}){
   salons.sort((a,b)=>b.visitors-a.visitors||b.sent-a.sent);
  }
  const dresses=await dressStats(db,{salonId,from,to:now});
- return {days,dresses,kpi:cur,prev,funnel:funnel.map(([key,label,count])=>({key,label,count})),daily,looks,rating,generation,response,extra,share,lines:{requests:byLine},salons};
+
+ // Credits used in the window per kind (weighted), requests lost because credit ran out, traffic sources, bad-result reactions.
+ const W=await weightsOf(db);
+ const usage=Object.fromEntries(CREDIT_KINDS.map(k=>[k,{count:0,weight:W[k],credits:0}]));
+ for(const r of await all(db,"SELECT kind,COUNT(*) n FROM generations WHERE state<>'fail' AND refunded=0 AND "+w()+" GROUP BY kind",...args(from,now))){const k=CREDIT_KINDS.includes(r.kind)?r.kind:'single';usage[k].count+=Number(r.n);usage[k].credits+=Number(r.n)*W[k]}
+ const lostRows=await all(db,"SELECT meta,COUNT(*) n,COUNT(DISTINCT CASE WHEN visitor<>'' THEN visitor END) v FROM events_log WHERE kind='no_credit' AND "+w()+" GROUP BY meta",...args(from,now));
+ const lost={no_credit:lostRows.reduce((a,r)=>a+Number(r.n),0),visitors:lostRows.reduce((a,r)=>a+Number(r.v),0),byKind:Object.fromEntries(lostRows.map(r=>[r.meta||'single',Number(r.n)]))};
+ const srcRows=await all(db,"SELECT v.src,COUNT(DISTINCT v.visitor) visitors,COUNT(DISTINCT s.visitor) sent FROM events_log v LEFT JOIN events_log s ON s.visitor=v.visitor AND s.salon_id=v.salon_id AND s.kind='sent' AND s.created_at>=? AND s.created_at<? WHERE v.kind='view' AND v.visitor<>'' AND "+w('v')+" GROUP BY v.src ORDER BY visitors DESC",from,now,...args(from,now));
+ const sources=srcRows.map(r=>({src:r.src||'',visitors:Number(r.visitors),sent:Number(r.sent),conversion:Number(r.visitors)?Number(r.sent)/Number(r.visitors):0}));
+ const rx=await all(db,"SELECT reaction,reason,refunded,COUNT(*) n FROM reaction_log WHERE "+w()+" GROUP BY reaction,reason,refunded",...args(from,now));
+ const down=rx.filter(r=>r.reaction==='down').reduce((a,r)=>a+Number(r.n),0),refunded=rx.filter(r=>r.refunded).reduce((a,r)=>a+Number(r.n),0);
+ const reasons={};for(const r of rx)if(r.reaction==='down')reasons[r.reason||'other']=(reasons[r.reason||'other']||0)+Number(r.n);
+ const reactions={down,refunded,reasons,rate:g.success?down/g.success:0,refundRate:g.success?refunded/g.success:0};
+ const credits=salonId?await creditsOf(db,await one(db,'SELECT * FROM salons WHERE id=?',salonId),W):null;
+ const atRisk=salonId?undefined:await atRiskSalons(db,now);
+ return {days,usage,lost,sources,reactions,credits,atRisk,dresses,kpi:cur,prev,funnel:funnel.map(([key,label,count])=>({key,label,count})),daily,looks,rating,generation,response,extra,share,lines:{requests:byLine},salons};
 }

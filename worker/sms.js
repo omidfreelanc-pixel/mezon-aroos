@@ -76,3 +76,12 @@ export async function sendApproved(env,phone,args){
  if(mock(env)){console.log('[sms mock] approved ->',localNumber(phone),JSON.stringify(args));return {recId:'mock'};}
  return shared(env,phone,Number(id),args);
 }
+
+// Short notice to a salon manager (low credit, bride hit the cap) from an approved ready-made text
+// (MELIPAYAMAK_NOTICE_BODY_ID, one variable: the message). Returns null when that text is not configured.
+export async function sendNotice(env,phone,message){
+ const id=String(env?.MELIPAYAMAK_NOTICE_BODY_ID||'').trim();
+ if(!smsReady(env)||!/^\d+$/.test(id))return null;
+ if(mock(env)){console.log('[sms mock] notice ->',localNumber(phone),message);return {recId:'mock'};}
+ return shared(env,phone,Number(id),[String(message).slice(0,200)]);
+}

@@ -83,3 +83,25 @@ export async function purgePhotos(env,now=Date.now(),batch=200){
  }
  return n;
 }
+
+// What the bride is told about her request (salon-facing labels are STATUS_FA). `declined` is never shown as a refusal.
+export const BRIDE_STATUS_FA={new:'منتظر تماس مزون',called:'مزون با تو تماس گرفته',booked:'نوبت هماهنگ شد',cancelled:'درخواست بسته شد',declined:'فعلاً امکان‌پذیر نیست؛ مزون با تو در تماس است'};
+
+// «Bad result» reasons the bride can pick (kept for evals). 'other' may carry a short free note.
+export const REACTION_REASONS={face:'چهره شبیه من نیست',body:'اندام یا قد تغییر کرده',dress:'لباس شبیه مدل مزون نیست',artifact:'خطای تصویر (دست، لبه، پارچه)',other:'دلیل دیگر'};
+
+// Deletes one request and the photos that only it needed: the bride's own photos and the result. Photos another request,
+// a dress of the portfolio or a shared post still uses stay. Returns how many photos were deleted.
+export async function deleteLead(env,db,salonId,leadId){
+ const lead=await db.prepare('SELECT * FROM leads WHERE id=? AND salon_id=?').bind(leadId,salonId).first();
+ if(!lead)return null;
+ await run(db,'DELETE FROM leads WHERE id=?',lead.id);
+ let n=0;
+ for(const id of new Set([lead.original_id,lead.reference_id,lead.preview_id].filter(Boolean))){
+  const m=await db.prepare("SELECT id,object_key FROM media WHERE id=? AND salon_id=? AND session_id IS NOT NULL AND kind IN('original','reference','simulation','spin') AND NOT EXISTS(SELECT 1 FROM leads l WHERE l.original_id=media.id OR l.reference_id=media.id OR l.preview_id=media.id) AND NOT EXISTS(SELECT 1 FROM portfolio p WHERE p.salon_id=media.salon_id AND EXISTS(SELECT 1 FROM json_each(p.images) WHERE value=media.id)) AND NOT EXISTS(SELECT 1 FROM generations sg WHERE sg.result_id=media.id AND sg.social_consent=1)").bind(id,salonId).first();
+  if(!m)continue;
+  try{await bucketFor(env).delete(m.object_key)}catch(e){console.error('delete lead object',e?.message);continue}
+  await run(db,'DELETE FROM media WHERE id=?',m.id);n++;
+ }
+ return {deleted:true,photos:n};
+}

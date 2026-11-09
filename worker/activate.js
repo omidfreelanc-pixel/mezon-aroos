@@ -7,6 +7,12 @@ export function hostOf(env,origin,salon){
  const base=new URL(env.APP_ORIGIN||origin).hostname;
  return salon.subdomain?salon.subdomain+'.'+base:'';
 }
+// Where the salon manager manages the account: the salon's own subdomain once approved, else the private token page.
+export function panelUrl(env,origin,salon){
+ const base=env.APP_ORIGIN||origin;
+ if(salon.approved&&salon.mgr_user&&salon.subdomain){try{const u=new URL(base);return u.protocol+'//'+salon.subdomain+'.'+u.host+'/manager'}catch{}}
+ return base+'/m/'+(salon.manage_token||'');
+}
 export function activationText(env,origin,salon){
  const host=hostOf(env,origin,salon),site='https://'+host;
  return '🎉 <b>صفحهٔ مزون «'+esc(salon.name)+'» فعال شد!</b>\n\n'+
