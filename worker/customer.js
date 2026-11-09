@@ -511,10 +511,16 @@ img[loading="lazy"].is-in{opacity:1}
 .build__lines{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:190px;overflow:hidden;align-content:end}
 .build__lines li{font-size:14px;line-height:1.8;color:var(--muted);animation:lineIn .5s var(--ease) both}.build__lines li.is-on{color:var(--ink);font-weight:700}
 @keyframes lineIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.curtain__rod{position:absolute;z-index:3;top:0;inset-inline:0;height:8px;background:linear-gradient(#e9d9b0,#b8975a);box-shadow:0 2px 4px rgba(0,0,0,.25)}
-.curtain{position:absolute;z-index:2;top:6px;bottom:0;width:34%;background:repeating-linear-gradient(90deg,#f4eee4 0 9px,#e1d6c3 9px 16px,#f8f4ec 16px 24px);box-shadow:0 0 14px rgba(0,0,0,.25);animation:sway 3.6s ease-in-out infinite;transform-origin:top center}
-.curtain--l{left:0;border-radius:0 0 40% 0;transform-origin:top left}.curtain--r{right:0;border-radius:0 0 0 40%;transform-origin:top right;animation-delay:-1.6s}
-@keyframes sway{0%,100%{transform:skewX(0) scaleX(1)}30%{transform:skewX(-3deg) scaleX(1.06)}65%{transform:skewX(2.5deg) scaleX(.95)}}
+.curtain__rod{position:absolute;z-index:4;top:0;inset-inline:0;height:10px;background:linear-gradient(#f1e2b8,#b8975a 60%,#8f7140);box-shadow:0 3px 6px rgba(0,0,0,.3)}
+.curtain{position:absolute;z-index:3;top:8px;bottom:0;width:calc(50.5% - var(--o,0) * 1%);transition:width 1.2s var(--ease);background:linear-gradient(90deg,rgba(0,0,0,.16),transparent 18%,transparent 82%,rgba(0,0,0,.16)),repeating-linear-gradient(90deg,#f7f1e6 0 11px,#e6dac4 11px 19px,#fbf8f1 19px 30px);background-size:100% 100%,60px 100%;box-shadow:0 0 18px rgba(60,40,10,.35);animation:sway 4.2s ease-in-out infinite,folds 7s linear infinite}
+.curtain--l{left:0;border-radius:0 0 46% 0;transform-origin:top left}.curtain--r{right:0;border-radius:0 0 0 46%;transform-origin:top right;animation-delay:-1.9s,-3s}
+@keyframes sway{0%,100%{transform:skewX(0) scaleX(1)}28%{transform:skewX(-3.5deg) scaleX(1.05)}64%{transform:skewX(3deg) scaleX(.95)}}
+@keyframes folds{to{background-position:0 0,60px 0}}
+.build .mirror__glass::after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;background:radial-gradient(120% 90% at 50% 40%,transparent 55%,rgba(30,20,8,.28))}
+.build__pct{display:flex;align-items:baseline;gap:3px;font-family:var(--display);font-weight:800;color:var(--accent-ink)}.build__pct b{font-size:46px;line-height:1;letter-spacing:-1px}.build__pct span{font-size:20px;color:var(--muted)}
+.build__lines{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-height:210px;overflow:hidden;align-content:end}
+.build__lines li{font-family:var(--display);font-size:15.5px;line-height:1.9;color:var(--muted);opacity:.7;animation:lineIn .9s var(--ease) both}.build__lines li.is-on{color:var(--ink);font-weight:800;font-size:17px;opacity:1}
+@keyframes lineIn{from{opacity:0;transform:translateY(14px);filter:blur(6px)}to{transform:none;filter:none}}
 @media (prefers-reduced-motion:reduce){.curtain{animation:none}.build__lines li{animation:none}}
 .build__side{display:grid;gap:12px}
 .build__title{font-family:var(--display);font-weight:800;font-size:19px}
@@ -1072,7 +1078,7 @@ function dressKey(){
 function wantButton(cls){return el('button',{class:cls||'btn btn--primary',type:'button','data-want':'1',onclick:function(){openWant()},html:ICO.heart+'<span>این لباس را می‌خواهم</span>'})}
 function sendButton(){return el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
 // Building: a playful scene in the mirror, the stage it is at and a live percentage.
-var FUNNY=[[0,'بریم تو اتاق پرو، پرده رو می‌کشم 🤍'],[8,'خیاطمون سنجاق به دهن، داره دورت می‌چرخه'],[20,'این لباس رو دیدی؟ انگار فقط برای تو دوخته شده'],[32,'زیپ پشتی داره میره بالا… نفس عمیق، من کنارتم'],[44,'دامنت رو که چرخوندم، دلم ضعف رفت'],[56,'بیرون پرده، مامانت الان داره ذوق می‌کنه'],[68,'آینه یه نگاهت کرد و گفت: واااای'],[80,'آخرین چین دامن رو هم صاف می‌کنم، تقریباً تمومه'],[91,'پرده داره کنار می‌ره… آماده‌ای عروس خانوم؟']];
+var FUNNY=[[0,'رفتیم تو اتاق پرو؛ پرده را کشیدند…'],[8,'خیاط سنجاق به دهان آمد و دور تو می‌چرخد'],[20,'لباس را از چوب‌لباسی درآوردیم؛ سنگین‌تر از انتظار، قشنگ‌تر از انتظار'],[32,'زیپ پشتی دارد بالا می‌رود؛ نفس عمیق!'],[44,'دامن را سه بار چرخاندیم؛ دنباله هنوز دارد از در می‌آید'],[56,'آن‌ور پرده مامان‌ها دارند دستمال کاغذی خرج می‌کنند'],[68,'آینه گفت «واااای!» و بعد ساکت شد'],[80,'آخرین چین دنباله را صاف می‌کنیم؛ لطفاً تکان نخور'],[91,'پرده دارد کنار می‌رود… چشم‌هایت را ببند!']];
 var BUILD={title:'تو اتاق پروئی…',steps:['آماده‌سازی عکس','پیدا کردن اندام و قد','اندازه کردن لباس','نشاندن لباس روی بدنت','چین و دنباله']};
 // Real builds take about 50–80 seconds: the curve reaches ~80% at a minute and keeps moving after.
 function buildPct(){var t=Date.now()-(state.genT0||Date.now());return state.result?100:Math.min(97,Math.round(3+94*(1-Math.exp(-t/38000))))}
@@ -1080,7 +1086,7 @@ function buildNote(){var t=Date.now()-(state.genT0||Date.now());return t>85000?'
 function funnyList(pct){return FUNNY.filter(function(x){return pct>=x[0]})}
 function buildStage(){
  var pct=buildPct(),src=state.original?media(state.original):'';
- var stage=el('div',{class:'stage mirror build'},[el('div',{class:'mirror__glass'},[
+ var stage=el('div',{class:'stage mirror build',style:'--o:'+Math.round(pct*.3)},[el('div',{class:'mirror__glass'},[
   src?el('img',{class:'build__photo',src:src,alt:''}):el('span',{class:'build__noimg',html:ILLO.loader}),
   el('span',{class:'build__scan','aria-hidden':'true'}),
   el('span',{class:'curtain__rod','aria-hidden':'true'}),
@@ -1358,6 +1364,7 @@ function updateProgress(){
  var f=$('#flow');if(!f)return;
  var pct=buildPct();
  var bar=f.querySelector('.progress__fill');if(bar)bar.style.width=pct+'%';
+ var bst=f.querySelector('.build');if(bst)bst.style.setProperty('--o',Math.round(pct*.3));
  var num=f.querySelector('.build__num');if(num)num.textContent=fa(pct);var note=f.querySelector('.build__note');if(note){var nt=buildNote();if(note.textContent!==nt)note.textContent=nt}
  var ol=f.querySelector('.build__lines');if(ol){var L=funnyList(pct);
   while(ol.children.length<L.length){var last=ol.lastElementChild;if(last)last.className='is-done';ol.append(el('li',{class:'is-on',text:L[ol.children.length][1]}))}}
