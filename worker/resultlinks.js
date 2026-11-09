@@ -10,11 +10,17 @@ const run=(db,sql,...a)=>db.prepare(sql).bind(...a).run();
 const all=async(db,sql,...a)=>(await db.prepare(sql).bind(...a).all()).results;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-export async function createResultLink(env,db,salon,session,generationId,origin,hours=24){
+export async function createResultLink(env,db,salon,session,generationId,origin,hours=24,extraGens=[]){
  const g=await one(db,"SELECT result_id FROM generations WHERE id=? AND salon_id=? AND session_id=? AND state='success'",generationId,salon.id,session.id);
  must(g?.result_id,'نتیجهٔ آماده‌ای برای این لینک نیست',404);
+ const extra=[];
+ for(const gid of [...new Set(Array.isArray(extraGens)?extraGens:[])].slice(0,3)){
+  if(!/^[a-f0-9-]{36}$/.test(String(gid)))continue;
+  const x=await one(db,"SELECT result_id FROM generations WHERE id=? AND salon_id=? AND session_id=? AND state='success'",gid,salon.id,session.id);
+  if(x?.result_id)extra.push(x.result_id);
+ }
  const token=hex(24),now=Date.now();
- await run(db,'INSERT INTO result_links(token,salon_id,session_id,media_id,created_at,expires_at) VALUES(?,?,?,?,?,?)',token,salon.id,session.id,g.result_id,now,now+Math.max(1,Math.min(72,hours))*HOUR);
+ await run(db,'INSERT INTO result_links(token,salon_id,session_id,media_id,created_at,expires_at,extra) VALUES(?,?,?,?,?,?,?)',token,salon.id,session.id,g.result_id,now,now+Math.max(1,Math.min(72,hours))*HOUR,extra.length?JSON.stringify(extra):null);
  return {token,url:origin+'/r/'+token,expires_at:now+hours*HOUR};
 }
 
@@ -26,9 +32,11 @@ async function liveLink(db,token){
 
 const headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex'};
 
-export async function resultImage(env,token,req){
+const extraOf=l=>{try{const a=JSON.parse(l.extra||'[]');return Array.isArray(a)?a.slice(0,3):[]}catch{return[]}};
+export async function resultImage(env,token,req,idx=0){
  const l=await liveLink(env.DB,token);if(!l)return null;
- const m=await one(env.DB,'SELECT object_key,mime FROM media WHERE id=? AND salon_id=?',l.media_id,l.salon_id);if(!m)return null;
+ const mid=idx>0?extraOf(l)[idx-1]:l.media_id;if(!mid)return null;
+ const m=await one(env.DB,'SELECT object_key,mime FROM media WHERE id=? AND salon_id=?',mid,l.salon_id);if(!m)return null;
  const o=await bucketFor(env).get(m.object_key);if(!o)return null;
  const h={...headers,'Content-Type':m.mime,'Content-Security-Policy':"default-src 'none'"};
  if(m.mime==='video/mp4'){ // phones need byte ranges to play a video
@@ -45,7 +53,7 @@ export async function resultPage(env,token,notFound){
  const vm=await one(env.DB,"SELECT mime FROM media WHERE id=?",l.media_id),vid=vm?.mime==='video/mp4';
  const html='<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>لباس عروس من | '+esc(l.salon_name)+'</title>'+
   '<style>body{margin:0;background:#f6f4f1;color:#2a2420;font-family:Tahoma,system-ui,sans-serif;text-align:center;padding:18px 16px 30px}img{max-width:100%;max-height:78vh;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.18)}h1{font-size:18px;margin:6px 0 14px}p{font-size:13px;color:#6b625a;line-height:1.9}a.b,button.b{display:inline-block;margin:14px 4px 6px;border:0;font-family:inherit;cursor:pointer;padding:12px 26px;border-radius:999px;background:#2a2420;color:#fff;text-decoration:none;font-size:15px}</style></head><body>'+
-  '<h1>'+esc(l.salon_name)+'</h1>'+(vid?'<video src="/r/'+token+'/img" controls autoplay muted loop playsinline style="max-width:100%;max-height:78vh;border-radius:18px"></video><br><a class="b" href="/r/'+token+'/img" download="lebas-aroos.mp4">ذخیره ویدیو</a>':'<img src="/r/'+token+'/img" alt="لباس عروس روی عکس شما"><br><a class="b" href="/r/'+token+'/img" download="lebas-aroos.jpg">دانلود عکس</a>')+
+  '<h1>'+esc(l.salon_name)+'</h1>'+(vid?'<video src="/r/'+token+'/img" controls autoplay muted loop playsinline style="max-width:100%;max-height:78vh;border-radius:18px"></video><br><a class="b" href="/r/'+token+'/img" download="lebas-aroos.mp4">ذخیره ویدیو</a>':'<img src="/r/'+token+'/img" alt="لباس عروس روی عکس شما"><br><a class="b" href="/r/'+token+'/img" download="lebas-aroos.jpg">دانلود عکس</a>'+extraOf(l).map((_,i)=>'<p>'+['نیم‌رخ راست','پشت لباس','نیم‌رخ چپ'][i]+'</p><img src="/r/'+token+'/img/'+(i+1)+'" alt="زاویهٔ دیگر" loading="lazy"><br><a class="b" href="/r/'+token+'/img/'+(i+1)+'" download="lebas-aroos-'+(i+2)+'.jpg">دانلود</a>').join(''))+
   '<button class="b" id="sh" type="button" style="background:#0c6b6b" hidden>اشتراک‌گذاری</button>'+
   '<script>(function(){var b=document.getElementById("sh");if(!navigator.share)return;b.hidden=false;b.onclick=function(){fetch("/r/'+token+'/img").then(function(r){return r.blob()}).then(function(x){var f=new File([x],x.type.indexOf("video")==0?"lebas-aroos.mp4":"lebas-aroos.jpg",{type:x.type});if(navigator.canShare&&navigator.canShare({files:[f]}))return navigator.share({files:[f]});return navigator.share({url:location.href})}).catch(function(){})}})()</script>'+
   '<p>این لینک شخصی است و بعد از '+Math.max(1,Math.round((l.expires_at-l.created_at)/HOUR))+' ساعت خودش بسته می‌شود.</p></body></html>';

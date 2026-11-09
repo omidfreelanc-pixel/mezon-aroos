@@ -839,7 +839,7 @@ test('kiosk: result QR link opens only that photo, expires, and finishing wipes 
 test('kiosk page: ?kiosk=1 is the same page, QR library and camera guide are shipped',async()=>{
  const e=fixture(),s=await salon(e);
  const html=await (await app.fetch(new Request(origin+'/s/'+s.slug+'?kiosk=1'),e)).text();
- assert.match(html,/function kioskBoot/);assert.match(html,/var qrcode=/);assert.match(html,/آرایش ملایم عروس/);
+ assert.match(html,/function kioskBoot/);assert.match(html,/var qrcode=/);assert.match(html,/به عروسم کن/);
 });
 
 test('a result becomes a shareable post: likes, comments, the bride is told, social consent is kept',async()=>{
@@ -1390,7 +1390,7 @@ test('other angles: one click makes side, back and left as three separate images
   return new Response(png())};
  try{
   const r=await call(e,'/api/s/'+s.slug+'/views',{v,parent:base,idem:crypto.randomUUID()},g);assert.equal(r.status,200);assert.equal(r.data.ids.length,3);
-  assert.equal(tasks.length,3);assert.deepEqual(tasks.map(x=>x.model),['nano-banana-2','nano-banana-2','nano-banana-2']);
+  assert.equal(tasks.length,3);assert.deepEqual(tasks.map(x=>x.model),['nano-banana-pro','nano-banana-pro','nano-banana-pro']);
   assert.match(tasks[0].input.prompt,/RIGHT side profile/);assert.match(tasks[1].input.prompt,/BEHIND/);assert.match(tasks[2].input.prompt,/LEFT side profile/);
   assert.equal(tasks[1].input.image_input.length,1,'her result is the master; no original photo with her own clothes');assert.equal(tasks[1].input.resolution,'2K');
   const v2=await call(e,'/api/s/'+s.slug+'/spin',{v,parent:base,idem:crypto.randomUUID()},g);assert.equal(v2.status,403,'video is off by default');
@@ -1436,4 +1436,33 @@ test('LIMITS_OFF=1 lifts every image limit for everyone',async()=>{
   const g=await guest(e,s),o=await upload(e,s,g);
   for(let i=0;i<20;i++)assert.equal((await call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:o,style:0},g)).status,200,'attempt '+i);
  }finally{globalThis.fetch=previous}
+});
+
+test('prompt: face/hair lock, pull-back framing for long dresses, optional body sizes, no makeup or venue',async()=>{
+ const {dressPrompt,cleanSizes}=await import('../worker/lines.js');
+ const p=dressPrompt('reference','',{angles:2,sizes:{arm:30,bust:96,belly:88}});
+ assert.match(p,/FACE AND HAIR LOCK/);assert.match(p,/FRAMING: if photo 1 is cropped/);
+ assert.match(p,/upper-arm circumference 30 cm, bust circumference 96 cm, belly \(abdomen\) circumference 88 cm/);
+ assert.doesNotMatch(p,/MAKEUP|VENUE/);
+ assert.doesNotMatch(dressPrompt('reference','',{angles:1}),/BODY MEASUREMENTS/);
+ assert.deepEqual(cleanSizes({arm:'30',bust:5,belly:'abc',x:1}),{arm:30});
+});
+
+test('customer page: trimmed header, renamed build button, sizes, no venue/makeup/help/about',async()=>{
+ const e=fixture(),s=await salon(e);
+ const html=await (await app.fetch(new Request(origin+'/s/'+s.slug),e)).text();
+ assert.match(html,/به عروسم کن/);assert.match(html,/اندازه‌های بدنم/);assert.match(html,/hd__logo/);
+ for(const x of [/کجا ایستاده باشی/,/آرایش ملایم/,/class:'help-btn'/,/class:'about-btn'/,/عکسم کجا نگه/,/لباس عروس را انتخاب کن<\/h/])assert.doesNotMatch(html,x);
+});
+
+test('a result link can carry the other-angle photos',async()=>{
+ const e=fixture(),s=await salon(e,'angle-link'),g=await guest(e,s),original=await upload(e,s,g);
+ const sid=e.DB.sql.prepare('SELECT id FROM salons').get().id,sess=e.DB.sql.prepare('SELECT id FROM sessions').get().id,ids=[];
+ for(let i=0;i<2;i++){const m=crypto.randomUUID();e.DB.sql.prepare("INSERT INTO media(id,salon_id,session_id,kind,object_key,mime,created_at) VALUES(?,?,?,?,?,?,?)").run(m,sid,sess,'simulation','k'+i,'image/jpeg',Date.now());await e.BUCKET.put('k'+i,new Uint8Array([i+1,2,3]));
+  const gid=crypto.randomUUID();e.DB.sql.prepare("INSERT INTO generations(id,salon_id,session_id,idem,state,original_id,result_id,created_at,updated_at,kind) VALUES(?,?,?,?,?,?,?,?,?,?)").run(gid,sid,sess,crypto.randomUUID(),'success',original,m,Date.now(),Date.now(),i?'views':'single');ids.push(gid)}
+ const r=await call(e,'/api/s/'+s.slug+'/result-link',{v:'v'.repeat(20),gen:ids[0],extra:[ids[1]]},g);assert.equal(r.status,200,JSON.stringify(r));
+ const t=r.data.token;
+ assert.equal((await app.fetch(new Request(origin+'/r/'+t+'/img/1'),e)).status,200);
+ assert.equal((await app.fetch(new Request(origin+'/r/'+t+'/img/2'),e)).status,404);
+ assert.match(await (await app.fetch(new Request(origin+'/r/'+t),e)).text(),/\/img\/1/);
 });

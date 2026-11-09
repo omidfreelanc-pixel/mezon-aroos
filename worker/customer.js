@@ -6,6 +6,13 @@ const LINES_JSON=JSON.stringify({label:LINE_LABEL,photo:{dress:LINE_PHOTO.dress}
 import {baseCSS,markSVG,illos} from './design.js';
 
 const customerCSS=String.raw`
+.hd{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:12px;padding:18px 4px 10px}
+.hd__side{display:flex;align-items:center;min-width:0}
+.hd__side--logo{justify-content:center}
+.hd__side--name{justify-content:center;text-align:center}
+.hd__logo{width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid var(--glass);background:var(--surface);box-shadow:var(--lift)}
+.hd__logo--letter{display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:34px;color:var(--accent-ink)}
+.hd__name{margin:0;width:100%;font-size:28px;line-height:1.5}
 /* ---------- hero: full-width cover, logo on its edge, the name on one line ---------- */
 .hero{position:relative;padding:14px 0 22px}
 .hero__bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
@@ -173,16 +180,18 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .stage{width:min(100%,360px);margin:18px auto 0}
 .stage .mirror__glass{aspect-ratio:3/4;display:grid;place-items:center}
 .stage__empty svg{width:96px;height:auto;display:block;margin:0 auto 6px;opacity:.9}.stage__empty{position:relative;z-index:1;color:var(--muted);font-size:13px;text-align:center;padding:24px;max-width:22ch;line-height:1.9}
+.rev__tips{margin:8px 0 0;padding:0 18px;font-size:13px;line-height:2;color:var(--muted)}
+.sizes{margin:10px 0;padding:10px 12px;border:1px solid var(--glass-2);border-radius:var(--r-lg)}.sizes summary{cursor:pointer}.sizes__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.sizes__grid input{width:100%;text-align:center}
 .compare-wrap{width:min(100%,400px);margin:18px auto 0}
 .compare{position:relative;aspect-ratio:3/4;overflow:hidden;background:var(--glass-2);touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:ew-resize;direction:ltr}
 .compare img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}
 .compare__after{position:absolute;inset:0;clip-path:inset(0 calc(100% - var(--x,50%)) 0 0)}
 .compare__handle{position:absolute;top:0;bottom:0;left:var(--x,50%);width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.1),0 0 12px rgba(0,0,0,.25);pointer-events:none}
-.compare__grip{position:absolute;top:58%;left:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:var(--lift);color:var(--ink);transition:transform .15s var(--ease)}
+.compare__grip{position:absolute;top:58%;left:50%;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:rgba(255,255,255,.88);display:grid;place-items:center;box-shadow:var(--lift);color:var(--ink);transition:transform .15s var(--ease)}
 .compare.is-dragging .compare__grip{transform:scale(1.12)}
 .compare.is-animating .compare__after{transition:clip-path .28s var(--ease)}
 .compare.is-animating .compare__handle{transition:left .28s var(--ease)}
-.compare__grip svg{width:22px;height:22px}
+.compare__grip svg{width:14px;height:14px}
 .compare__range{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;bottom:0;left:0}
 .compare:has(.compare__range:focus-visible){outline:3px solid var(--accent-ring);outline-offset:3px}
 .compare__tag{position:absolute;bottom:12px;z-index:2;background:rgba(250,251,250,.94);padding:3px 12px;border-radius:999px;font-size:12px;font-weight:700;color:var(--ink-2);pointer-events:none}
@@ -549,7 +558,7 @@ var ICO={
  down:'<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(180 12 12)"><path d="M7 10.5V20H4.2A1.2 1.2 0 0 1 3 18.8v-7.1a1.2 1.2 0 0 1 1.2-1.2H7zM7 10.5l3.4-7a2.1 2.1 0 0 1 2.1 2.2v3.6h5.1a2.1 2.1 0 0 1 2.1 2.4l-1.1 6.5A2.1 2.1 0 0 1 16.5 20H7"/></g></svg>',
  orbit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="12" rx="9" ry="3.6"/><path d="M12 3.5c2 1.6 3.2 4.7 3.2 8.5s-1.2 6.9-3.2 8.5"/><path d="m18.6 13.8 2 1.6-2.3 1"/></svg>',
  arrow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H4M10 6l-6 6 6 6"/></svg>',};
-var state={makeup:true,ratio:'',pub:null,step:1,original:null,reference:null,refTitle:'',style:null,tab:'salon',result:null,gen:null,genState:null,busy:false,error:'',session:false,verified:false,idem:null,rating:0,me:null};
+var state={sz:{arm:'',bust:'',belly:''},ratio:'',pub:null,step:1,original:null,reference:null,refTitle:'',style:null,tab:'salon',result:null,gen:null,genState:null,busy:false,error:'',session:false,verified:false,idem:null,rating:0,me:null};
 try{state.me=JSON.parse(localStorage.getItem('ayneh-me')||'null')}catch(e){}
 var $=function(s,r){return (r||document).querySelector(s)};
 var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
@@ -636,20 +645,10 @@ function showFatal(msg){
 function heroTag(){return 'لباس عروس را روی اندام خودت ببین؛ سایز و فرم بدنت همان می‌ماند.'}
 function renderHead(){
  var s=state.pub.salon,p=s.profile||{},head=$('#head');
- var bar=el('div',{class:'hero__bar'},[el('span',{class:'brand',html:MARK+'<span>مزون آینه</span>'}),el('div',{class:'hero__tools'},[el('button',{class:'help-btn',type:'button','aria-label':'راهنمای استفاده',onclick:startTour,text:'؟'}),el('button',{class:'about-btn',type:'button',onclick:openAbout,html:ICO.info+'<span>دربارهٔ مزون</span>'})])]);
- // Full-width cover with the round logo sitting on its edge; without a cover, a soft mirror-glass panel.
- var cover=el('div',{class:'cover'+(p.cover?'':' cover--plain')},[p.cover?el('img',{class:'cover__img',src:media(p.cover),alt:'',fetchpriority:'high'}):el('span',{class:'cover__glow','aria-hidden':'true'})]);
- var logo=p.logo?el('img',{class:'cover__logo',src:media(p.logo),alt:'لوگوی '+s.name}):el('span',{class:'cover__logo cover__logo--letter','aria-hidden':'true',text:(s.name||'آ').trim().charAt(0)});
- cover.append(logo);
- var chips=el('div',{class:'hero__chips'});
- if(p.address)chips.append(el(p.map?'a':'button',{class:'hchip',href:p.map||null,target:p.map?'_blank':null,rel:p.map?'noopener noreferrer':null,type:p.map?null:'button',onclick:p.map?null:openAbout,title:p.address},[el('span',{class:'hchip__ico',html:ICO.pin}),el('span',{class:'hchip__txt',text:p.address})]));
- if(p.hours)chips.append(el('span',{class:'hchip'},[el('span',{class:'hchip__ico',html:ICO.clock}),el('span',{class:'hchip__txt',text:p.hours})]));
- var name=el('h1',{class:'hero__name',text:s.name});
- var body=el('div',{class:'hero__body'},[
-  el('div',{class:'hero__text'},[name,el('p',{class:'hero__tag',text:heroTag()}),chips.childNodes.length?chips:null]),
-  el('div',{class:'hero__cta'},[el('button',{class:'btn btn--primary btn--lg',type:'button',onclick:function(){go(state.original?2:1)},html:ICO.camera+'<span>شروع با عکس خودم</span>'})])
- ]);
- head.replaceChildren(el('div',{class:'wrap'},[bar,cover,body]));
+ var logo=p.logo?el('img',{class:'hd__logo',src:media(p.logo),alt:'لوگوی '+s.name}):el('span',{class:'hd__logo hd__logo--letter','aria-hidden':'true',text:(s.name||'آ').trim().charAt(0)});
+ var name=el('h1',{class:'hd__name hero__name',text:s.name});
+ head.replaceChildren(el('div',{class:'wrap'},[el('div',{class:'hd'},[el('div',{class:'hd__side hd__side--logo'},[logo]),el('div',{class:'hd__side hd__side--name'},[name])]),
+  el('div',{class:'hero__cta'},[el('button',{class:'btn btn--primary btn--lg',type:'button',onclick:function(){go(state.original?2:1)},html:ICO.camera+'<span>شروع با عکس خودم</span>'})])]));
  fitName(name);
 }
 // The salon name always sits on one line: the font shrinks to fit; only very long names wrap.
@@ -773,11 +772,6 @@ function stepPhoto(){
     DESK?null:el('button',{class:'btn btn--primary',type:'button',onclick:pickNow,html:ICO.gallery+'<span>انتخاب از گالری</span>'}),
     el('button',{class:DESK?'btn btn--primary':'btn btn--ghost',type:'button',onclick:openCamera,html:ICO.camera+'<span>عکس با دوربین</span>'}),
     DESK?el('button',{class:'btn btn--ghost',type:'button',onclick:openPhonePair,html:ICO.send+'<span>ارسال از گوشی خودم</span>'}):null
-   ]),
-   el('details',{class:'collapse'},[
-    el('summary',{html:ICO.lock+'<span>عکسم کجا نگه‌داری می‌شود؟</span>'}),
-    h('p','عکس فقط برای همین مزون استفاده می‌شود و دسترسی عمومی ندارد؛ در سابقهٔ مزون نگه داشته می‌شود تا مدیر مزون بعداً هم آن را ببیند. برای شبیه‌سازی، نسخهٔ فشردهٔ عکس موقتاً به سرویس ساخت تصویر فرستاده می‌شود و فقط برای همین یک‌بار استفاده می‌شود. هر زمان بخواهی می‌توانی عکس‌ها و نتیجه‌هایت را پاک کنی.'),
-    el('button',{class:'btn btn--soft btn--sm',type:'button',text:'حذف همهٔ عکس‌های من',onclick:function(){if(!confirm('همهٔ عکس‌ها و نتیجه‌های تو پاک می‌شود. ادامه می‌دهی؟'))return;api('erase',{v:VISITOR}).then(function(){try{localStorage.clear();sessionStorage.clear()}catch(e){}toast('عکس‌هایت پاک شد.');setTimeout(function(){location.reload()},600)}).catch(function(e){toast(e.message||'پاک نشد','error')})}})
    ])
   ]);
   box.append(input,el('div',{class:'demo-row'},[demoCompare('demo--small'),el('div',{class:'demo-row__text'},[h('b','این‌طوری می‌شود'),h('span',LP().demo)])]),el('div',{class:'shoot'},[drop,side]));
@@ -806,7 +800,7 @@ var TAB_LABEL={dress:['لباس‌های مزون','لباس‌های آماده
  dress:['لباس عروس را انتخاب کن','از لباس‌های همین مزون، لباس‌های آماده یا عکس لباسی که خودت پیدا کرده‌ای. فقط لباس عوض می‌شود؛ چهره، سایز و فرم بدنت همان می‌ماند.']
 };
 function pickLook(fn){fn();state.result=null;state.error='';renderFlow();renderDock()}
-// Choosing a dress brings the next thing to do into view: «بساز».
+// Choosing a dress brings the next thing to do into view: «به عروسم کن».
 function chooseLook(fn){pickLook(fn);scrollToBuild()}
 function scrollToBuild(){
  var f=$('#flow');if(!f)return;
@@ -821,21 +815,20 @@ function scrollToBuild(){
   if(y!=null)window.scrollTo({top:Math.max(0,y),behavior:beh});
  });
 }
-function bgRow(){
- var list=(state.pub&&state.pub.backgrounds)||[];if(!list.length)return null;
- if(state.bg===undefined)state.bg=list[0].id;
- var wrap=el('div',{class:'bgrow'},[el('b',{text:'کجا ایستاده باشی؟ یک تالار انتخاب کن'})]),strip=el('div',{class:'bgstrip',role:'radiogroup'});
- [{id:'',name:'همان پس‌زمینهٔ عکس خودم'}].concat(list).forEach(function(x){
-  var b=el('button',{class:'bgchip'+(state.bg===x.id?' is-on':''),type:'button',role:'radio','aria-checked':state.bg===x.id?'true':'false'},[x.id?el('img',{src:'/bg/'+x.id+'.jpg',alt:'',loading:'lazy'}):el('span',{class:'bgchip__own',html:ICO.camera}),el('span',{text:x.name})]);
-  b.addEventListener('click',function(){state.bg=x.id;state.idem=null;var mk=document.getElementById('mk');if(mk)mk.checked=x.id?state.makeup===true:state.makeup!==false;strip.querySelectorAll('.bgchip').forEach(function(c){c.classList.remove('is-on');c.setAttribute('aria-checked','false')});b.classList.add('is-on');b.setAttribute('aria-checked','true')});
-  strip.append(b);
+function sizesPayload(){var o={};['arm','bust','belly'].forEach(function(k){var n=parseInt(state.sz[k],10);if(n>=15&&n<=250)o[k]=n});return Object.keys(o).length?o:undefined}
+function sizesRow(){
+ var wrap=el('details',{class:'sizes'+((state.sz.arm||state.sz.bust||state.sz.belly)?'':'')});
+ if(state.sz.arm||state.sz.bust||state.sz.belly)wrap.open=true;
+ wrap.append(el('summary',{},[el('b',{text:'اندازه‌های بدنم (اختیاری)'})]));
+ wrap.append(h('p','اگر بنویسی، تصویر با همین تناسب ساخته می‌شود. خالی بگذاری، همان اندام عکس حفظ می‌شود.','tiny muted'));
+ var g=el('div',{class:'sizes__grid'});
+ [['arm','دور بازو'],['bust','دور سینه'],['belly','دور شکم']].forEach(function(x){
+  var i=el('input',{type:'text',inputmode:'numeric',maxlength:'3',placeholder:'سانتی‌متر',dir:'ltr','aria-label':x[1]+' به سانتی‌متر'});
+  i.value=state.sz[x[0]]||'';
+  i.addEventListener('input',function(){var v=i.value.replace(/[۰-۹]/g,function(d){return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)}).replace(/[٠-٩]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'.indexOf(d)}).replace(/\D/g,'').slice(0,3);if(i.value!==v)i.value=v;state.sz[x[0]]=v;state.idem=null});
+  g.append(el('label',{class:'field'},[el('span',{class:'lbl',text:x[1]}),i]));
  });
- wrap.append(strip,el('p',{class:'bgnote',text:'برای نتیجهٔ طبیعی در تالار، عکس تمام‌قد (از سر تا کفش، ایستاده) لازم است؛ با عکس نیم‌تنه یا سلفی، بدن ساختگی می‌شود.'}));return wrap;
-}
-function makeupRow(){
- var cb=el('input',{type:'checkbox',id:'mk'});cb.checked=state.bg?state.makeup===true:state.makeup!==false;
- cb.addEventListener('change',function(){state.makeup=cb.checked;state.idem=null});
- return el('label',{class:'mkrow',for:'mk'},[cb,el('span',{},[el('b',{text:'آرایش ملایم عروس'}),document.createTextNode(' — فقط روی پوست و چشم و لب؛ شکل و چهره‌ات تغییر نمی‌کند.')])]);
+ wrap.append(g);return wrap;
 }
 function stepModel(){
  var box=el('div',{class:'panel flow'});
@@ -843,8 +836,7 @@ function stepModel(){
   var fresh=state.justArrived;state.justArrived=false;
   box.append(el('div',{class:'selfie'+(fresh?' selfie--fresh':'')},[el('img',{src:state.preview||media(state.original),alt:''}),el('div',{},[el('b',{html:ICO.check+'<span>'+(fresh?'عکست ثبت شد':'عکست آماده است')+'</span>'}),el('span',{text:'لباس انتخابی روی همین عکس امتحان می‌شود.'})]),el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){changePhoto();go(1)},text:'تغییر'})]));
  }
- box.append(flowHead(MODEL_HEAD.dress[0],MODEL_HEAD.dress[1]));
- box.append(bgRow()||document.createTextNode(''));box.append(makeupRow());
+ box.append(sizesRow());
  if(quotaLeft()===0&&!state.tourDemo)box.append(notice('warn',quotaOut()));
  var seg=el('div',{class:'seg',role:'tablist'});
  var tabs=[['salon',0]];if(state.pub.catalog)tabs.push(['catalog',1]);if(state.pub.own_dress)tabs.push(['upload',2]);
@@ -857,7 +849,7 @@ function stepModel(){
  if(tabs.length>1)box.append(seg);
  if(state.tab==='salon'){
   var items=(state.pub.portfolio||[]).filter(function(p){return (p.published||p.try_on)&&(p.line||'dress')==='dress'});
-  if(!items.length)box.append(el('div',{class:'empty'},[el('span',{html:ILLO.dresses}),h('b','گالری مزون هنوز لباسی ندارد'),h('p',state.pub.catalog||state.pub.own_dress?'تا اضافه شدن لباس‌ها، از «'+TAB_LABEL.dress[1]+'» یا «'+TAB_LABEL.dress[2]+'» استفاده کن.':'به‌زودی پر می‌شود. از دکمهٔ «دربارهٔ مزون» می‌توانی با خود مزون در تماس باشی.')]));
+  if(!items.length)box.append(el('div',{class:'empty'},[el('span',{html:ILLO.dresses}),h('b','گالری مزون هنوز لباسی ندارد'),h('p',state.pub.catalog||state.pub.own_dress?'تا اضافه شدن لباس‌ها، از «'+TAB_LABEL.dress[1]+'» یا «'+TAB_LABEL.dress[2]+'» استفاده کن.':'به‌زودی پر می‌شود. ')]));
   else{
    // Same vertical grid as the ready-made looks.
    var grid0=el('div',{class:'looks looks--salon'});
@@ -869,7 +861,7 @@ function stepModel(){
     pic0.addEventListener('error',function(){art0.classList.add('is-missing');pic0.remove()});
     var card=el('button',{class:'style-card'+(on?' is-on':''),type:'button','aria-pressed':on?'true':'false'},[
      art0,
-     el('span',{class:'style-card__body'},[el('span',{class:'style-card__name',text:p.title}),el('span',{class:'style-card__tag',text:p.stylist?'کار '+p.stylist:(p.category||'کار مزون')}),dressInfo(p)])
+     el('span',{class:'style-card__body'},[el('span',{class:'style-card__name',text:p.title})])
     ]);
     if(imgs.length>1)art0.append(el('span',{class:'angle-badge',text:fa(imgs.length)+' نما'}));
     function pickIt(){track('look','s:'+p.title);chooseLook(function(){state.reference=imgs[0];state.refTitle=p.title;state.style=null})}
@@ -930,13 +922,13 @@ function stepModel(){
  box.append(h('p',buildHint(ready,can,left),'fine-print build-hint'));
  return box;
 }
-function buildLabel(can){return can?ICO.spark+'<span>بساز</span>':(quotaLeft()===0?ICO.send+'<span>فرستادن برای '+artist()+'</span>':'<span>ادامه: نتیجه</span>')}
+function buildLabel(can){return can?ICO.spark+'<span>به عروسم کن</span>':(quotaLeft()===0?ICO.send+'<span>فرستادن برای '+artist()+'</span>':'<span>ادامه: نتیجه</span>')}
 function buildHint(ready,can,left){
  if(!ready)return missingReason()+'.';
  if(!can)return '';
- return 'با زدن «بساز» عکست برای ساخت فرستاده می‌شود و فقط برای همین مزون می‌ماند.'+(left!=null?' '+fa(left)+' ساخت دیگر در این بخش داری.':'');
+ return 'با زدن «به عروسم کن» عکست برای ساخت فرستاده می‌شود و فقط برای همین مزون می‌ماند.'+(left!=null?' '+fa(left)+' ساخت دیگر در این بخش داری.':'');
 }
-// Step 2 → 3 in one tap: «بساز» goes straight to building, no page in between.
+// Step 2 → 3 in one tap: «به عروسم کن» goes straight to building, no page in between.
 function build(){
  if(!hasChoice()){toast(missingReason());return}
  if(!canGenerate()){go(3);return}
@@ -1148,6 +1140,7 @@ function stepResult(){
  if(state.result){
   box.append(compareBlock());
   box.append(el('div',{class:'result-actions'},[
+   el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){openDress({title:'نتیجهٔ تو'},[state.result,state.original],null,['بعد','قبل'])},html:ICO.search?ICO.search+'<span>بزرگ‌نمایی</span>':'<span>＋ بزرگ‌نمایی</span>'}),
    el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openViews,html:ICO.views+'<span>زوایای دیگر</span>'}),
    el('button',{class:'btn btn--primary btn--sm',type:'button',onclick:function(){openQR()},html:ICO.phone+'<span>ارسال برای خودم</span>'}),
    el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){state.result=null;state.gen=null;state.idem=null;state.error='';state.busy=false;go(2)},text:'یک لباس دیگر'})
@@ -1164,10 +1157,10 @@ function stepResult(){
   }else{
    box.append(el('div',{class:'stage mirror'},[el('div',{class:'mirror__glass'},[el('span',{class:'stage__empty',html:ILLO.results+'<span style="display:block">نتیجه همین‌جا، در قاب آینه، ظاهر می‌شود</span>'})])]));
    box.append(el('div',{class:'flow__nav'},[
-    el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>'+(state.error?'تلاش دوباره':'بساز')+'</span>'}),
+    el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>'+(state.error?'تلاش دوباره':'به عروسم کن')+'</span>'}),
     el('button',{class:'btn btn--ghost',type:'button',onclick:openRequest,html:ICO.send+'<span>بدون شبیه‌سازی بفرست</span>'})
    ]));
-   box.append(h('p','با زدن «بساز» عکست برای ساخت شبیه‌سازی فرستاده می‌شود و فقط برای همین مزون می‌ماند.','fine-print'));
+   box.append(h('p','با زدن «به عروسم کن» عکست برای ساخت شبیه‌سازی فرستاده می‌شود و فقط برای همین مزون می‌ماند.','fine-print'));
   }
  }
  return box;
@@ -1200,15 +1193,15 @@ function renderDock(){
  }else if(state.step===2){
   var ready=hasChoice(),can=canGenerate();
   var out=quotaLeft()===0;
-  hint=out?'سهم ساخت این بخش تمام شد':ready?(can?'آماده؛ بزن بساز':'آماده'):missingReason();
-  primary=el('button',{class:'btn btn--primary',type:'button',disabled:!ready,onclick:build,html:can?ICO.spark+'<span>بساز</span>':out?ICO.send+'<span>فرستادن</span>':!ready?'<span>اول لباس را انتخاب کن</span>':ICO.arrow+'<span>ادامه</span>'});
+  hint=out?'سهم ساخت این بخش تمام شد':ready?(can?'آماده؛ بزن «به عروسم کن»':'آماده'):missingReason();
+  primary=el('button',{class:'btn btn--primary',type:'button',disabled:!ready,onclick:build,html:can?ICO.spark+'<span>به عروسم کن</span>':out?ICO.send+'<span>فرستادن</span>':!ready?'<span>اول لباس را انتخاب کن</span>':ICO.arrow+'<span>ادامه</span>'});
  }else{
   if(state.busy){hint='در حال ساخت…';primary=el('button',{class:'btn btn--primary',type:'button',disabled:true,text:'در حال ساخت…'})}
   else if(state.result){hint='عکس را روی گوشی‌ات بگیر';primary=el('button',{class:'btn btn--primary',type:'button',onclick:function(){openQR()},html:ICO.phone+'<span>ارسال برای خودم</span>'})}
   else if(state.result||!canGenerate()||state.noImage){hint='فرستادن در تلگرام برای مزون';primary=el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
-  else{hint='آمادهٔ ساخت';primary=el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>بساز</span>'})}
+  else{hint='آمادهٔ ساخت';primary=el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>به عروسم کن</span>'})}
  }
- inner.append(el('div',{class:'dock__hint',text:hint}),el('button',{class:'btn btn--ghost',type:'button',onclick:openAbout,'aria-label':'دربارهٔ مزون',html:ICO.info}),primary);
+ inner.append(el('div',{class:'dock__hint',text:hint}),primary);
  dock.replaceChildren(inner);dock.hidden=false;
 }
 
@@ -1242,7 +1235,8 @@ function photoReview(src,r,use){
  var list=el('div',{class:'rev__list'},r.hard.map(function(x){return (function(){var d=el('div',{class:'rev__bad ic-inline',html:ICO.ban});d.append(h('span',x));return d})()}).concat(r.soft.map(function(x){return (function(){var d=el('div',{class:'rev__warn ic-inline',html:ICO.warn});d.append(h('span',x));return d})()})));
  var btns=[el('button',{class:'btn btn--primary',type:'button',text:'عکس دیگر می‌گیرم',onclick:function(){closeSheet();pickNow()}})];
  if(!r.hard.length)btns.push(el('button',{class:'btn btn--ghost',type:'button',text:'با همین عکس ادامه بده',onclick:function(){closeSheet();use()}}));
- panel.append(el('div',{class:'rev'},[el('img',{src:src,alt:'',class:'rev__img'}),list,el('div',{class:'rev__btns'},btns)]));
+ var tips=r.hard.length?el('ul',{class:'rev__tips'},['تمام‌قد: از سر تا کفش، ایستاده و روبه‌رو','نور روشن و یکنواخت؛ پشت به پنجره یا چراغ نباش','گوشی ثابت و عمودی؛ از نسخهٔ اصلی عکس استفاده کن، نه فشرده‌شده','لباس ساده و چسبان تا اندام معلوم باشد'].map(function(t){return h('li',t)})):null;
+ panel.append(el('div',{class:'rev'},[el('img',{src:src,alt:'',class:'rev__img'}),list,tips,el('div',{class:'rev__btns'},btns)]));
  openSheet(panel);
 }
 // A photo that arrived from the bride's phone gets the same checks before it replaces the kiosk photo.
@@ -1320,8 +1314,8 @@ function generate(){
  state.busy=true;state.error='';state.noImage=null;state.result=null;state.genT0=Date.now();renderFlow();renderDock();
  ensureSession().then(function(){
   state.idem=state.idem||uuid();
-  // The page's own note under «بساز» says the photo is sent for the simulation; no extra checkbox.
-  return api('generate',{v:VISITOR,image_consent:true,makeup:(state.bg?state.makeup===true:state.makeup!==false),bg:state.bg||undefined,idem:state.idem,ratio:state.ratio||undefined,original_id:state.original,reference_id:state.reference||undefined,style:state.reference?undefined:(state.style===null?undefined:state.style)});
+  // The page's own note under «به عروسم کن» says the photo is sent for the simulation; no extra checkbox.
+  return api('generate',{v:VISITOR,image_consent:true,sizes:sizesPayload(),idem:state.idem,ratio:state.ratio||undefined,original_id:state.original,reference_id:state.reference||undefined,style:state.reference?undefined:(state.style===null?undefined:state.style)});
  }).then(function(job){
   track('generate',state.reference?(state.refTitle?'salon':'upload'):'catalog');
   spentQuota();
@@ -1406,6 +1400,10 @@ function openViews(){
  var play=el('button',{class:'btn btn--ghost btn--sm spin__play',type:'button',text:'⏸ توقف'});
  var controls=el('div',{class:'spin__controls',hidden:true},[el('div',{class:'spin__row'},[dial,angle,play]),thumbs]);
  panel.append(el('div',{class:'mirror spin-wrap'},[stage]),controls,h('p','برای چرخاندن بکش؛ برای زوم دو انگشتی یا دوبار لمس. نیم‌رخ و پشت لباس تخمینی‌اند و اسکن سه‌بعدی نیست؛ طرح دقیق لباس را با مزون هماهنگ کن.','tiny muted spin__note'));
+ var shareRow=el('div',{class:'result-actions'},[
+  el('button',{class:'btn btn--primary btn--sm',type:'button',onclick:function(){if(!state.views||!state.views.gens){toast('کمی صبر کن تا زاویه‌ها آماده شوند');return}openQR('','همهٔ زاویه‌ها',state.views.gens.slice(0,3))},html:ICO.phone+'<span>ارسال همهٔ زاویه‌ها برای خودم</span>'}),
+  el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){if(!state.views||!state.views.ids){toast('کمی صبر کن تا زاویه‌ها آماده شوند');return}var u=[state.result].concat(state.views.ids);u.forEach(function(id,i){var l=el('a',{href:media(id),download:'lebas-aroos-'+(i+1)+'.jpg'});document.body.append(l);setTimeout(function(){l.click();l.remove()},i*350)})},html:ICO.gallery+'<span>ذخیرهٔ همه</span>'})]);
+ panel.append(shareRow);
  openSheet(panel);
  var frame=0,front=a,timer=null,spinTimer=null,tipTimer=null,progTimer=null,src='';
  function paint(layer,n){layer.style.backgroundImage='url('+src+')';layer.style.backgroundSize=(N*100)+'% 100%';layer.style.backgroundPosition=(n*100/(N-1))+'% 0'}
@@ -1467,7 +1465,7 @@ function openViews(){
   spentQuota();var tries=0,ids=job.ids||[job.id];
   function check(){if(!panel.isConnected)return;return Promise.all(ids.map(function(i){return api('generation/'+i)})).then(function(ds){
    var done=ds.filter(function(d){return d.state==='success'&&d.result_id});
-   if(done.length===ids.length){var out=done.map(function(d){return d.result_id});state.views={gen:state.gen,ids:out};state.viewsIdem=null;ready(out);return}
+   if(done.length===ids.length){var out=done.map(function(d){return d.result_id});state.views={gen:state.gen,ids:out,gens:ids.slice(0)};state.viewsIdem=null;ready(out);return}
    if(ds.some(function(d){return d.state==='fail'||d.state==='unknown'})||++tries>90){cleanup();tip.textContent='ساخت زاویه‌ها ممکن نشد؛ کمی بعد دوباره امتحان کن.';state.viewsIdem=null;return}
    return sleep(3000).then(check);
   })}
@@ -1534,13 +1532,12 @@ function tourSteps(){
   {el:'#flow .seg [data-tab="salon"]',enter:function(){tourView(2,'salon')},title:'۱. لباس‌های همین مزون',text:hasLineWork()?'لباس‌های واقعی «'+state.pub.salon.name+'». روی هر کدام بزن تا همان لباس روی تو ساخته شود.':'لباس‌های واقعی مزون اینجا می‌آید. روی هر کدام بزنی، همان لباس روی تو ساخته می‌شود.'},
   {el:'#flow .looks .style-card',enter:function(){tourView(2,'catalog')},title:'۲. لباس‌های آماده',text:'مدل‌های پرطرفدار با عکس نمونه. با فیلترهای بالا سریع پیدا کن: پفی، ماهی، پوشیده، دانتل…'},
   {el:'#flow .upload--ref',enter:function(){tourView(2,'upload')},title:'۳. عکس لباسی که خودت داری',text:'لباسی در اینستاگرام یا گالری‌ات دیدی؟ عکسش را اینجا بگذار. فقط خود لباس برداشته می‌شود؛ مدل و بدنش نه.'},
-  {el:mobile?'#dock .dock__inner':'#flow .btn--build',enter:function(){tourView(2,'catalog',3)},title:'انتخاب کردی؟ «بساز»',text:'با یک دکمه پرو شروع می‌شود و نتیجه را کنار عکس خودت می‌بینی. بعد با یک دکمه برای مزون می‌فرستی.'},
+  {el:mobile?'#dock .dock__inner':'#flow .btn--build',enter:function(){tourView(2,'catalog',3)},title:'انتخاب کردی؟ «به عروسم کن»',text:'با یک دکمه پرو شروع می‌شود و نتیجه را کنار عکس خودت می‌بینی. بعد با یک دکمه برای مزون می‌فرستی.'},
   {el:'#steps .steps__list',title:'همیشه می‌دانی کجایی',text:'عکس تو، انتخاب، نتیجه. روی هر قدم بزنی برمی‌گردی.'},
-  {el:'.about-btn',title:'همه‌چیز دربارهٔ مزون',text:'آدرس، شماره، ساعت کاری و صفحه‌های مزون اینجاست.'},
   {el:mobile?'#dock .dock__inner':'.hero__cta .btn',title:'شروع کنیم؟',text:'اول عکس تمام‌قدت را بگذار. بعد از دیدن نتیجه، با «ارسال برای خودم» آن را روی گوشی‌ات بگیر.',last:true}
  ].filter(Boolean);
 }
-function maybeTour(){try{if(localStorage.getItem(TOUR_KEY))return}catch(e){return}if(state.busy)return;setTimeout(startTour,700)}
+function maybeTour(){return;try{if(localStorage.getItem(TOUR_KEY))return}catch(e){return}if(state.busy)return;setTimeout(startTour,700)}
 function startTour(){
  if($('.tour'))return;
  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1974,15 +1971,16 @@ function qrSvg(text){
  var d=Math.round(W*0.2),x=Math.round((W-d)/2),u=media(logo);
  return svg.replace('</svg>','<circle cx="'+W/2+'" cy="'+W/2+'" r="'+(d/2+6)+'" fill="#fff"/><image href="'+u+'" xlink:href="'+u+'" x="'+x+'" y="'+x+'" width="'+d+'" height="'+d+'" preserveAspectRatio="xMidYMid slice" clip-path="inset(0 round '+d/2+'px)"/></svg>');
 }
-function openQR(job,what){
+function openQR(job,what,extra){
  if(typeof job!=='string')job='';
+ if(!Array.isArray(extra))extra=[];
  if(typeof what!=='string')what='';
  if(!state.gen&&!job){toast('اول نتیجه را بساز');return}
  var panel=el('div',{class:'sheet__panel'});
  panel.append(el('div',{class:'sheet__head'},[h('h2',(what||'عکس')+' را روی گوشی‌ات بگیر'),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
  var box=el('div',{class:'qr'},[h('p','در حال ساخت لینک…','qr__note')]);
  panel.append(box);openSheet(panel);
- ensureSession().then(function(){return api('result-link',{v:VISITOR,gen:job||state.gen})}).then(function(d){
+ ensureSession().then(function(){return api('result-link',{v:VISITOR,gen:job||state.gen,extra:extra})}).then(function(d){
   box.replaceChildren(el('div',{class:'qr__code',dir:'ltr',html:qrSvg(d.url)}),h('p','دوربین گوشی را روی این کد بگیر. لینک شخصی توست و ۲۴ ساعت بعد بسته می‌شود.','qr__note'));
  }).catch(function(e){box.replaceChildren(notice('danger',(e&&e.message&&e.message!=='درخواست معتبر نیست')?e.message:'ساخت لینک ممکن نشد؛ یک بار دیگر امتحان کن'))});
 }
@@ -2139,11 +2137,12 @@ function welcomeFlow(opts){
 /* ---------- true 360: a short turntable video of the bride in the dress; drag to turn it, pinch / double-tap to zoom ---------- */
 // Big preview of every angle of one dress; the customer looks first, then chooses it to try on.
 var ANGLE_NAMES=['جلو','کنار','پشت','جزئیات'];
-function openDress(p,imgs,pick){
+function openDress(p,imgs,pick,names){
+ var NM=names||ANGLE_NAMES;
  var panel=el('div',{class:'sheet__panel dress-panel'}),cur=0;
  panel.append(el('div',{class:'sheet__head'},[h('h2',p.title),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
  var big=el('img',{class:'dress-big',alt:p.title,src:media(imgs[0])}),thumbs=el('div',{class:'dress-thumbs'});
- var tb=imgs.map(function(id,i){var b=el('button',{type:'button',class:'dress-th'+(i===0?' is-on':''),'aria-label':'نمای '+(ANGLE_NAMES[i]||i+1)},[el('img',{src:media(id),alt:'',loading:'lazy'}),el('span',{text:ANGLE_NAMES[i]||''})]);b.addEventListener('click',function(){show(i)});thumbs.append(b);return b});
+ var tb=imgs.map(function(id,i){var b=el('button',{type:'button',class:'dress-th'+(i===0?' is-on':''),'aria-label':'نمای '+(NM[i]||i+1)},[el('img',{src:media(id),alt:'',loading:'lazy'}),el('span',{text:NM[i]||''})]);b.addEventListener('click',function(){show(i)});thumbs.append(b);return b});
  var z=1,tx=0,ty=0,pts={},pd=0,stage=null,moved=false;
  function zapply(){var w=big.clientWidth,hh=big.clientHeight,lx=(z-1)*w/2,ly=(z-1)*hh/2;tx=Math.max(-lx,Math.min(lx,tx));ty=Math.max(-ly,Math.min(ly,ty));big.style.transform='translate('+tx+'px,'+ty+'px) scale('+z+')'}
  function zset(k){z=Math.max(1,Math.min(4,k));if(z<1.02){z=1;tx=0;ty=0}zapply()}
@@ -2160,11 +2159,10 @@ function openDress(p,imgs,pick){
   st.addEventListener('wheel',function(e){e.preventDefault();zset(z*(e.deltaY<0?1.15:0.87))},{passive:false});
  }
  var prev=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'▶',onclick:function(){show(cur-1)},'aria-label':'قبلی'}),nxt=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'◀',onclick:function(){show(cur+1)},'aria-label':'بعدی'});
- var go=el('button',{class:'btn btn--primary',type:'button',text:'این لباس را انتخاب کن و بساز'});go.addEventListener('click',function(){closeSheet();pick()});
+ var go=pick?el('button',{class:'btn btn--primary',type:'button',text:'این لباس را انتخاب کن و به عروسم کن'}):null;if(go)go.addEventListener('click',function(){closeSheet();pick()});
  var dstage=el('div',{class:'dress-stage',dir:'ltr'},[big]);bind(dstage);
  var zin=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'＋ زوم',onclick:function(){zset(z*1.5)}}),zout=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'－ زوم',onclick:function(){zset(z/1.5)}});
- panel.append(dstage,el('div',{class:'spin__row'},[nxt,prev,zout,zin]),h('p','دوبار لمس یا دو انگشتی بزن تا جزئیات را بزرگ ببینی.','spin__tip'),thumbs,h('p',[p.stylist?'کار '+p.stylist:'',p.category||''].filter(Boolean).join(' · '),'spin__tip'),go);
- openSheet(panel);
+ panel.append(dstage,el('div',{class:'spin__row'},[nxt,prev,zout,zin]),h('p','دوبار لمس یا دو انگشتی بزن تا جزئیات را بزرگ ببینی.','spin__tip'),thumbs,h('p',[p.stylist?'کار '+p.stylist:'',p.category||''].filter(Boolean).join(' · '),'spin__tip'));if(go)panel.append(go);openSheet(panel);
 }
 function openSheet(node){
  var d=$('#sheet');

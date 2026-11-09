@@ -17,6 +17,7 @@ function checkPhoto(img){
  var w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,hard=[],soft=[];
  if(Math.min(w,h)<480||Math.max(w,h)<800)hard.push('عکس خیلی کوچک است. با دوربین خود گوشی بگیر یا عکس اصلی را بفرست، نه نسخهٔ فشرده‌شده.');
  if(w>h*0.95)hard.push('عکس افقی است. گوشی را عمودی بگیر تا از سر تا کفش در قاب جا شوی.');
+ else if(h/w<1.2)hard.push('قاب برای عکس تمام‌قد خیلی کوتاه است؛ عکس باید از سر تا کفش باشد. کمی عقب‌تر بایست.');
  else if(h/w<1.3)soft.push('قاب برای عکس تمام‌قد کوتاه است؛ کمی عقب‌تر بایست یا گوشی را عمودی‌تر بگیر.');
  try{
   var cw=72,ch=Math.max(8,Math.round(72*h/w)),c=document.createElement('canvas');c.width=cw;c.height=ch;var x=c.getContext('2d');x.drawImage(img,0,0,cw,ch);
@@ -24,10 +25,14 @@ function checkPhoto(img){
   for(i=0;i<n;i++){g[i]=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2];sum+=g[i]}
   var mean=sum/n,v=0,edge=0;for(i=0;i<n;i++){v+=(g[i]-mean)*(g[i]-mean);if(i%cw)edge+=Math.abs(g[i]-g[i-1])}
   var sd=Math.sqrt(v/n);edge/=n;
-  if(mean<55)soft.push('عکس تاریک است. جایی با نور بیشتر بایست و پشت به پنجره یا چراغ نباش.');
+  if(mean<42)hard.push('عکس خیلی تاریک است و نتیجه خراب می‌شود. جایی با نور بیشتر بایست.');
+  else if(mean<55)soft.push('عکس تاریک است. جایی با نور بیشتر بایست و پشت به پنجره یا چراغ نباش.');
+  else if(mean>228)hard.push('عکس خیلی روشن است و جزئیات از بین رفته. از نور مستقیم دور شو.');
   else if(mean>215)soft.push('عکس خیلی روشن است و جزئیات از بین رفته. از نور مستقیم دور شو.');
+  else if(sd<14)hard.push('عکس مات و بی‌جزئیات است و خروجی بد می‌شود. نور بیشتر و دوربین ثابت‌تر.');
   else if(sd<22)soft.push('عکس بی‌جزئیات یا مات است. کمی نور بیشتر و دوربین ثابت‌تر.');
-  if(edge<2.2)soft.push('عکس کمی تار به نظر می‌رسد. گوشی را ثابت نگه دار یا تایمر بگذار.');
+  if(edge<1.5)hard.push('عکس تار است و خروجی خوب نمی‌شود. گوشی را ثابت نگه دار یا تایمر بگذار.');
+  else if(edge<2.2)soft.push('عکس کمی تار به نظر می‌رسد. گوشی را ثابت نگه دار یا تایمر بگذار.');
  }catch(e){}
  return {hard:hard,soft:soft,w:w,h:h};
 }

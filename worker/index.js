@@ -70,7 +70,7 @@ export default {
   if(u.pathname==='/sitemap.xml'){const o=env.APP_ORIGIN||u.origin;return new Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+['/','/s/demo'].map(p=>'<url><loc>'+o+p+'</loc></url>').join('')+'</urlset>',{headers:{'Content-Type':'application/xml; charset=utf-8','Cache-Control':'public,max-age=3600'}})}
   if(u.pathname==='/'){ctx?.waitUntil(ensureWebhook(env,u.origin));return new Response(landingFor(env.APP_ORIGIN||u.origin),{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}})}
   {const m=/^\/u\/([a-f0-9]{12})(\/photo)?$/.exec(u.pathname);if(m){if(m[2]){if(request.method!=='POST')return new Response('Method not allowed',{status:405});return await pairUpload(env,request,m[1])}return await pairPage(env,m[1],notFound)}}
-  {const m=/^\/r\/([a-f0-9]{48})(\/img)?$/.exec(u.pathname);if(m){if(m[2]){return (await resultImage(env,m[1],request))||new Response('Not found',{status:404,headers:{'Cache-Control':'no-store'}})}return await resultPage(env,m[1],notFound)}}
+  {const m=/^\/r\/([a-f0-9]{48})(\/img(?:\/([1-3]))?)?$/.exec(u.pathname);if(m){if(m[2]){return (await resultImage(env,m[1],request,Number(m[3]||0)))||new Response('Not found',{status:404,headers:{'Cache-Control':'no-store'}})}return await resultPage(env,m[1],notFound)}}
   if(!pages.some(r=>r.test(u.pathname)))return new Response(notFound,{status:404,headers:htmlHeaders});
   {const m=/^\/m\/([a-f0-9]{32})\/?$/.exec(u.pathname);if(m)return await panelPage(env,m[1],notFound,htmlHeaders,u);}
   if(/^\/p\/[a-f0-9]{32}\/?$/.test(u.pathname)){const html=await postPage(u,env);return new Response(html||notFound,{status:html?200:404,headers:htmlHeaders});}
