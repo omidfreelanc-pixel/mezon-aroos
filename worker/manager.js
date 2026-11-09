@@ -17,8 +17,8 @@ export async function pwHash(password,salt){
 }
 export const cleanUser=u=>String(u||'').trim().toLowerCase();
 export function checkCreds(user,password){
- must(USERNAME.test(user),'نام کاربری فقط حروف انگلیسی کوچک، عدد، نقطه، خط تیره و زیرخط دارد و ۳ تا ۳۰ نویسه است');
- must(typeof password==='string'&&password.length>=8&&password.length<=100,'رمز عبور حداقل ۸ نویسه باشد');
+ must(USERNAME.test(user),'نام کاربری فقط حروف انگلیسی کوچک، عدد، نقطه، خط تیره و زیرخط دارد و ۳ تا ۳۰ کاراکتر است');
+ must(typeof password==='string'&&password.length>=8&&password.length<=100,'رمز عبور حداقل ۸ کاراکتر باشد');
 }
 export async function setManager(db,salonId,user,password){
  user=cleanUser(user);checkCreds(user,password);
@@ -27,7 +27,7 @@ export async function setManager(db,salonId,user,password){
 }
 export const subLabel=s=>String(s||'').trim().toLowerCase().replace(/[\s_]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
 export async function checkSub(db,label,salonId){
- must(SUBLABEL.test(label)&&!RESERVED.includes(label),'زیردامنه فقط حروف انگلیسی کوچک، عدد و خط تیره دارد، با حرف شروع می‌شود و ۴ تا ۳۱ نویسه است');
+ must(SUBLABEL.test(label)&&!RESERVED.includes(label),'زیردامنه فقط حروف انگلیسی کوچک، عدد و خط تیره دارد، با حرف شروع می‌شود و ۴ تا ۳۱ کاراکتر است');
  const x=await one(db,'SELECT id FROM salons WHERE subdomain=? AND id<>?',label,salonId||'');must(!x,'این زیردامنه را مزون دیگری گرفته است',409);
 }
 // Approves the account and gives it its subdomain. The wildcard DNS record and worker route (*.domain) make it live at once.
@@ -59,6 +59,7 @@ export async function mgrSlug(req,env){
  return same(p[2],await mac(env.SESSION_SECRET,'mgr:'+p[0]+'|'+p[1]))?p[0]:'';
 }
 export async function managerLogin(req,env,db,salon,ip,secure){
+ if(!env.SESSION_SECRET)throw new Problem('ورود هنوز پیکربندی نشده است.',503);
  await limited(db,'mgrlogin:'+salon.id+':'+ip,12,'تلاش‌های ورود زیاد شد؛ کمی بعد دوباره امتحان کنید');
  const b=await req.json().catch(()=>({})),user=cleanUser(b.username),pw=String(b.password||'');
  must(salon.approved&&salon.mgr_user&&salon.mgr_hash,'پنل مدیریت این مزون هنوز فعال نشده است',403);

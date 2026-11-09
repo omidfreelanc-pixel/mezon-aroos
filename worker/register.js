@@ -21,21 +21,25 @@ h2{font:700 17px/1.6 "Estedad","Vazirmatn",sans-serif;margin:0}
 <label>نام و نام خانوادگی مدیر<input id="name" maxlength="60"></label>
 <label>نام مزون<input id="salon" maxlength="80"></label>
 <label>شهر<input id="city" maxlength="40"></label>
-<label>شمارهٔ موبایل<input id="phone" class="ltr" inputmode="tel" placeholder="09123456789"></label>
+<label>شمارهٔ موبایل<input id="phone" name="tel" type="tel" class="ltr" dir="ltr" autocomplete="tel" inputmode="tel" placeholder="09123456789"></label>
 <h2 style="margin-top:22px">ورود به پنل مدیریت</h2>
-<label>نام کاربری<small>انگلیسی کوچک، عدد، نقطه یا خط تیره؛ حداقل ۳ نویسه</small><input id="username" class="ltr" autocapitalize="off" autocomplete="off" maxlength="30"></label>
-<label>رمز عبور<small>حداقل ۸ نویسه</small><input id="password" type="password" class="ltr" autocomplete="new-password" maxlength="100"></label>
+<label>نام کاربری<small>انگلیسی کوچک، عدد، نقطه یا خط تیره؛ حداقل ۳ کاراکتر</small><input id="username" name="username" class="ltr" dir="ltr" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="username" maxlength="30"></label>
+<label>رمز عبور<small>حداقل ۸ کاراکتر</small><input id="password" name="password" type="password" class="ltr" dir="ltr" autocomplete="new-password" maxlength="100"></label>
 <label>نشانی دلخواه صفحهٔ مزون (اختیاری)<small>بعد از تأیید مدیر مزون آینه، صفحهٔ اختصاصی شما روی این زیردامنه باز می‌شود.</small><div class="sub"><input id="subdomain" class="ltr" autocapitalize="off" placeholder="rose" maxlength="31"><span id="base"></span></div></label>
 <div id="codebox" hidden><label>کد پیامک‌شده<input id="code" class="ltr" inputmode="numeric" maxlength="8"></label></div>
 <label class="chk"><input type="checkbox" id="consent"><span>با ثبت این فرم موافقم که مزون آینه برای فعال‌سازی حساب با من تماس بگیرد.</span></label>
 <input id="website" tabindex="-1" autocomplete="off" style="position:absolute;top:0;inset-inline-start:0;width:1px;height:1px;opacity:0;pointer-events:none" aria-hidden="true">
-<button class="btn" id="go" type="submit">ساخت صفحهٔ مزون</button><div class="msg bad" id="err" hidden></div></form>
+<button class="btn" id="go" type="submit">ساخت صفحهٔ مزون</button><div class="msg bad" id="err" role="alert" hidden></div></form>
 <section class="card" id="done" hidden><h2>صفحهٔ شما ساخته شد 🎉</h2><div class="msg good" id="botbox" style="margin:12px 0" hidden><b>مرحلهٔ مهم:</b> تلگرام خودکار باز می‌شود؛ فقط دکمهٔ <b>Start</b> را بزنید تا ربات وصل شود و خبر فعال‌شدن صفحه به همان‌جا برسد. اگر باز نشد، دکمهٔ زیر را بزنید.<br><a id="botl" class="btn" style="display:block;text-align:center;margin-top:10px" target="_blank" rel="noopener">باز کردن ربات و Start</a><a id="botl2" hidden></a></div><p>تا وقتی مدیر مزون آینه حساب را تأیید نکند، صفحهٔ شما و همهٔ بخش‌ها کار می‌کند اما ساخت تصویر بسته است. بعد از تأیید، پنل مدیریت و زیردامنهٔ اختصاصی شما فعال می‌شود و با همان نام کاربری و رمز وارد می‌شوید.</p><p class="links">صفحهٔ مشتری: <a id="l1" href="#"></a></p><p class="links">پنل اعتبار و شارژ (این لینک را نگه دارید): <a id="l2" href="#"></a></p></section>
 </main>
 <script>
 var $=function(i){return document.getElementById(i)},base=location.hostname.replace(/^www\./,"");$("base").textContent="."+base;
-$("subdomain").addEventListener("input",function(){this.value=this.value.toLowerCase().replace(/[\s_]+/g,"-").replace(/[^a-z0-9-]/g,"")});
-$("username").addEventListener("input",function(){this.value=this.value.toLowerCase().replace(/[^a-z0-9._-]/g,"")});
+var PD="۰۱۲۳۴۵۶۷۸۹",AD="٠١٢٣٤٥٦٧٨٩";
+function lat(v){return v.replace(/[۰-۹٠-٩]/g,function(c){var i=PD.indexOf(c);return String(i<0?AD.indexOf(c):i)})}
+function guard(id,bad,sub){var el=$(id),note=document.createElement("small");note.style.cssText="color:#b3261e;display:block;margin-top:4px";note.hidden=true;note.setAttribute("role","status");el.parentNode.appendChild(note);
+ el.addEventListener("input",function(e){if(e.isComposing)return;var raw=this.value,v=lat(raw).toLowerCase();if(sub)v=v.replace(/[\s_]+/g,"-");v=v.replace(bad,"");if(v!==raw){var pos=this.selectionStart-(raw.length-v.length);this.value=v;try{this.setSelectionRange(pos,pos)}catch(x){}
+  note.textContent="فقط حروف انگلیسی، عدد و . - مجاز است؛ کیبورد را روی انگلیسی بگذارید.";note.hidden=!/[^\x00-\x7f]/.test(raw)}else note.hidden=true})}
+guard("subdomain",/[^a-z0-9-]/g,true);guard("username",/[^a-z0-9._-]/g);
 $("f").addEventListener("submit",function(e){e.preventDefault();var err=$("err");err.hidden=true;var b=$("go");b.disabled=true;
  var body={name:$("name").value,salon:$("salon").value,city:$("city").value,phone:$("phone").value,username:$("username").value,password:$("password").value,subdomain:$("subdomain").value,consent:$("consent").checked,website:$("website").value,code:$("code").value};
  fetch("/api/trial",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||"خطا");return d})}).then(function(d){

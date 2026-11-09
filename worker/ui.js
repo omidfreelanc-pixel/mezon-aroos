@@ -196,6 +196,7 @@ function mgrCredits(){
 function mgrLogin(){
  var u=field('mu','نام کاربری','', 'text'),pw=field('mp','رمز عبور','', 'password');
  var go=el('button',{class:'btn btn--primary btn--block',type:'button',text:'ورود',onclick:act(function(){return api('/api/s/'+MGR+'/manager/login',{username:$('#mu').value,password:$('#mp').value}).then(function(){location.reload()})})});
+ [['input',u,'username','username'],['input',pw,'current-password','password']].forEach(function(a){var i=a[1].querySelector('input');i.name=a[3];i.setAttribute('autocomplete',a[2]);i.dir='ltr';i.setAttribute('autocapitalize','off');i.setAttribute('autocorrect','off');i.setAttribute('spellcheck','false');i.enterKeyHint='go';i.addEventListener('keydown',function(e){if(e.key==='Enter')go.click()})});
  pw.querySelector('input').addEventListener('keydown',function(e){if(e.key==='Enter')go.click()});
  $('#app').replaceChildren(el('section',{class:'card login'},[el('div',{class:'mirror'},[el('div',{class:'mirror__glass'},[el('span',{html:MARK})])]),h('h1','پنل مدیریت مزون'),h('p','با نام کاربری و رمزی که هنگام ثبت‌نام انتخاب کردید وارد شوید.'),u,pw,go]));
 }
@@ -393,7 +394,7 @@ function botCard(bot){
 }
 // Accounts: approval, image credit and recharge requests per salon (the project owner's side of /m/<token>).
 function accountsCard(){
- var box=el('section',{class:'card'},[h('h2','حساب مزون‌ها و اعتبار تصویر'),h('p','هر مزون ۱۰۰ تصویر دارد. تا وقتی حساب تأیید نشود، مزون‌دار همه‌چیز را می‌بیند و کار می‌کند اما ساخت تصویر بسته است. لینک پنل شارژ را برای مزون‌دار بفرست.','lead')]),body=el('div',{class:'stack'});
+ var box=el('section',{class:'card'},[h('h2','حساب مزون‌ها و اعتبار تصویر'),h('p','هر مزون ۱۰۰ تصویر دارد. تا وقتی حساب تأیید نشود، مزون‌دار همه‌چیزز را می‌بیند و کار می‌کند اما ساخت تصویر بسته است. لینک پنل شارژ را برای مزون‌دار بفرست.','lead')]),body=el('div',{class:'stack'});
  box.append(body);
  function load(){return api('/api/owner/accounts').then(function(d){
   body.replaceChildren();
@@ -490,7 +491,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  function connectBot(pl){var w=window.open('about:blank','_blank');return api('/api/s/'+slug+'/owner/telegram-link',{}).then(function(r){var url=(r.links||{})[pl];if(!url){if(w)w.close();throw new Error('ربات هنوز تنظیم نشده')}if(w)w.location.href=url;else location.href=url;toast('در برنامه دکمهٔ Start را بزنید؛ اتصال خودکار انجام می‌شود…');pollBot()})}
  [['telegram',d.bot.telegram,'تلگرام'],['bale',d.bot.bale,'بله']].forEach(function(x){if(x[1]&&x[1].ready&&x[1].username)tg.append(el('button',{class:'btn btn--primary',type:'button',style:'margin-inline-end:8px;margin-top:8px',text:(on?'اتصال دوباره به ':'اتصال به ')+x[2],onclick:act(function(){return connectBot(x[0])})}))});
  if(!(d.bot.telegram&&d.bot.telegram.ready&&d.bot.telegram.username)&&!(d.bot.bale&&d.bot.bale.ready&&d.bot.bale.username))tg.append(el('p',{class:'notice notice--warn',text:'ربات هنوز روی سایت تنظیم نشده است.'}));
- if(!on)tg.append(el('p',{class:'tiny muted',style:'margin-top:8px',text:'روی دکمه بزنید تا برنامه باز شود؛ آنجا فقط «Start» را بزنید و همه‌چیز خودکار وصل می‌شود.'}));
+ if(!on)tg.append(el('p',{class:'tiny muted',style:'margin-top:8px',text:'روی دکمه بزنید تا برنامه باز شود؛ آنجا فقط «Start» را بزنید و همه‌چیزز خودکار وصل می‌شود.'}));
  else tg.append(el('p',{class:'notice notice--warn',text:'اول ربات را در صفحهٔ «همهٔ مزون‌ها» تنظیم کنید.'}));
  tg.append(linkOut);
  [['telegram','تلگرام',S.telegram],['bale','بله',S.bale]].forEach(function(x){if(x[2])tg.append(el('button',{class:'btn btn--danger btn--sm',type:'button',style:'margin-top:12px;margin-inline-end:8px',text:'قطع '+x[1],onclick:act(function(){if(!confirm('اتصال '+x[1]+' این مزون قطع شود؟'))return;return api('/api/s/'+slug+'/owner/telegram-unlink',{platform:x[0]}).then(salonPage)})}))});
