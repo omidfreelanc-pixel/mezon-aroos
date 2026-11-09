@@ -6,11 +6,13 @@ const LINES_JSON=JSON.stringify({label:LINE_LABEL,photo:{dress:LINE_PHOTO.dress}
 import {baseCSS,markSVG,illos} from './design.js';
 
 const customerCSS=String.raw`
-.hd{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:12px;padding:18px 4px 10px}
-.hd__side{display:flex;align-items:center;min-width:0}
+.hd{position:relative;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:12px;margin:14px 0 6px;padding:26px 18px;border-radius:var(--r-lg);overflow:hidden;border:1px solid rgba(201,165,92,.45);background:radial-gradient(70% 120% at 85% 0,rgba(255,255,255,.95),transparent 62%),radial-gradient(60% 100% at 10% 100%,rgba(232,217,176,.55),transparent 70%),linear-gradient(135deg,#f7f3ec,#e9efec);box-shadow:var(--lift)}
+.hd::before{content:"";position:absolute;inset:7px;border-radius:calc(var(--r-lg) - 6px);border:1px solid rgba(201,165,92,.35);pointer-events:none}
+.hd::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 12% 28%,rgba(201,165,92,.5) 0 1.5px,transparent 2.5px),radial-gradient(circle at 36% 80%,rgba(201,165,92,.4) 0 1.5px,transparent 2.5px),radial-gradient(circle at 62% 22%,rgba(201,165,92,.45) 0 1.5px,transparent 2.5px),radial-gradient(circle at 90% 74%,rgba(201,165,92,.5) 0 1.5px,transparent 2.5px)}
+.hd__side{position:relative;z-index:1;display:flex;align-items:center;min-width:0}
 .hd__side--logo{justify-content:center}
 .hd__side--name{justify-content:center;text-align:center}
-.hd__logo{width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid var(--glass);background:var(--surface);box-shadow:var(--lift)}
+.hd__logo{width:92px;height:92px;border-radius:50%;object-fit:cover;border:3px solid #fff;outline:1.5px solid rgba(201,165,92,.7);outline-offset:3px;background:var(--surface);box-shadow:var(--lift)}
 .hd__logo--letter{display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:34px;color:var(--accent-ink)}
 .hd__name{margin:0;width:100%;font-size:28px;line-height:1.5}
 /* ---------- hero: full-width cover, logo on its edge, the name on one line ---------- */
@@ -182,6 +184,7 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .stage__empty svg{width:96px;height:auto;display:block;margin:0 auto 6px;opacity:.9}.stage__empty{position:relative;z-index:1;color:var(--muted);font-size:13px;text-align:center;padding:24px;max-width:22ch;line-height:1.9}
 .rev__tips{margin:8px 0 0;padding:0 18px;font-size:13px;line-height:2;color:var(--muted)}
 .sizes{margin:10px 0;padding:10px 12px;border:1px solid var(--glass-2);border-radius:var(--r-lg)}.sizes summary{cursor:pointer}.sizes__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.sizes__grid input{width:100%;text-align:center}
+.upload strong.upload__say{font-family:var(--display);font-weight:800;font-size:23px;line-height:1.9;color:var(--mz-emerald);text-align:center;padding:0 14px}
 .compare-wrap{width:min(100%,400px);margin:18px auto 0}
 .compare{position:relative;aspect-ratio:4/7;overflow:hidden;background:var(--glass-2);touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:ew-resize;direction:ltr}
 .compare img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}
@@ -507,21 +510,6 @@ img[loading="lazy"].is-in{opacity:1}
 @keyframes veil{0%{top:-40%}100%{top:100%}}
 .build__noimg{position:absolute;inset:0;display:grid;place-items:center}
 @media (prefers-reduced-motion:reduce){.build__scan{animation:none;top:0;height:100%;opacity:.35}}
-.build__pct{display:flex;align-items:baseline;gap:2px;font-family:var(--display);font-weight:800;color:var(--ink)}.build__pct b{font-size:38px;line-height:1}.build__pct span{font-size:18px;color:var(--muted)}
-.build__lines{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:190px;overflow:hidden;align-content:end}
-.build__lines li{font-size:14px;line-height:1.8;color:var(--muted);animation:lineIn .5s var(--ease) both}.build__lines li.is-on{color:var(--ink);font-weight:700}
-@keyframes lineIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-.curtain__rod{position:absolute;z-index:4;top:0;inset-inline:0;height:10px;background:linear-gradient(#f1e2b8,#b8975a 60%,#8f7140);box-shadow:0 3px 6px rgba(0,0,0,.3)}
-.curtain{position:absolute;z-index:3;top:8px;bottom:0;width:calc(50.5% - var(--o,0) * 1%);transition:width 1.2s var(--ease);background:linear-gradient(90deg,rgba(0,0,0,.16),transparent 18%,transparent 82%,rgba(0,0,0,.16)),repeating-linear-gradient(90deg,#f7f1e6 0 11px,#e6dac4 11px 19px,#fbf8f1 19px 30px);background-size:100% 100%,60px 100%;box-shadow:0 0 18px rgba(60,40,10,.35);animation:sway 4.2s ease-in-out infinite,folds 7s linear infinite}
-.curtain--l{left:0;border-radius:0 0 46% 0;transform-origin:top left}.curtain--r{right:0;border-radius:0 0 0 46%;transform-origin:top right;animation-delay:-1.9s,-3s}
-@keyframes sway{0%,100%{transform:skewX(0) scaleX(1)}28%{transform:skewX(-3.5deg) scaleX(1.05)}64%{transform:skewX(3deg) scaleX(.95)}}
-@keyframes folds{to{background-position:0 0,60px 0}}
-.build .mirror__glass::after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;background:radial-gradient(120% 90% at 50% 40%,transparent 55%,rgba(30,20,8,.28))}
-.build__pct{display:flex;align-items:baseline;gap:3px;font-family:var(--display);font-weight:800;color:var(--accent-ink)}.build__pct b{font-size:46px;line-height:1;letter-spacing:-1px}.build__pct span{font-size:20px;color:var(--muted)}
-.build__lines{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-height:210px;overflow:hidden;align-content:end}
-.build__lines li{font-family:var(--display);font-size:15.5px;line-height:1.9;color:var(--muted);opacity:.7;animation:lineIn .9s var(--ease) both}.build__lines li.is-on{color:var(--ink);font-weight:800;font-size:17px;opacity:1}
-@keyframes lineIn{from{opacity:0;transform:translateY(14px);filter:blur(6px)}to{transform:none;filter:none}}
-@media (prefers-reduced-motion:reduce){.curtain{animation:none}.build__lines li{animation:none}}
 .build__side{display:grid;gap:12px}
 .build__title{font-family:var(--display);font-weight:800;font-size:19px}
 .build__steps{list-style:none;display:grid;gap:8px;margin:0;padding:0}
@@ -772,9 +760,7 @@ function stepPhoto(){
   box.append(flowHead(LP().head,LP().sub));
   var input=el('input',{type:'file',accept:'image/jpeg,image/png,image/webp',id:'pick',class:'sr-only','aria-label':'انتخاب عکس'});
   var drop=el('label',DESK?{class:'upload mirror'}:{class:'upload mirror',for:'pick'},[el('div',{class:'upload__in mirror__glass'},[
-   el('span',{class:'upload__icon',html:ICO.SIL}),
-   el('strong',{text:LP().drop}),
-   el('span',{class:'upload__hint',text:DESK?'برای گرفتن عکس با دوربین اینجا را بزن':'از گالری انتخاب کن یا عکس را روی همین قاب رها کن'})
+   el('strong',{class:'upload__say',text:'عکست رو بده تا عروست کنم.'})
   ])]);
   if(DESK)drop.addEventListener('click',function(e){e.preventDefault();openCamera()});
   input.addEventListener('change',function(){handleFile(input.files&&input.files[0],'original')});
@@ -815,7 +801,7 @@ var TAB_LABEL={dress:['لباس‌های مزون','لباس‌های آماده
  dress:['لباس عروس را انتخاب کن','از لباس‌های همین مزون، لباس‌های آماده یا عکس لباسی که خودت پیدا کرده‌ای. فقط لباس عوض می‌شود؛ چهره، سایز و فرم بدنت همان می‌ماند.']
 };
 function pickLook(fn){fn();state.result=null;state.error='';renderFlow();renderDock()}
-// Choosing a dress brings the next thing to do into view: «به عروسم کن».
+// Choosing a dress brings the next thing to do into view: «عروسم کن».
 function chooseLook(fn){pickLook(fn);scrollToBuild()}
 function scrollToBuild(){
  var f=$('#flow');if(!f)return;
@@ -937,13 +923,13 @@ function stepModel(){
  box.append(h('p',buildHint(ready,can,left),'fine-print build-hint'));
  return box;
 }
-function buildLabel(can){return can?ICO.spark+'<span>به عروسم کن</span>':(quotaLeft()===0?ICO.send+'<span>فرستادن برای '+artist()+'</span>':'<span>ادامه: نتیجه</span>')}
+function buildLabel(can){return can?ICO.spark+'<span>عروسم کن</span>':(quotaLeft()===0?ICO.send+'<span>فرستادن برای '+artist()+'</span>':'<span>ادامه: نتیجه</span>')}
 function buildHint(ready,can,left){
  if(!ready)return missingReason()+'.';
  if(!can)return '';
- return 'با زدن «به عروسم کن» عکست برای ساخت فرستاده می‌شود و فقط برای همین مزون می‌ماند.'+(left!=null?' '+fa(left)+' ساخت دیگر در این بخش داری.':'');
+ return 'با زدن «عروسم کن» عکست برای ساخت فرستاده می‌شود و فقط برای همین مزون می‌ماند.'+(left!=null?' '+fa(left)+' ساخت دیگر در این بخش داری.':'');
 }
-// Step 2 → 3 in one tap: «به عروسم کن» goes straight to building, no page in between.
+// Step 2 → 3 in one tap: «عروسم کن» goes straight to building, no page in between.
 function build(){
  if(!hasChoice()){toast(missingReason());return}
  if(!canGenerate()){go(3);return}
@@ -1078,24 +1064,19 @@ function dressKey(){
 function wantButton(cls){return el('button',{class:cls||'btn btn--primary',type:'button','data-want':'1',onclick:function(){openWant()},html:ICO.heart+'<span>این لباس را می‌خواهم</span>'})}
 function sendButton(){return el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
 // Building: a playful scene in the mirror, the stage it is at and a live percentage.
-var FUNNY=[[0,'رفتیم تو اتاق پرو؛ پرده را کشیدند…'],[8,'خیاط سنجاق به دهان آمد و دور تو می‌چرخد'],[20,'لباس را از چوب‌لباسی درآوردیم؛ سنگین‌تر از انتظار، قشنگ‌تر از انتظار'],[32,'زیپ پشتی دارد بالا می‌رود؛ نفس عمیق!'],[44,'دامن را سه بار چرخاندیم؛ دنباله هنوز دارد از در می‌آید'],[56,'آن‌ور پرده مامان‌ها دارند دستمال کاغذی خرج می‌کنند'],[68,'آینه گفت «واااای!» و بعد ساکت شد'],[80,'آخرین چین دنباله را صاف می‌کنیم؛ لطفاً تکان نخور'],[91,'پرده دارد کنار می‌رود… چشم‌هایت را ببند!']];
-var BUILD={title:'تو اتاق پروئی…',steps:['آماده‌سازی عکس','پیدا کردن اندام و قد','اندازه کردن لباس','نشاندن لباس روی بدنت','چین و دنباله']};
+var BUILD={title:'در حال پرو کردن لباس…',steps:['آماده‌سازی عکس','پیدا کردن اندام و قد','اندازه کردن لباس','نشاندن لباس روی بدنت','چین و دنباله']};
 // Real builds take about 50–80 seconds: the curve reaches ~80% at a minute and keeps moving after.
 function buildPct(){var t=Date.now()-(state.genT0||Date.now());return state.result?100:Math.min(97,Math.round(3+94*(1-Math.exp(-t/38000))))}
 function buildNote(){var t=Date.now()-(state.genT0||Date.now());return t>85000?'کمی بیشتر از همیشه طول کشید؛ هنوز در حال ساخت است. صفحه را نبند.':t>45000?'دارد تمام می‌شود… معمولاً حدود یک دقیقه طول می‌کشد.':'این صفحه را نبند؛ معمولاً حدود یک دقیقه طول می‌کشد.'}
-function funnyList(pct){return FUNNY.filter(function(x){return pct>=x[0]})}
 function buildStage(){
- var pct=buildPct(),src=state.original?media(state.original):'';
- var stage=el('div',{class:'stage mirror build',style:'--o:'+Math.round(pct*.3)},[el('div',{class:'mirror__glass'},[
+ var B=BUILD,pct=buildPct(),src=state.original?media(state.original):'';
+ var stage=el('div',{class:'stage mirror build'},[el('div',{class:'mirror__glass'},[
   src?el('img',{class:'build__photo',src:src,alt:''}):el('span',{class:'build__noimg',html:ILLO.loader}),
-  el('span',{class:'build__scan','aria-hidden':'true'}),
-  el('span',{class:'curtain__rod','aria-hidden':'true'}),
-  el('span',{class:'curtain curtain--l','aria-hidden':'true'}),
-  el('span',{class:'curtain curtain--r','aria-hidden':'true'})
+  el('span',{class:'build__scan','aria-hidden':'true'})
  ])]);
- var list=el('ol',{class:'build__lines'},[]);
- funnyList(pct).forEach(function(x,i,arr){list.append(el('li',{class:i===arr.length-1?'is-on':'is-done',text:x[1]}))});
- return el('div',{class:'build-wrap',role:'status','aria-live':'polite'},[stage,el('div',{class:'build__side'},[h('p',BUILD.title,'build__title'),el('div',{class:'build__pct'},[el('b',{class:'build__num',text:fa(pct)}),el('span',{text:'٪'})]),el('div',{class:'progress'},[el('div',{class:'progress__bar'},[el('div',{class:'progress__fill',style:'width:'+pct+'%'})])]),list,h('p',buildNote(),'tiny muted build__note')])]);
+ var at=Math.min(B.steps.length-1,Math.floor(pct/100*B.steps.length));
+ var list=el('ol',{class:'build__steps'},B.steps.map(function(t,i){return el('li',{class:i<at?'is-done':i===at?'is-on':''},[el('span',{html:i<at?ICO.check:''}),el('b',{text:t})])}));
+ return el('div',{class:'build-wrap',role:'status','aria-live':'polite'},[stage,el('div',{class:'build__side'},[h('p',B.title,'build__title'),el('div',{class:'progress'},[el('div',{class:'progress__bar'},[el('div',{class:'progress__fill',style:'width:'+pct+'%'})])]),list,h('p',buildNote(),'tiny muted build__note')])]);
 }
 // One name per saved photo: boutique, date and time, and the result's own id.
 function saveName(id){
@@ -1177,10 +1158,10 @@ function stepResult(){
   }else{
    box.append(el('div',{class:'stage mirror'},[el('div',{class:'mirror__glass'},[el('span',{class:'stage__empty',html:ILLO.results+'<span style="display:block">نتیجه همین‌جا، در قاب آینه، ظاهر می‌شود</span>'})])]));
    box.append(el('div',{class:'flow__nav'},[
-    el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>'+(state.error?'تلاش دوباره':'به عروسم کن')+'</span>'}),
+    el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>'+(state.error?'تلاش دوباره':'عروسم کن')+'</span>'}),
     el('button',{class:'btn btn--ghost',type:'button',onclick:openRequest,html:ICO.send+'<span>بدون شبیه‌سازی بفرست</span>'})
    ]));
-   box.append(h('p','با زدن «به عروسم کن» عکست برای ساخت شبیه‌سازی فرستاده می‌شود و فقط برای همین مزون می‌ماند.','fine-print'));
+   box.append(h('p','با زدن «عروسم کن» عکست برای ساخت شبیه‌سازی فرستاده می‌شود و فقط برای همین مزون می‌ماند.','fine-print'));
   }
  }
  return box;
@@ -1209,17 +1190,17 @@ function renderDock(){
   if(!state.original&&!state.busy){dock.hidden=true;dock.replaceChildren();return}
   hint=state.original?'عکس آماده است':'برای شروع، عکس تمام‌قدت را اضافه کن';
   if(state.busy&&!state.original){hint='در حال بارگذاری عکس…';primary=el('button',{class:'btn btn--primary',type:'button',disabled:true,text:'در حال بارگذاری…'})}
-  else primary=el('button',{class:'btn btn--primary',type:'button',onclick:function(){(state.original?go(2):pickNow())},html:(state.original?ICO.check:ICO.camera)+'<span>'+(state.original?'ادامه':'افزودن عکس')+'</span>'});
+  else primary=el('button',{class:'btn btn--primary',type:'button',onclick:function(){(state.original?go(2):pickNow())},html:(state.original?ICO.check:ICO.spark)+'<span>'+(state.original?'ادامه':'عروسم کن')+'</span>'});
  }else if(state.step===2){
   var ready=hasChoice(),can=canGenerate();
   var out=quotaLeft()===0;
-  hint=out?'سهم ساخت این بخش تمام شد':ready?(can?'آماده؛ بزن «به عروسم کن»':'آماده'):missingReason();
-  primary=el('button',{class:'btn btn--primary',type:'button',disabled:!ready,onclick:build,html:can?ICO.spark+'<span>به عروسم کن</span>':out?ICO.send+'<span>فرستادن</span>':!ready?'<span>اول لباس را انتخاب کن</span>':ICO.arrow+'<span>ادامه</span>'});
+  hint=out?'سهم ساخت این بخش تمام شد':ready?(can?'آماده؛ بزن «عروسم کن»':'آماده'):missingReason();
+  primary=el('button',{class:'btn btn--primary',type:'button',disabled:!ready,onclick:build,html:can?ICO.spark+'<span>عروسم کن</span>':out?ICO.send+'<span>فرستادن</span>':!ready?'<span>اول لباس را انتخاب کن</span>':ICO.arrow+'<span>ادامه</span>'});
  }else{
   if(state.busy){hint='در حال ساخت…';primary=el('button',{class:'btn btn--primary',type:'button',disabled:true,text:'در حال ساخت…'})}
   else if(state.result){hint='عکس را روی گوشی‌ات بگیر';primary=el('button',{class:'btn btn--primary',type:'button',onclick:function(){openQR()},html:ICO.phone+'<span>ارسال برای خودم</span>'})}
   else if(state.result||!canGenerate()||state.noImage){hint='فرستادن در تلگرام برای مزون';primary=el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
-  else{hint='آمادهٔ ساخت';primary=el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>به عروسم کن</span>'})}
+  else{hint='آمادهٔ ساخت';primary=el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>عروسم کن</span>'})}
  }
  inner.append(el('div',{class:'dock__hint',text:hint}),primary);
  dock.replaceChildren(inner);dock.hidden=false;
@@ -1334,7 +1315,7 @@ function generate(){
  state.busy=true;state.error='';state.noImage=null;state.result=null;state.genT0=Date.now();renderFlow();renderDock();
  ensureSession().then(function(){
   state.idem=state.idem||uuid();
-  // The page's own note under «به عروسم کن» says the photo is sent for the simulation; no extra checkbox.
+  // The page's own note under «عروسم کن» says the photo is sent for the simulation; no extra checkbox.
   return api('generate',{v:VISITOR,image_consent:true,sizes:sizesPayload(),idem:state.idem,ratio:state.ratio||undefined,original_id:state.original,reference_id:state.reference||undefined,style:state.reference?undefined:(state.style===null?undefined:state.style)});
  }).then(function(job){
   track('generate',state.reference?(state.refTitle?'salon':'upload'):'catalog');
@@ -1362,12 +1343,11 @@ function friendly(msg){
 function pickNow(){if(DESK){kioskCamera();return}var pick=$('#pick');if(pick)pick.click();else toast('اول عکس خودت را اضافه کن')}
 function updateProgress(){
  var f=$('#flow');if(!f)return;
- var pct=buildPct();
+ var pct=buildPct(),B=BUILD;
  var bar=f.querySelector('.progress__fill');if(bar)bar.style.width=pct+'%';
- var bst=f.querySelector('.build');if(bst)bst.style.setProperty('--o',Math.round(pct*.3));
  var num=f.querySelector('.build__num');if(num)num.textContent=fa(pct);var note=f.querySelector('.build__note');if(note){var nt=buildNote();if(note.textContent!==nt)note.textContent=nt}
- var ol=f.querySelector('.build__lines');if(ol){var L=funnyList(pct);
-  while(ol.children.length<L.length){var last=ol.lastElementChild;if(last)last.className='is-done';ol.append(el('li',{class:'is-on',text:L[ol.children.length][1]}))}}
+ var at=Math.min(B.steps.length-1,Math.floor(pct/100*B.steps.length));
+ Array.prototype.forEach.call(f.querySelectorAll('.build__steps li'),function(li,i){var c=i<at?'is-done':i===at?'is-on':'';if(li.className!==c){li.className=c;li.firstChild.innerHTML=i<at?ICO.check:''}});
 }
 function poll(id,resumed){
  var attempts=0;
@@ -1553,7 +1533,7 @@ function tourSteps(){
   {el:'#flow .seg [data-tab="salon"]',enter:function(){tourView(2,'salon')},title:'۱. لباس‌های همین مزون',text:hasLineWork()?'لباس‌های واقعی «'+state.pub.salon.name+'». روی هر کدام بزن تا همان لباس روی تو ساخته شود.':'لباس‌های واقعی مزون اینجا می‌آید. روی هر کدام بزنی، همان لباس روی تو ساخته می‌شود.'},
   {el:'#flow .looks .style-card',enter:function(){tourView(2,'catalog')},title:'۲. لباس‌های آماده',text:'مدل‌های پرطرفدار با عکس نمونه. با فیلترهای بالا سریع پیدا کن: پفی، ماهی، پوشیده، دانتل…'},
   {el:'#flow .upload--ref',enter:function(){tourView(2,'upload')},title:'۳. عکس لباسی که خودت داری',text:'لباسی در اینستاگرام یا گالری‌ات دیدی؟ عکسش را اینجا بگذار. فقط خود لباس برداشته می‌شود؛ مدل و بدنش نه.'},
-  {el:mobile?'#dock .dock__inner':'#flow .btn--build',enter:function(){tourView(2,'catalog',3)},title:'انتخاب کردی؟ «به عروسم کن»',text:'با یک دکمه پرو شروع می‌شود و نتیجه را کنار عکس خودت می‌بینی. بعد با یک دکمه برای مزون می‌فرستی.'},
+  {el:mobile?'#dock .dock__inner':'#flow .btn--build',enter:function(){tourView(2,'catalog',3)},title:'انتخاب کردی؟ «عروسم کن»',text:'با یک دکمه پرو شروع می‌شود و نتیجه را کنار عکس خودت می‌بینی. بعد با یک دکمه برای مزون می‌فرستی.'},
   {el:'#steps .steps__list',title:'همیشه می‌دانی کجایی',text:'عکس تو، انتخاب، نتیجه. روی هر قدم بزنی برمی‌گردی.'},
   {el:mobile?'#dock .dock__inner':'.hero__cta .btn',title:'شروع کنیم؟',text:'اول عکس تمام‌قدت را بگذار. بعد از دیدن نتیجه، با «ارسال برای خودم» آن را روی گوشی‌ات بگیر.',last:true}
  ].filter(Boolean);
@@ -2180,7 +2160,7 @@ function openDress(p,imgs,pick,names){
   st.addEventListener('wheel',function(e){e.preventDefault();zset(z*(e.deltaY<0?1.15:0.87))},{passive:false});
  }
  var prev=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'▶',onclick:function(){show(cur-1)},'aria-label':'قبلی'}),nxt=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'◀',onclick:function(){show(cur+1)},'aria-label':'بعدی'});
- var go=pick?el('button',{class:'btn btn--primary',type:'button',text:'این لباس را انتخاب کن و به عروسم کن'}):null;if(go)go.addEventListener('click',function(){closeSheet();pick()});
+ var go=pick?el('button',{class:'btn btn--primary',type:'button',text:'این لباس را انتخاب کن و عروسم کن'}):null;if(go)go.addEventListener('click',function(){closeSheet();pick()});
  var dstage=el('div',{class:'dress-stage',dir:'ltr'},[big]);bind(dstage);
  var zin=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'＋ زوم',onclick:function(){zset(z*1.5)}}),zout=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'－ زوم',onclick:function(){zset(z/1.5)}});
  panel.append(dstage,el('div',{class:'spin__row'},[nxt,prev,zout,zin]),h('p','دوبار لمس یا دو انگشتی بزن تا جزئیات را بزرگ ببینی.','spin__tip'),thumbs,h('p',[p.stylist?'کار '+p.stylist:'',p.category||''].filter(Boolean).join(' · '),'spin__tip'));if(go)panel.append(go);openSheet(panel);
