@@ -50,13 +50,14 @@ export function subOf(u,env){
 
 // ---- signed cookie, bound to one salon ----
 async function mac(secret,data){const key=await crypto.subtle.importKey('raw',enc.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);return b64u(await crypto.subtle.sign('HMAC',key,enc.encode(data)))}
-export async function mgrCookie(env,slug,secure){const exp=Date.now()+7*86400000,body=slug+'|'+exp;return 'ayneh_mgr='+body+'|'+await mac(env.SESSION_SECRET,'mgr:'+body)+'; HttpOnly'+(secure?'; Secure':'')+'; SameSite=Lax; Path=/; Max-Age=604800'}
+export async function mgrCookie(env,slug,secure,ver=''){const exp=Date.now()+7*86400000,body=slug+'|'+exp+'|'+ver;return 'ayneh_mgr='+body+'|'+await mac(env.SESSION_SECRET,'mgr:'+body)+'; HttpOnly'+(secure?'; Secure':'')+'; SameSite=Lax; Path=/; Max-Age=604800'}
 export const clearMgrCookie=secure=>'ayneh_mgr=; HttpOnly'+(secure?'; Secure':'')+'; SameSite=Lax; Path=/; Max-Age=0';
-export async function mgrSlug(req,env){
+export async function mgrSlug(req,env,salon){
  if(!env?.SESSION_SECRET)return '';
  const raw=(req.headers.get('cookie')||'').match(/(?:^|; )ayneh_mgr=([^;]+)/)?.[1];if(!raw)return '';
- const p=raw.split('|');if(p.length!==3||!Number.isFinite(Number(p[1]))||Number(p[1])<Date.now())return '';
- return same(p[2],await mac(env.SESSION_SECRET,'mgr:'+p[0]+'|'+p[1]))?p[0]:'';
+ const p=raw.split('|');if(p.length!==4||!Number.isFinite(Number(p[1]))||Number(p[1])<Date.now())return '';
+ if(salon&&p[2]!==String(salon.mgr_hash||'').slice(0,12))return '';
+ return same(p[3],await mac(env.SESSION_SECRET,'mgr:'+p[0]+'|'+p[1]+'|'+p[2]))?p[0]:'';
 }
 export async function managerLogin(req,env,db,salon,ip,secure){
  if(!env.SESSION_SECRET)throw new Problem('ورود هنوز پیکربندی نشده است.',503);
@@ -65,5 +66,5 @@ export async function managerLogin(req,env,db,salon,ip,secure){
  must(salon.approved&&salon.mgr_user&&salon.mgr_hash,'پنل مدیریت این مزون هنوز فعال نشده است',403);
  const given=await pwHash(pw,salon.mgr_salt);
  must(user===salon.mgr_user&&same(given,salon.mgr_hash),'نام کاربری یا رمز عبور نادرست است',401);
- return mgrCookie(env,salon.slug,secure);
+ return mgrCookie(env,salon.slug,secure,String(salon.mgr_hash||'').slice(0,12));
 }

@@ -78,7 +78,7 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .shoot__btns{display:grid;gap:10px}
 @media(min-width:420px){.shoot__btns{grid-template-columns:1fr 1fr}}
 .tips{display:grid;gap:10px;margin:0;padding:0;list-style:none}
-.tip{display:flex;gap:11px;align-items:flex-start;font-size:13.5px;color:var(--ink-2);line-height:1.7}
+.tip{display:flex;gap:11px;align-items:flex-start;font-size:14px;color:var(--ink);line-height:1.7}
 .tip svg{width:18px;height:18px;flex:none;margin-top:3px;color:var(--accent)}
 .tip b{font-weight:700;color:var(--ink)}
 .photo{width:min(100%,320px);margin:0 auto}
@@ -769,7 +769,8 @@ function stepPhoto(){
    ]),
    el('details',{class:'collapse'},[
     el('summary',{html:ICO.lock+'<span>عکسم کجا نگه‌داری می‌شود؟</span>'}),
-    h('p','عکس فقط برای همین مزون استفاده می‌شود و دسترسی عمومی ندارد؛ در سابقهٔ مزون نگه داشته می‌شود تا مزون‌دارت بعداً هم آن را ببیند. برای شبیه‌سازی، نسخهٔ فشردهٔ عکس به سرویس تصویر ارسال می‌شود.')
+    h('p','عکس فقط برای همین مزون استفاده می‌شود و دسترسی عمومی ندارد؛ در سابقهٔ مزون نگه داشته می‌شود تا مزون‌دارت بعداً هم آن را ببیند. برای شبیه‌سازی، نسخهٔ فشردهٔ عکس موقتاً به سرویس ساخت تصویر فرستاده می‌شود و فقط برای همین یک‌بار استفاده می‌شود. هر زمان بخواهی می‌توانی عکس‌ها و نتیجه‌هایت را پاک کنی.'),
+    el('button',{class:'btn btn--soft btn--sm',type:'button',text:'حذف همهٔ عکس‌های من',onclick:function(){if(!confirm('همهٔ عکس‌ها و نتیجه‌های تو پاک می‌شود. ادامه می‌دهی؟'))return;api('erase',{v:VISITOR}).then(function(){try{localStorage.clear();sessionStorage.clear()}catch(e){}toast('عکس‌هایت پاک شد.');setTimeout(function(){location.reload()},600)}).catch(function(e){toast(e.message||'پاک نشد','error')})}})
    ])
   ]);
   box.append(input,el('div',{class:'demo-row'},[demoCompare('demo--small'),el('div',{class:'demo-row__text'},[h('b','این‌طوری می‌شود'),h('span',LP().demo)])]),el('div',{class:'shoot'},[drop,side]));

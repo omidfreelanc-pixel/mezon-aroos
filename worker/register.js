@@ -8,13 +8,13 @@ export const registerHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><h
 .top{background:linear-gradient(135deg,#0c6b6b,#074c4d);color:#fff;padding:26px 20px 70px;text-align:center;border-radius:0 0 34px 34px}.top h1{font:800 24px/1.5 "Estedad","Vazirmatn",sans-serif;margin:0}.top p{margin:4px 0 0;opacity:.9;font-size:15px}
 main{max-width:520px;margin:-46px auto 0;padding:0 16px}.card{background:#fff;border-radius:24px;padding:20px;box-shadow:0 18px 40px -22px rgba(7,76,77,.45);margin-bottom:14px}
 label{display:block;margin:12px 0 0;font-weight:700;font-size:15px}label small{display:block;font-weight:400;color:#6a756f;font-size:13px;line-height:1.7}
-input,textarea{width:100%;border:2px solid #d6dfdb;border-radius:14px;padding:11px 14px;font:inherit;background:#fff;margin-top:4px}input:focus{outline:0;border-color:#0c6b6b}.ltr{direction:ltr;text-align:left}
+input,textarea{width:100%;border:2px solid #d6dfdb;border-radius:14px;padding:11px 14px;font:inherit;background:#fff;margin-top:4px}input:not([type=checkbox]):focus{outline:0;border-color:#0c6b6b}.ltr{direction:ltr;text-align:left}
 .sub{display:flex;align-items:center;gap:6px;direction:ltr}.sub span{white-space:nowrap;color:#6a756f;font-size:14px}.sub input{margin:0}
 .chk{display:flex;gap:10px;align-items:flex-start;margin-top:16px;font-weight:400;font-size:14px}.chk input{width:22px;height:22px;margin:3px 0 0;flex:none}
 .btn{display:block;width:100%;border:0;border-radius:16px;padding:15px;font:700 17px "Vazirmatn",sans-serif;background:linear-gradient(135deg,#0c6b6b,#074c4d);color:#fff;margin-top:16px;cursor:pointer}.btn[disabled]{opacity:.5}
 .msg{border-radius:14px;padding:10px 14px;margin:12px 0 0;font-size:15px}.bad{background:#fde8e8;color:#8a1c1c}.good{background:#e4f5e8;color:#1d5a2c}.links a{color:#0c6b6b;font-weight:700;word-break:break-all}
 h2{font:700 17px/1.6 "Estedad","Vazirmatn",sans-serif;margin:0}
-</style></head><body>
+input:focus-visible,.btn:focus-visible,#consent:focus-visible{outline:3px solid #0c6b6b;outline-offset:2px}.chk input{width:22px;height:22px}</style></head><body>
 <div class="top"><h1>ثبت‌نام مزون‌دار</h1><p>صفحهٔ اختصاصی مزون خودت را بساز و پنل مدیریت بگیر</p></div>
 <main>
 <form class="card" id="f" autocomplete="off"><h2>مشخصات مزون</h2>

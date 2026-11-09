@@ -98,7 +98,7 @@ main#app{max-width:1080px;margin:0 auto;padding:6px 20px 80px;min-height:70vh}
 .seg-ctl button{min-height:44px;padding-inline:16px}
 .grid{display:grid;gap:16px}
 @media(min-width:900px){.grid--2{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:start}}
-.card{background:var(--surface);border:1px solid var(--line-2);border-radius:22px;padding:22px;box-shadow:0 1px 2px rgba(35,23,15,.05)}
+.card{background:var(--surface);border:1px solid rgba(35,23,15,.1);border-radius:22px;padding:22px;box-shadow:0 1px 2px rgba(35,23,15,.05)}
 .card>h2{font-family:var(--display);font-weight:800;font-size:21px;margin-bottom:6px}
 .card>.lead{color:var(--muted);font-size:13.5px;line-height:1.9;margin-bottom:16px}
 .stack{display:grid;gap:16px}
