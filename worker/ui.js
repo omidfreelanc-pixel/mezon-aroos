@@ -33,7 +33,7 @@ const css=String.raw`
 .setup__bar{display:block;height:6px;border-radius:3px;background:var(--line-2);overflow:hidden}.setup__bar span{display:block;height:100%;background:var(--accent);border-radius:3px}
 .acts{display:grid;gap:6px;max-height:420px;overflow:auto;margin-top:6px}
 .act{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-radius:12px;background:var(--surface-2);font-size:13px;line-height:1.8}
-.act small{color:var(--muted);font-size:11.5px}.act--warn{background:#fbf1de}.act--danger{background:#f8e3e0}.act--ok{background:#e2f1ea}
+.act small{color:var(--muted);font-size:12px}.act--warn{background:#fbf1de}.act--danger{background:#f8e3e0}.act--ok{background:#e2f1ea}
 .act__ic{flex:none}
 .digest{white-space:pre-wrap;font:inherit;font-size:12.5px;line-height:1.9;background:var(--surface-2);padding:12px;border-radius:12px;margin-top:10px;max-height:360px;overflow:auto}
 h3.sub{font-size:15px;margin:16px 0 4px}
@@ -67,7 +67,7 @@ h3.sub{font-size:15px;margin:16px 0 4px}
 .hbar__fill--honey{background:var(--honey)}
 .hbar__val{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
 .colchart{display:grid;grid-template-columns:auto 1fr;gap:8px;height:190px}
-.cols__y{display:flex;flex-direction:column;justify-content:space-between;font-size:11.5px;color:var(--muted);padding-bottom:22px;text-align:left}
+.cols__y{display:flex;flex-direction:column;justify-content:space-between;font-size:12px;color:var(--muted);padding-bottom:22px;text-align:left}
 .cols__grid{display:grid;grid-template-rows:1fr auto;min-width:0}
 .cols{display:flex;align-items:flex-end;gap:2px;border-bottom:1px solid var(--line);background:linear-gradient(var(--line-2),var(--line-2)) 0 0/100% 1px no-repeat,linear-gradient(var(--line-2),var(--line-2)) 0 50%/100% 1px no-repeat;direction:ltr}
 .col{flex:1;height:100%;display:flex;align-items:flex-end;justify-content:center;outline-offset:1px}
@@ -75,7 +75,7 @@ h3.sub{font-size:15px;margin:16px 0 4px}
 .col__bar--muted{background:#9fb0a9}.col__bar--accent{background:var(--accent)}
 .col.is-today .col__bar--muted{background:var(--ink-2)}
 .col:hover .col__bar,.col:focus .col__bar{filter:brightness(1.12)}
-.cols__x{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);padding-top:6px;direction:ltr}
+.cols__x{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding-top:6px;direction:ltr}
 .dtip{position:fixed;left:0;top:0;z-index:200;background:var(--ink);color:#fff;padding:8px 12px;border-radius:10px;font-size:13px;pointer-events:none;box-shadow:var(--float)}
 .dtip__main{font-weight:700}.dtip__sub{opacity:.75;font-size:12px}
 .dtable{font-size:13px}
@@ -94,7 +94,8 @@ main#app{max-width:1080px;margin:0 auto;padding:6px 20px 80px;min-height:70vh}
 .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:10px 0 22px}
 .page-head h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,6vw,34px)}
 .page-head p{color:var(--muted);margin-top:4px;max-width:60ch;line-height:1.9}
-.back{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;margin-bottom:6px}
+.back{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600;margin-bottom:6px;min-height:44px}.appbar__brand{min-height:44px}
+.seg-ctl button{min-height:44px;padding-inline:16px}
 .grid{display:grid;gap:16px}
 @media(min-width:900px){.grid--2{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:start}}
 .card{background:var(--surface);border:1px solid var(--line-2);border-radius:22px;padding:22px;box-shadow:0 1px 2px rgba(35,23,15,.05)}
@@ -131,7 +132,7 @@ main#app{max-width:1080px;margin:0 auto;padding:6px 20px 80px;min-height:70vh}
 .uploadbox__txt small{color:var(--muted);font-size:12px}
 .two{display:grid;gap:0 14px}
 @media(min-width:620px){.two{grid-template-columns:1fr 1fr}}
-.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;margin:0 0 6px;position:sticky;top:0;z-index:5;background:var(--bg,#fafbfa);scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;border:0;border-radius:999px;padding:10px 16px;font:700 14px inherit;font-family:inherit;background:#e8edeb;color:#23170f;cursor:pointer;white-space:nowrap}.tab.is-on{background:#0c6b6b;color:#fff}.tabpanels{display:grid;gap:16px}.tabpanels>[hidden]{display:none}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;margin:0 0 6px;position:sticky;top:0;z-index:5;background:var(--glass);scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;border:0;border-radius:999px;padding:10px 16px;font:700 14px inherit;font-family:inherit;background:#e8edeb;color:#23170f;cursor:pointer;white-space:nowrap}.tab.is-on{background:#0c6b6b;color:#fff}.tabpanels{display:grid;gap:16px}.tabpanels>[hidden]{display:none}
 .login input{font-family:system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;color:#23170f;-webkit-text-fill-color:#23170f;background:#fff;caret-color:#23170f;color-scheme:light;font-size:16px}
 .field input[type=url],.field input[type=tel],#slug{direction:ltr;text-align:right}
 .ports{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
@@ -187,7 +188,7 @@ function mgrCredits(){
  function load(){return api('/api/s/'+MGR+'/owner/credits').then(function(d){
   var packs=el('div',{class:'row'});
   d.packs.forEach(function(n){packs.append(el('button',{class:'btn btn--soft btn--sm',type:'button',text:fa(n)+' تصویر',onclick:function(){sel=n;Array.prototype.forEach.call(packs.children,function(c){c.classList.remove('btn--primary')});this.classList.add('btn--primary')}}))});
-  var note=el('textarea',{placeholder:'توضیح یا شمارهٔ پیگیری پرداخت (اختیاری)',maxlength:'300',rows:'2'});
+  var note=el('textarea',{placeholder:'توضیح یا شمارهٔ پیگیری پرداخت (اختیاری)','aria-label':'توضیح پرداخت',maxlength:'300',rows:'2'});
   body.replaceChildren(el('p',{html:''}),h('b',fa(d.left)+' تصویر مانده — '+fa(d.used)+' از '+fa(d.limit)+' مصرف شده'),d.left<=0?h('p','اعتبار تمام شده؛ مشتری‌ها تا شارژ نمی‌توانند تصویر بسازند.','notice notice--warn'):'',h('p','بسته را انتخاب کنید و درخواست بدهید؛ هزینه و روش پرداخت را مدیر مزون آینه اعلام می‌کند و بعد از تأیید، اعتبار اضافه می‌شود.','muted'),packs,note,el('button',{class:'btn btn--primary',type:'button',text:'ثبت درخواست شارژ',onclick:act(function(){if(!sel)throw new Error('اول یک بسته را انتخاب کنید');return api('/api/s/'+MGR+'/owner/recharge',{amount:sel,note:note.value}).then(function(){toast('درخواست ثبت شد');sel=0;return load()})})}),d.requests.length?el('div',{},d.requests.map(function(r){return h('small',fa(r.amount)+' تصویر · '+(r.status==='approved'?'تأیید شد':r.status==='rejected'?'رد شد':'در انتظار'),'muted')})):'');
  })}
  load().catch(function(e){body.append(h('p',e.message,'empty-note'))});return box;
@@ -254,7 +255,7 @@ function dashboard(salons){
  function draw(){
   Array.prototype.forEach.call(range.children,function(b,i){b.setAttribute('aria-pressed',[7,30,90][i]===dashState.days?'true':'false')});
   body.classList.add('is-refreshing');
-  api('/api/owner/stats?days='+dashState.days+(dashState.salon?'&salon='+encodeURIComponent(dashState.salon):'')).then(function(d){body.classList.remove('is-refreshing');body.replaceChildren.apply(body,render(d));var slot=el('div',{class:'dgrid dgrid--1'},[el('div',{class:'loading',text:'در حال آوردن رفرال‌ها…'})]);body.append(slot);return api('/api/owner/referrals'+(dashState.salon?'?salon='+encodeURIComponent(dashState.salon):'')).then(function(r){slot.replaceChildren.apply(slot,referrals(r))},function(e){slot.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))})}).catch(function(e){body.classList.remove('is-refreshing');body.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))});
+  api('/api/owner/stats?days='+dashState.days+(dashState.salon?'&salon='+encodeURIComponent(dashState.salon):'')).then(function(d){body.classList.remove('is-refreshing');body.replaceChildren.apply(body,render(d));if(MGR){Array.prototype.slice.call(body.querySelectorAll('.card')).forEach(function(c){var t=(c.querySelector('h2,h3')||{}).textContent||'';if(/پاسخ مزون‌ها|کیفیت فنی|مقایسهٔ مزون‌ها|رفرال|معرف|درخت/.test(t))c.remove()});return}var slot=el('div',{class:'dgrid dgrid--1'},[el('div',{class:'loading',text:'در حال آوردن رفرال‌ها…'})]);body.append(slot);return api('/api/owner/referrals'+(dashState.salon?'?salon='+encodeURIComponent(dashState.salon):'')).then(function(r){slot.replaceChildren.apply(slot,referrals(r))},function(e){slot.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))})}).catch(function(e){body.classList.remove('is-refreshing');body.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))});
  }
  function render(d){
   var k=d.kpi,p=d.prev,out=[];
@@ -280,7 +281,6 @@ function dashboard(salons){
   ]));
   var sh=d.share||{opened:0,sent:0,visitors:0,byApp:[]},APP={telegram:'تلگرام',whatsapp:'واتساپ',sms:'پیامک',instagram:'اینستاگرام',copy:'کپی لینک',native:'سایر برنامه‌ها (بله، ایتا…)'};
   var apps=sh.byApp.map(function(a){return {label:APP[a.label]||a.label,count:a.count}});
-  out.push(card('معرفی به دوستان','بنر پایین صفحهٔ مزون: چند نفر لینک را برای دوستشان فرستادند و چند نفر از همین لینک آمدند.',el('div',{},[el('div',{class:'kpis kpis--small'},[tile('بنر را باز کردند',fa(sh.opened)),tile('فرستادند',fa(sh.sent)),tile('آمده از لینک معرفی',fa(sh.visitors),null,'بازدیدکنندهٔ تازه')]),apps.length?el('div',{style:'margin-top:16px'},[hbars(apps)]):el('p',{class:'lead',style:'margin-top:14px',text:'هنوز کسی لینک را نفرستاده.'})]),apps.length?tableOf(['برنامه','دفعه'],apps.map(function(x){return [x.label,fa(x.count)]})):null));
   if(d.salons&&d.salons.length)out.push(card('مقایسهٔ مزون‌ها','',el('div',{class:'stable'},[el('table',{},[el('thead',{},[el('tr',{},['مزون','بازدیدکننده','درخواست','نرخ تبدیل','پاسخ مزون'].map(function(t){return el('th',{text:t})}))]),el('tbody',{},d.salons.map(function(s){return el('tr',{},[el('td',{},[el('a',{href:'/admin/'+s.slug,text:s.name})]),el('td',{text:fa(s.visitors)}),el('td',{text:fa(s.sent)}),el('td',{text:pct(s.conversion)}),el('td',{text:pct(s.handledRate)})])}))])])));
   return out;
  }
@@ -434,8 +434,16 @@ function pendingCard(){
  load().catch(function(e){box.hidden=false;body.append(h('p',e.message,'empty-note'))});
  return box;
 }
+function tabsView(defs,key){
+ var bar=el('div',{class:'tabs',role:'tablist'}),box=el('div',{class:'tabpanels'}),btns=[],panes=[];
+ function pick(i){btns.forEach(function(b,k){b.classList.toggle('is-on',k===i);b.setAttribute('aria-selected',k===i?'true':'false')});panes.forEach(function(x,k){x.hidden=k!==i});try{sessionStorage.setItem('tab:'+key,String(i))}catch(e){}}
+ defs.forEach(function(t,i){var b=el('button',{class:'tab',type:'button',role:'tab',text:t[0],onclick:function(){pick(i)}});btns.push(b);bar.append(b);var pn=el('div',{class:'stack',role:'tabpanel'},t[1]);pn.hidden=true;panes.push(pn);box.append(pn)});
+ var start=0;try{start=Math.min(defs.length-1,Number(sessionStorage.getItem('tab:'+key))||0)}catch(e){}
+ pick(start);return el('div',{},[bar,box]);
+}
+
 function home(){return api('/api/owner').then(function(d){
- var head=el('div',{class:'page-head'},[el('div',{},[h('h1','داشبورد'),h('p','مشتری‌ها چطور از صفحه‌ها استفاده می‌کنند و مزون‌ها چقدر جواب می‌دهند. پایین صفحه، فهرست مزون‌ها و تنظیمات ربات است.')])]);
+ var head=el('div',{class:'page-head'},[el('div',{},[h('h1','داشبورد'),h('p','مشتری‌ها چطور از صفحه‌ها استفاده می‌کنند و مزون‌ها چقدر جواب می‌دهند. با تب‌های زیر بین مزون‌ها، آمار و تنظیمات جابه‌جا شوید.')])]);
  var list=el('div',{class:'salons'});
  d.salons.forEach(function(s){list.append(el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong',s.name),h('small','/s/'+s.slug)]),badge(s.telegram&&s.bale?'تلگرام و بله وصل':s.telegram?'تلگرام وصل':s.bale?'بله وصل':'ربات وصل نیست',s.telegram||s.bale?'ok':'warn'),h('small',fa(s.portfolio)+' نمونه‌کار، '+fa(s.leads)+' درخواست'+(s.team?'، تیم '+fa(s.team_linked)+'/'+fa(s.team)+' وصل':'')),setupLine(s),(s.waiting||s.overdue)?el('div',{class:'row',style:'gap:6px'},[s.waiting?badge(fa(s.waiting)+' درخواست منتظر وصل شدن','warn'):null,s.overdue?badge(fa(s.overdue)+' بی‌جواب بیش از ۲۴ ساعت','danger'):null]):null,el('a',{class:'btn btn--ghost btn--sm',href:'/s/'+s.slug,target:'_blank',rel:'noopener',text:'صفحهٔ مشتری'}),el('a',{class:'btn btn--primary btn--sm',href:'/admin/'+s.slug,text:'تنظیمات'})]))});
  if(!d.salons.length)list.append(h('p','هنوز مزونی نساخته‌اید.','empty-note'));
@@ -445,7 +453,7 @@ function home(){return api('/api/owner').then(function(d){
   var prev=el('span',{class:'hint slug-preview'});si.closest('.field').append(prev);
   function show(){var v=si.value;prev.textContent=v?'صفحهٔ مشتری: '+location.host+'/s/'+v:''}
   si.addEventListener('input',function(){var c=si.value.toLowerCase().replace(/[\s_]+/g,'-').replace(/[^a-z0-9-]/g,'').replace(/-+/g,'-');if(c!==si.value)si.value=c;show()});show()})();
- $('#app').replaceChildren(head,pendingCard(),dashboard(d.salons),el('h2',{class:'section-title',text:'مزون‌ها'}),el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[list,create]),el('div',{class:'stack'},[accountsCard(),alertsCard(d),botCard(d.bot),smsCard(d.sms||{}),imageCard(d.image)])]));
+ $('#app').replaceChildren(head,pendingCard(),tabsView([['مزون‌ها',[el('div',{class:'grid grid--2'},[el('div',{class:'stack'},[list,create]),el('div',{class:'stack'},[accountsCard()])])]],['آمار',[dashboard(d.salons)]],['هشدار و ربات',[alertsCard(d),botCard(d.bot)]],['سرویس‌ها',[smsCard(d.sms||{}),imageCard(d.image)]]],'admin')) ;
 })}
 function smsCard(sms){
  var st=function(ok,on,off){return el('li',{class:ok?'on':'off'},[h('span',ok?'✓':'–','dot'),h('span',ok?on:off)])};
@@ -556,13 +564,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  else smsC.append(h('p','ارسال پیامک هنوز فعال نشده است. تا آن موقع می‌توانید لینک صفحه را از ربات یا پیام‌رسان‌ها برای مشتری بفرستید.','notice notice--warn'));
  var pageUrl=location.origin+(MGR&&location.hostname.split('.').length>2?'/':'/s/'+slug);
  var share=el('section',{class:'card'},[h('h2','لینک صفحهٔ مزون'),h('p','این لینک را به مشتری‌ها بدهید یا در اینستاگرام بگذارید.','lead'),copyRow('صفحهٔ مشتری‌ها',pageUrl)]);
- function tabs(defs){
-  var bar=el('div',{class:'tabs',role:'tablist'}),box=el('div',{class:'tabpanels'}),btns=[],panes=[];
-  function pick(i){btns.forEach(function(b,k){b.classList.toggle('is-on',k===i);b.setAttribute('aria-selected',k===i?'true':'false')});panes.forEach(function(x,k){x.hidden=k!==i});try{sessionStorage.setItem('tab:'+slug,String(i))}catch(e){}}
-  defs.forEach(function(t,i){var b=el('button',{class:'tab',type:'button',role:'tab',text:t[0],onclick:function(){pick(i)}});btns.push(b);bar.append(b);var pn=el('div',{class:'stack',role:'tabpanel'},t[1]);pn.hidden=true;panes.push(pn);box.append(pn)});
-  var start=0;try{start=Math.min(defs.length-1,Number(sessionStorage.getItem('tab:'+slug))||0)}catch(e){}
-  pick(start);return el('div',{},[bar,box]);
- }
+ function tabs(defs){return tabsView(defs,slug)}
  var defs=MGR?[['نمای کلی',[mgrCredits(),dashboard([{slug:MGR,name:S.name}]),share]],['درخواست‌ها',[leads]],['نمونه‌کارها',[port,social]],['مشخصات مزون',[prof]],['تیم',[teamC]],['ارتباط با مشتری',[tg,smsC]]]
   :[['نمای کلی',[share]],['درخواست‌ها',[leads]],['نمونه‌کارها',[port,social]],['مشخصات مزون',[prof]],['تیم',[teamC]],['ارتباط با مشتری',[tg,smsC]],['تنظیمات',[set]]];
  if(MGR)dashState.salon=MGR;

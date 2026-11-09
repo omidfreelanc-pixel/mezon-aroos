@@ -269,7 +269,7 @@ body.is-touring{overflow:hidden}
 .compare--demo{cursor:default;pointer-events:none}
 .demo{flex:none}
 .demo--small{width:118px;padding:4px}
-.demo .compare__tag{font-size:10.5px;padding:1px 8px;bottom:8px}
+.demo .compare__tag{font-size:12px;padding:1px 8px;bottom:8px}
 .demo .compare__tag--before{right:8px}.demo .compare__tag--after{left:8px}
 .demo-row{display:flex;gap:14px;align-items:center;margin:0 0 18px;padding:10px 14px 10px 10px;border-radius:20px;background:var(--glass)}
 .demo-row__text{display:grid;gap:3px;font-size:13px;line-height:1.85;color:var(--ink-2)}
@@ -456,9 +456,9 @@ body.is-touring{overflow:hidden}
 .steps{background:rgba(232,237,235,.94);border-bottom:0;box-shadow:0 8px 18px -16px rgba(35,23,15,.5)}
 .steps__bottom{background:var(--surface);border-top:1px solid var(--line-2);border-bottom:1px solid var(--line-2)}
 .steps__list{display:flex;align-items:center;gap:8px;padding:6px 18px;grid-template-columns:none;max-width:560px;margin-inline:auto}
-.steps__item{flex:none;min-height:34px;padding:0 2px;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted);border-radius:10px}
+.steps__item{flex:none;min-height:44px;padding:0 2px;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted);border-radius:10px}
 .steps__item::after{display:none}
-.steps__num{width:22px;height:22px;font-size:11.5px;border-width:1.5px}
+.steps__num{width:24px;height:24px;font-size:12px;border-width:1.5px}
 .steps__line{flex:1;height:2px;min-width:14px;border-radius:2px;background:var(--line)}
 .steps__line.is-done{background:var(--accent)}
 .steps__label{overflow:visible;white-space:nowrap}
@@ -626,7 +626,7 @@ function showFatal(msg){
 }
 
 /* ---------- header ---------- */
-function heroTag(){return 'لباس عروس را روی اندام خودت ببین؛ سایز و فرم بدنت همان می‌ماند. بعد برای مزون بفرست.'}
+function heroTag(){return 'لباس عروس را روی اندام خودت ببین؛ سایز و فرم بدنت همان می‌ماند.'}
 function renderHead(){
  var s=state.pub.salon,p=s.profile||{},head=$('#head');
  var bar=el('div',{class:'hero__bar'},[el('span',{class:'brand',html:MARK+'<span>مزون آینه</span>'}),el('div',{class:'hero__tools'},[el('button',{class:'help-btn',type:'button','aria-label':'راهنمای استفاده',onclick:startTour,text:'؟'}),el('button',{class:'about-btn',type:'button',onclick:openAbout,html:ICO.info+'<span>دربارهٔ مزون</span>'})])]);
@@ -749,7 +749,7 @@ function stepPhoto(){
   box.append(el('div',{class:'photo'},[el('div',{class:'mirror'},[el('div',{class:'mirror__glass'},[el('img',{src:state.preview,alt:'عکس انتخابی شما'}),el('div',{class:'upl',role:'status'},[el('span',{class:'upl__scan'}),el('span',{text:'در حال بارگذاری…'}),el('span',{class:'upl__bar'},[el('i')])])])])]));
  }else if(!state.original){
   box.append(flowHead(LP().head,LP().sub));
-  var input=el('input',{type:'file',accept:'image/jpeg,image/png,image/webp',id:'pick',class:'sr-only'});
+  var input=el('input',{type:'file',accept:'image/jpeg,image/png,image/webp',id:'pick',class:'sr-only','aria-label':'انتخاب عکس'});
   var drop=el('label',DESK?{class:'upload'}:{class:'upload',for:'pick'},[
    el('span',{class:'upload__icon',html:ICO.camera}),
    el('strong',{text:LP().drop}),
@@ -1508,7 +1508,7 @@ function tourSteps(){
   {el:'#flow .btn--build',enter:function(){tourView(2,'catalog',3)},title:'انتخاب کردی؟ «بساز»',text:'با یک دکمه پرو شروع می‌شود و نتیجه را کنار عکس خودت می‌بینی. بعد با یک دکمه برای مزون می‌فرستی.'},
   {el:'#steps .steps__list',title:'همیشه می‌دانی کجایی',text:'عکس تو، انتخاب، نتیجه. روی هر قدم بزنی برمی‌گردی.'},
   {el:'.about-btn',title:'همه‌چیز دربارهٔ مزون',text:'آدرس، شماره، ساعت کاری و صفحه‌های مزون اینجاست.'},
-  {el:mobile?'#dock .dock__inner':'.hero__cta .btn',title:'شروع کنیم؟',text:'اول عکس تمام‌قدت را بگذار. بعد از دیدن نتیجه، با یک دکمه برای مزون فرستاده می‌شود و خود مزون با تو تماس می‌گیرد.',last:true}
+  {el:mobile?'#dock .dock__inner':'.hero__cta .btn',title:'شروع کنیم؟',text:'اول عکس تمام‌قدت را بگذار. بعد از دیدن نتیجه، با «ارسال برای خودم» آن را روی گوشی‌ات بگیر.',last:true}
  ].filter(Boolean);
 }
 function maybeTour(){try{if(localStorage.getItem(TOUR_KEY))return}catch(e){return}if(state.busy)return;setTimeout(startTour,700)}
@@ -1536,7 +1536,7 @@ function startTour(){
    el('ol',{class:'tour__path'},[
     el('li',{},[el('span',{html:ICO.camera}),el('b',{text:'عکس تو'})]),
     el('li',{},[el('span',{html:ICO.spark}),el('b',{text:'انتخاب لباس'})]),
-    el('li',{},[el('span',{html:ICO.spark}),el('b',{text:'بساز و بفرست'})])
+    el('li',{},[el('span',{html:ICO.spark}),el('b',{text:'بساز و ببین'})])
    ]),
    el('div',{class:'tour__actions'},[
     el('button',{class:'btn btn--primary btn--block',type:'button',text:'نشانم بده',onclick:function(){root.classList.remove('tour--welcome');steps=tourSteps();go(0)}}),
