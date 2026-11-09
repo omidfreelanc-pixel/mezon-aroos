@@ -28,7 +28,7 @@ h2.display{font-size:clamp(24px,6.4vw,34px);margin-bottom:10px}
 .hero__cta .btn--primary{flex:1 1 220px}
 .hero__note{margin-top:12px;font-size:13px;color:var(--muted)}
 .cmp-wrap{width:min(100%,380px);margin-inline:auto}
-.cmp{position:relative;aspect-ratio:2/3;overflow:hidden;border-radius:999px 999px calc(var(--r) - 5px) calc(var(--r) - 5px);background:var(--glass-2);direction:ltr;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:ew-resize;--x:50%}
+.cmp{position:relative;aspect-ratio:2/3;overflow:hidden;background:var(--glass-2);direction:ltr;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:ew-resize;--x:50%}
 .cmp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
 .cmp__after{position:absolute;inset:0;clip-path:inset(0 calc(100% - var(--x)) 0 0)}
 .cmp__line{position:absolute;top:0;bottom:0;left:var(--x);width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 12px rgba(0,0,0,.3);pointer-events:none}

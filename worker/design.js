@@ -19,6 +19,12 @@ export const baseCSS=fontFaces+String.raw`
  --ok:#2b6a40;--ok-soft:#dcefe1;--warn:#82560f;--warn-soft:#f6e8cc;--danger:#9b2c3a;--danger-soft:#f7e1e3;
  --r-lg:26px;--r:18px;--r-sm:12px;--pill:999px;
  --arch:999px 999px var(--r) var(--r);
+ --mz-gold:linear-gradient(135deg,#C9A96A,#E8D9B0 45%,#C9A96A);--mz-ivory:#F7F3EC;--mz-emerald:#0F4C4A;
+ --mz-shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 96Q0 100 4 100H96Q100 100 100 96V42C100 28 85 23 72 15C62 9 55 4.5 51.5 1Q50 0 48.5 1C45 4.5 38 9 28 15C15 23 0 28 0 42Z'/%3E%3C/svg%3E");
+ --mz-bevel:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23C9A96A'/%3E%3Cstop offset='.4' stop-color='%23E8D9B0'/%3E%3Cstop offset='.5' stop-color='%23F6EDD0'/%3E%3Cstop offset='.6' stop-color='%23E8D9B0'/%3E%3Cstop offset='1' stop-color='%23C9A96A'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 96Q0 100 4 100H96Q100 100 100 96V42C100 28 85 23 72 15C62 9 55 4.5 51.5 1Q50 0 48.5 1C45 4.5 38 9 28 15C15 23 0 28 0 42Z' fill='%23F7F3EC' stroke='url(%23g)' stroke-width='4' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+ --mz-hair:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23C9A96A'/%3E%3Cstop offset='.4' stop-color='%23E8D9B0'/%3E%3Cstop offset='.5' stop-color='%23F6EDD0'/%3E%3Cstop offset='.6' stop-color='%23E8D9B0'/%3E%3Cstop offset='1' stop-color='%23C9A96A'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 96Q0 100 4 100H96Q100 100 100 96V42C100 28 85 23 72 15C62 9 55 4.5 51.5 1Q50 0 48.5 1C45 4.5 38 9 28 15C15 23 0 28 0 42Z' fill='none' stroke='url(%23g)' stroke-opacity='.85' stroke-width='2' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+ --mz-hair-on:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 96Q0 100 4 100H96Q100 100 100 96V42C100 28 85 23 72 15C62 9 55 4.5 51.5 1Q50 0 48.5 1C45 4.5 38 9 28 15C15 23 0 28 0 42Z' fill='none' stroke='%230F4C4A' stroke-width='3' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+
  --lift:0 1px 0 rgba(255,255,255,.7) inset,0 18px 40px -26px rgba(35,23,15,.45);
  --float:0 30px 70px -30px rgba(35,23,15,.55);
  --ease:cubic-bezier(.2,.7,.2,1);--tap:48px;
@@ -46,11 +52,18 @@ img{display:block;max-width:100%}
 .muted{color:var(--muted)}
 .tiny{font-size:12.5px;line-height:1.85}
 
-/* --- the mirror: arched frame used for every photo --- */
-.mirror{position:relative;padding:7px;background:var(--surface);border-radius:var(--arch);box-shadow:var(--lift);isolation:isolate}
-.mirror__glass{position:relative;overflow:hidden;border-radius:999px 999px calc(var(--r) - 5px) calc(var(--r) - 5px);background:linear-gradient(170deg,#f4f7f6,#d6dfdb)}
+/* --- the mirror: antique-mirror frame (ogee crown, double champagne-gold bevel) used for every photo --- */
+.mirror{--mz-pad:9px;position:relative;padding:var(--mz-pad);isolation:isolate;filter:drop-shadow(0 16px 16px rgba(35,23,15,.13)) drop-shadow(0 1px 1px rgba(35,23,15,.08))}
+.mirror::before,.mirror::after{content:"";position:absolute;pointer-events:none;background-size:100% 100%;background-repeat:no-repeat;-webkit-mask:var(--mz-shape) 0 0/100% 100% no-repeat;mask:var(--mz-shape) 0 0/100% 100% no-repeat}
+.mirror::before{inset:0;z-index:-1;background-image:var(--mz-bevel)}
+.mirror::after{inset:calc(var(--mz-pad) - 4px);z-index:2;background-image:var(--mz-hair)}
+.mirror>*{-webkit-mask:var(--mz-shape) 0 0/100% 100% no-repeat;mask:var(--mz-shape) 0 0/100% 100% no-repeat}
+.mirror__glass{position:relative;overflow:hidden;background:linear-gradient(172deg,#FBF8F2,#EEE8DB)}
 .mirror__glass>img{width:100%;height:100%;object-fit:cover}
-.mirror__glass::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(118deg,transparent 38%,rgba(255,255,255,.26) 46%,transparent 54%),linear-gradient(180deg,rgba(255,255,255,.18),transparent 30%);mix-blend-mode:screen}
+.mirror__glass::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(118deg,transparent 40%,rgba(255,255,255,.16) 48%,transparent 56%)}
+.mz-shape{-webkit-mask:var(--mz-shape) 0 0/100% 100% no-repeat;mask:var(--mz-shape) 0 0/100% 100% no-repeat;border-radius:0}
+.mz-mini{display:block;padding:2px;border:0;background:var(--mz-gold);-webkit-mask:var(--mz-shape) 0 0/100% 100% no-repeat;mask:var(--mz-shape) 0 0/100% 100% no-repeat;overflow:hidden}
+.mz-mini>*{display:block;width:100%;height:100%;object-fit:cover;-webkit-mask:var(--mz-shape) 0 0/100% 100% no-repeat;mask:var(--mz-shape) 0 0/100% 100% no-repeat;background-color:#EEE8DB}
 
 /* --- buttons --- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--tap);padding:0 20px;border:1px solid transparent;border-radius:14px;background:var(--surface);color:var(--ink);font-weight:600;font-size:14.5px;white-space:nowrap;text-decoration:none;transition:transform .14s var(--ease),background-color .14s var(--ease),border-color .14s var(--ease),box-shadow .14s var(--ease)}
@@ -128,8 +141,8 @@ img{display:block;max-width:100%}
 .empty b{font-family:var(--display);font-weight:800;font-size:16.5px;color:var(--ink)}
 .empty p{font-size:13.5px;line-height:1.9;max-width:34ch}
 .draw-check{width:84px;height:84px;display:block;margin:0 auto}
-.draw-check circle{fill:var(--ok-soft);transform-origin:center;animation:pop .45s var(--ease) both}
-.draw-check path{fill:none;stroke:var(--ok);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:50;stroke-dashoffset:50;animation:draw .5s .25s var(--ease) forwards}
+.draw-check circle{fill:none;stroke:#C9A96A;stroke-width:1.5;transform-origin:center;animation:pop .45s var(--ease) both}
+.draw-check path{fill:none;stroke:#C9A96A;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:50;stroke-dashoffset:50;animation:draw .5s .25s var(--ease) forwards}
 @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
 @keyframes draw{to{stroke-dashoffset:0}}
 .loader-illo{width:150px;height:auto;display:block;margin:0 auto}
