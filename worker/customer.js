@@ -1158,7 +1158,7 @@ function stepResult(){
   box.append(compareBlock());
   box.append(el('div',{class:'result-actions'},[
    el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openViews,html:ICO.views+'<span>زوایای دیگر</span>'}),
-   el('button',{class:'btn btn--primary btn--sm',type:'button',onclick:openQR,html:ICO.phone+'<span>ارسال برای خودم</span>'}),
+   el('button',{class:'btn btn--primary btn--sm',type:'button',onclick:function(){openQR()},html:ICO.phone+'<span>ارسال برای خودم</span>'}),
    el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){state.result=null;state.gen=null;state.idem=null;state.error='';state.busy=false;go(2)},text:'یک لباس دیگر'})
   ]));
   box.append(ratingBlock());
@@ -1213,7 +1213,7 @@ function renderDock(){
   primary=el('button',{class:'btn btn--primary',type:'button',disabled:!ready,onclick:build,html:can?ICO.spark+'<span>بساز</span>':out?ICO.send+'<span>فرستادن</span>':!ready?'<span>اول لباس را انتخاب کن</span>':ICO.arrow+'<span>ادامه</span>'});
  }else{
   if(state.busy){hint='در حال ساخت…';primary=el('button',{class:'btn btn--primary',type:'button',disabled:true,text:'در حال ساخت…'})}
-  else if(state.result){hint='عکس را روی گوشی‌ات بگیر';primary=el('button',{class:'btn btn--primary',type:'button',onclick:openQR,html:ICO.phone+'<span>ارسال برای خودم</span>'})}
+  else if(state.result){hint='عکس را روی گوشی‌ات بگیر';primary=el('button',{class:'btn btn--primary',type:'button',onclick:function(){openQR()},html:ICO.phone+'<span>ارسال برای خودم</span>'})}
   else if(state.result||!canGenerate()||state.noImage){hint='فرستادن در تلگرام برای مزون';primary=el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
   else{hint='آمادهٔ ساخت';primary=el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>بساز</span>'})}
  }
@@ -1984,6 +1984,8 @@ function qrSvg(text){
  return svg.replace('</svg>','<circle cx="'+W/2+'" cy="'+W/2+'" r="'+(d/2+6)+'" fill="#fff"/><image href="'+u+'" xlink:href="'+u+'" x="'+x+'" y="'+x+'" width="'+d+'" height="'+d+'" preserveAspectRatio="xMidYMid slice" clip-path="inset(0 round '+d/2+'px)"/></svg>');
 }
 function openQR(job,what){
+ if(typeof job!=='string')job='';
+ if(typeof what!=='string')what='';
  if(!state.gen&&!job){toast('اول نتیجه را بساز');return}
  var panel=el('div',{class:'sheet__panel'});
  panel.append(el('div',{class:'sheet__head'},[h('h2',(what||'عکس')+' را روی گوشی‌ات بگیر'),el('button',{class:'sheet__x',type:'button','aria-label':'بستن',text:'×',onclick:closeSheet})]));
@@ -1991,7 +1993,7 @@ function openQR(job,what){
  panel.append(box);openSheet(panel);
  ensureSession().then(function(){return api('result-link',{v:VISITOR,gen:job||state.gen})}).then(function(d){
   box.replaceChildren(el('div',{class:'qr__code',dir:'ltr',html:qrSvg(d.url)}),h('p','دوربین گوشی را روی این کد بگیر. لینک شخصی توست و ۲۴ ساعت بعد بسته می‌شود.','qr__note'));
- }).catch(function(e){box.replaceChildren(notice('danger',e.message||'ساخت لینک ممکن نشد'))});
+ }).catch(function(e){box.replaceChildren(notice('danger',(e&&e.message&&e.message!=='درخواست معتبر نیست')?e.message:'ساخت لینک ممکن نشد؛ یک بار دیگر امتحان کن'))});
 }
 function kioskReset(){
  var done=function(){try{localStorage.clear()}catch(e){}try{sessionStorage.clear()}catch(e){}location.replace(location.pathname+'?kiosk=1'+(state.tag?'&r='+encodeURIComponent(state.tag):''))};

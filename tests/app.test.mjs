@@ -1396,3 +1396,9 @@ test('other angles: one click makes side, back and left as three separate images
   const v2=await call(e,'/api/s/'+s.slug+'/spin',{v,parent:base,idem:crypto.randomUUID()},g);assert.equal(v2.status,403,'video is off by default');
  }finally{globalThis.fetch=previous}
 });
+
+test('QR handoff button never passes the click event as the generation id',()=>{
+ const js=customerHTML;const src=typeof js==='function'?String(js):String(js);
+ assert.doesNotMatch(src,/onclick:openQR[,}]/);
+ assert.match(src,/typeof job!=='string'/);
+});
