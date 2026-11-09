@@ -637,7 +637,7 @@ test('mezon: one dress line, 15 ready-made dresses, prompts lock body size and i
 });
 
 test('mezon: the other-angle prompts lock face and dress and are about the dress, not hair',()=>{
- for(const k of ['side','back','left']){const p=ANGLE_PROMPTS[k];assert.match(p,/SAME bride/);assert.match(p,/Image 1 = the finished try-on photo/);assert.match(p,/THE DRESS MUST NOT CHANGE/);assert.match(p,/satin stays satin/);assert.match(p,/never invent lace/);assert.match(p,/same body size and proportions/);assert(!/haircut|hair consultation/i.test(p))}
+ for(const k of ['side','back','left']){const p=ANGLE_PROMPTS[k];assert.match(p,/SAME bride/);assert.match(p,/Image 1 is a finished try-on photo/);assert.match(p,/THE DRESS NEVER CHANGES/);assert.match(p,/guipure and appliqué cover the same areas/);assert.match(p,/satin stays satin/);assert.match(p,/Do NOT redesign/);assert.match(p,/no new decorations/);assert.match(p,/same body size and proportions/);assert(!/haircut|hair consultation/i.test(p))}
  assert.match(ANGLE_PROMPTS.side,/RIGHT side profile/);assert.match(ANGLE_PROMPTS.back,/BEHIND/);assert.match(ANGLE_PROMPTS.left,/LEFT side profile/);
  assert.match(customerHTML,/زوایای دیگر/);assert(!/مدل مو|رنگ مو|ناخن|مژه/.test(customerHTML+appHTML),'no salon wording on the pages');
 });
