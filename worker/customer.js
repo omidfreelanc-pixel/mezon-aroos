@@ -507,6 +507,15 @@ img[loading="lazy"].is-in{opacity:1}
 @keyframes veil{0%{top:-40%}100%{top:100%}}
 .build__noimg{position:absolute;inset:0;display:grid;place-items:center}
 @media (prefers-reduced-motion:reduce){.build__scan{animation:none;top:0;height:100%;opacity:.35}}
+.build__pct{display:flex;align-items:baseline;gap:2px;font-family:var(--display);font-weight:800;color:var(--ink)}.build__pct b{font-size:38px;line-height:1}.build__pct span{font-size:18px;color:var(--muted)}
+.build__lines{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:190px;overflow:hidden;align-content:end}
+.build__lines li{font-size:14px;line-height:1.8;color:var(--muted);animation:lineIn .5s var(--ease) both}.build__lines li.is-on{color:var(--ink);font-weight:700}
+@keyframes lineIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.curtain__rod{position:absolute;z-index:3;top:0;inset-inline:0;height:8px;background:linear-gradient(#e9d9b0,#b8975a);box-shadow:0 2px 4px rgba(0,0,0,.25)}
+.curtain{position:absolute;z-index:2;top:6px;bottom:0;width:34%;background:repeating-linear-gradient(90deg,#f4eee4 0 9px,#e1d6c3 9px 16px,#f8f4ec 16px 24px);box-shadow:0 0 14px rgba(0,0,0,.25);animation:sway 3.6s ease-in-out infinite;transform-origin:top center}
+.curtain--l{left:0;border-radius:0 0 40% 0;transform-origin:top left}.curtain--r{right:0;border-radius:0 0 0 40%;transform-origin:top right;animation-delay:-1.6s}
+@keyframes sway{0%,100%{transform:skewX(0) scaleX(1)}30%{transform:skewX(-3deg) scaleX(1.06)}65%{transform:skewX(2.5deg) scaleX(.95)}}
+@media (prefers-reduced-motion:reduce){.curtain{animation:none}.build__lines li{animation:none}}
 .build__side{display:grid;gap:12px}
 .build__title{font-family:var(--display);font-weight:800;font-size:19px}
 .build__steps{list-style:none;display:grid;gap:8px;margin:0;padding:0}
@@ -1063,19 +1072,24 @@ function dressKey(){
 function wantButton(cls){return el('button',{class:cls||'btn btn--primary',type:'button','data-want':'1',onclick:function(){openWant()},html:ICO.heart+'<span>این لباس را می‌خواهم</span>'})}
 function sendButton(){return el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
 // Building: a playful scene in the mirror, the stage it is at and a live percentage.
-var BUILD={title:'در حال پرو کردن لباس…',steps:['آماده‌سازی عکس','پیدا کردن اندام و قد','اندازه کردن لباس','نشاندن لباس روی بدنت','چین و دنباله']};
+var FUNNY=[[0,'رفتیم تو اتاق پرو؛ پرده را کشیدند…'],[8,'خیاط سنجاق به دهان آمد و دور تو می‌چرخد'],[20,'لباس را از چوب‌لباسی درآوردیم؛ سنگین‌تر از انتظار، قشنگ‌تر از انتظار'],[32,'زیپ پشتی دارد بالا می‌رود؛ نفس عمیق!'],[44,'دامن را سه بار چرخاندیم؛ دنباله هنوز دارد از در می‌آید'],[56,'آن‌ور پرده مامان‌ها دارند دستمال کاغذی خرج می‌کنند'],[68,'آینه گفت «واااای!» و بعد ساکت شد'],[80,'آخرین چین دنباله را صاف می‌کنیم؛ لطفاً تکان نخور'],[91,'پرده دارد کنار می‌رود… چشم‌هایت را ببند!']];
+var BUILD={title:'رفتی اتاق پرو…',steps:['آماده‌سازی عکس','پیدا کردن اندام و قد','اندازه کردن لباس','نشاندن لباس روی بدنت','چین و دنباله']};
 // Real builds take about 50–80 seconds: the curve reaches ~80% at a minute and keeps moving after.
 function buildPct(){var t=Date.now()-(state.genT0||Date.now());return state.result?100:Math.min(97,Math.round(3+94*(1-Math.exp(-t/38000))))}
 function buildNote(){var t=Date.now()-(state.genT0||Date.now());return t>85000?'کمی بیشتر از همیشه طول کشید؛ هنوز در حال ساخت است. صفحه را نبند.':t>45000?'دارد تمام می‌شود… معمولاً حدود یک دقیقه طول می‌کشد.':'این صفحه را نبند؛ معمولاً حدود یک دقیقه طول می‌کشد.'}
+function funnyList(pct){return FUNNY.filter(function(x){return pct>=x[0]})}
 function buildStage(){
- var B=BUILD,pct=buildPct(),src=state.original?media(state.original):'';
+ var pct=buildPct(),src=state.original?media(state.original):'';
  var stage=el('div',{class:'stage mirror build'},[el('div',{class:'mirror__glass'},[
   src?el('img',{class:'build__photo',src:src,alt:''}):el('span',{class:'build__noimg',html:ILLO.loader}),
-  el('span',{class:'build__scan','aria-hidden':'true'})
+  el('span',{class:'build__scan','aria-hidden':'true'}),
+  el('span',{class:'curtain__rod','aria-hidden':'true'}),
+  el('span',{class:'curtain curtain--l','aria-hidden':'true'}),
+  el('span',{class:'curtain curtain--r','aria-hidden':'true'})
  ])]);
- var at=Math.min(B.steps.length-1,Math.floor(pct/100*B.steps.length));
- var list=el('ol',{class:'build__steps'},B.steps.map(function(t,i){return el('li',{class:i<at?'is-done':i===at?'is-on':''},[el('span',{html:i<at?ICO.check:''}),el('b',{text:t})])}));
- return el('div',{class:'build-wrap',role:'status','aria-live':'polite'},[stage,el('div',{class:'build__side'},[h('p',B.title,'build__title'),el('div',{class:'progress'},[el('div',{class:'progress__bar'},[el('div',{class:'progress__fill',style:'width:'+pct+'%'})])]),list,h('p',buildNote(),'tiny muted build__note')])]);
+ var list=el('ol',{class:'build__lines'},[]);
+ funnyList(pct).forEach(function(x,i,arr){list.append(el('li',{class:i===arr.length-1?'is-on':'is-done',text:x[1]}))});
+ return el('div',{class:'build-wrap',role:'status','aria-live':'polite'},[stage,el('div',{class:'build__side'},[h('p',BUILD.title,'build__title'),el('div',{class:'build__pct'},[el('b',{class:'build__num',text:fa(pct)}),el('span',{text:'٪'})]),el('div',{class:'progress'},[el('div',{class:'progress__bar'},[el('div',{class:'progress__fill',style:'width:'+pct+'%'})])]),list,h('p',buildNote(),'tiny muted build__note')])]);
 }
 // One name per saved photo: boutique, date and time, and the result's own id.
 function saveName(id){
@@ -1342,11 +1356,11 @@ function friendly(msg){
 function pickNow(){if(DESK){kioskCamera();return}var pick=$('#pick');if(pick)pick.click();else toast('اول عکس خودت را اضافه کن')}
 function updateProgress(){
  var f=$('#flow');if(!f)return;
- var pct=buildPct(),B=BUILD;
+ var pct=buildPct();
  var bar=f.querySelector('.progress__fill');if(bar)bar.style.width=pct+'%';
  var num=f.querySelector('.build__num');if(num)num.textContent=fa(pct);var note=f.querySelector('.build__note');if(note){var nt=buildNote();if(note.textContent!==nt)note.textContent=nt}
- var at=Math.min(B.steps.length-1,Math.floor(pct/100*B.steps.length));
- Array.prototype.forEach.call(f.querySelectorAll('.build__steps li'),function(li,i){var c=i<at?'is-done':i===at?'is-on':'';if(li.className!==c){li.className=c;li.firstChild.innerHTML=i<at?ICO.check:''}});
+ var ol=f.querySelector('.build__lines');if(ol){var L=funnyList(pct);
+  while(ol.children.length<L.length){var last=ol.lastElementChild;if(last)last.className='is-done';ol.append(el('li',{class:'is-on',text:L[ol.children.length][1]}))}}
 }
 function poll(id,resumed){
  var attempts=0;
