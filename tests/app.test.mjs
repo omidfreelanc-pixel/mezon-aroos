@@ -670,7 +670,7 @@ test('step 2: landing page has the sections, meta tags, caching and no external 
  assert.equal(r.status,200);assert.equal(r.headers.get('cache-control'),'public,max-age=300');
  assert.match(html,/<html lang="fa" dir="rtl">/);assert.match(html,/<title>[^<]+<\/title>/);assert.match(html,/name="description"/);assert.match(html,/property="og:title"/);
  for(const needle of ['href="/s/demo"','demo-before.webp','demo-after.webp','https://t.me/mezon_aynehbot','<details>','<footer','id="owners"','type="range"'])assert(html.includes(needle),needle);
- assert(!/(src|href)="https?:\/\/(?!t\.me)/.test(html),'no external resources');
+ assert(!/(src|href)="https?:\/\/(?!t\.me)/.test(html.replace(/<link rel="(canonical|alternate)"[^>]*>/g,'')),'no external resources');
  new Function(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
 });
 test('step 2: customer page paints the boutique name in the skeleton and offers save and compare',async()=>{

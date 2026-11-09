@@ -10,7 +10,7 @@ import {sharePage} from './share.js';
 import {postPage} from './social.js';
 import {resultPage,resultImage} from './resultlinks.js';
 import {pairPage,pairUpload} from './pairing.js';
-import {landingHTML as homeHTML} from './landing.js';
+import {landingFor} from './landing.js';
 import {panelPage} from './credits.js';
 import {subOf} from './manager.js';
 import {registerHTML} from './register.js';
@@ -63,7 +63,9 @@ export default {
    return new Response(appHTML.replace('<head>',()=>tag('MGR')),{headers:htmlHeaders});
   }}
   if(u.pathname==='/register'||u.pathname==='/register/')return new Response(registerHTML,{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}});
-  if(u.pathname==='/'){ctx?.waitUntil(ensureWebhook(env,u.origin));return new Response(homeHTML,{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}})}
+  if(u.pathname==='/robots.txt'){const o=env.APP_ORIGIN||u.origin;return new Response('User-agent: *\nAllow: /\nAllow: /s/\nDisallow: /api/\nDisallow: /admin\nDisallow: /manager\nDisallow: /register\nDisallow: /r/\n\nSitemap: '+o+'/sitemap.xml\n',{headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'public,max-age=3600'}})}
+  if(u.pathname==='/sitemap.xml'){const o=env.APP_ORIGIN||u.origin;return new Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+['/','/s/demo'].map(p=>'<url><loc>'+o+p+'</loc></url>').join('')+'</urlset>',{headers:{'Content-Type':'application/xml; charset=utf-8','Cache-Control':'public,max-age=3600'}})}
+  if(u.pathname==='/'){ctx?.waitUntil(ensureWebhook(env,u.origin));return new Response(landingFor(env.APP_ORIGIN||u.origin),{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}})}
   {const m=/^\/u\/([a-f0-9]{12})(\/photo)?$/.exec(u.pathname);if(m){if(m[2]){if(request.method!=='POST')return new Response('Method not allowed',{status:405});return await pairUpload(env,request,m[1])}return await pairPage(env,m[1],notFound)}}
   {const m=/^\/r\/([a-f0-9]{48})(\/img)?$/.exec(u.pathname);if(m){if(m[2]){return (await resultImage(env,m[1],request))||new Response('Not found',{status:404,headers:{'Cache-Control':'no-store'}})}return await resultPage(env,m[1],notFound)}}
   if(!pages.some(r=>r.test(u.pathname)))return new Response(notFound,{status:404,headers:htmlHeaders});
