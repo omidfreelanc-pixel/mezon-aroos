@@ -35,5 +35,10 @@ id = "f51380d2dab2445b9be27dc00ab30992"
 # The custom domain mezon-aroos.omidfreelanc.workers.dev is attached in the Cloudflare dashboard
 # (Workers & Pages > mezon-aroos > Settings > Domains & Routes), because the deploy token cannot edit zone routes.
 
+# Temporary: no image limits for anyone (per-person quota, daily cap, per-network cap, trial and credit counters).
+# Remove this line (or set it to "0") to bring every limit back.
+[vars]
+LIMITS_OFF = "1"
+
 [assets]
 directory = "./public"

@@ -1426,3 +1426,14 @@ test('team mobiles typed in the contact form count as unlimited only while SMS i
   assert.equal((await other()).status,200);assert.equal((await other()).status,429);
  }finally{globalThis.fetch=previous}
 });
+
+test('LIMITS_OFF=1 lifts every image limit for everyone',async()=>{
+ const e=fixture(),s=await salon(e);e.KIE_API_KEY='mock';e.LIMITS_OFF='1';
+ const previous=globalThis.fetch;
+ globalThis.fetch=async(url)=>{if(String(url).includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/'+crypto.randomUUID()+'.jpg'}});if(String(url).includes('createTask'))return Response.json({code:200,data:{taskId:'t'+crypto.randomUUID()}});return new Response(png())};
+ try{
+  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true,daily_limit:1},OWNER);
+  const g=await guest(e,s),o=await upload(e,s,g);
+  for(let i=0;i<20;i++)assert.equal((await call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:o,style:0},g)).status,200,'attempt '+i);
+ }finally{globalThis.fetch=previous}
+});

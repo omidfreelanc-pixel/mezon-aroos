@@ -93,7 +93,7 @@ async function afterCharge(env,db,salon,s,visitor,line,origin,skipQuota){
 // The project's own team: verified mobiles listed in app_settings 'unlimited_phones' (a JSON list,
 // kept in the database, never in the code) have no image limits at all.
 // A mobile is checked by SMS when the SMS provider is set up; until then the number she typed in the contact form is trusted (it only lifts image limits).
-async function unlimited(db,s,env){const ph=s?.verified_phone||(!smsReady(env)&&/^09\d{9}$/.test(s?.cust_phone||'')?'+98'+s.cust_phone.slice(1):'');if(!ph)return false;try{const list=JSON.parse(await setting(db,'unlimited_phones')||'[]');return Array.isArray(list)&&list.includes(ph)}catch{return false}}
+async function unlimited(db,s,env){if(env?.LIMITS_OFF==='1')return true;const ph=s?.verified_phone||(!smsReady(env)&&/^09\d{9}$/.test(s?.cust_phone||'')?'+98'+s.cust_phone.slice(1):'');if(!ph)return false;try{const list=JSON.parse(await setting(db,'unlimited_phones')||'[]');return Array.isArray(list)&&list.includes(ph)}catch{return false}}
 const visitorOf=b=>/^[a-f0-9]{16,32}$/.test(String(b?.v||''))?String(b.v):'';
 const refLink=(env,origin,salon,t)=>(env.APP_ORIGIN||origin)+'/s/'+salon.slug+'?r='+t.ref_code;
 async function teamView(db,env,salon,origin){return (await teamOf(db,salon.id)).map(t=>({id:t.id,name:t.name,specialty:t.specialty,telegram:!!t.telegram_chat_id,bale:!!t.bale_chat_id,invite_pending:!!t.invite_hash&&t.invite_expires>Date.now(),ref:refLink(env,origin,salon,t)}))}
