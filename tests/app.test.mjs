@@ -1410,3 +1410,19 @@ test('migration 0023 puts the three team mobiles on the unlimited list and keeps
  e.DB.sql.prepare("UPDATE app_settings SET value=? WHERE key='unlimited_phones'").run('["+989120000001"]');e.DB.sql.exec(sql);
  const after=JSON.parse(e.DB.sql.prepare("SELECT value FROM app_settings WHERE key='unlimited_phones'").get().value);assert(after.includes('+989120000001')&&after.length===4,'merged, no duplicates');
 });
+
+test('team mobiles typed in the contact form count as unlimited only while SMS is not set up',async()=>{
+ const e=fixture(),s=await salon(e);e.KIE_API_KEY='mock';
+ const previous=globalThis.fetch;
+ globalThis.fetch=async(url)=>{if(String(url).includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/'+crypto.randomUUID()+'.jpg'}});if(String(url).includes('createTask'))return Response.json({code:200,data:{taskId:'t'+crypto.randomUUID()}});return new Response(png())};
+ try{
+  await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true,daily_limit:1},OWNER);
+  const g=await guest(e,s),o=await upload(e,s,g);
+  assert.equal((await call(e,'/api/s/salon-a/session/profile',{name:'علی تست',phone:'09105647497'},g)).status,200);
+  for(let i=0;i<4;i++)assert.equal((await call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:o,style:0},g)).status,200);
+  const g2=await guest(e,s),o2=await upload(e,s,g2);
+  await call(e,'/api/s/salon-a/session/profile',{name:'کس دیگر',phone:'09121234567'},g2);
+  const other=()=>call(e,'/api/s/salon-a/generate',{image_consent:true,idem:crypto.randomUUID(),original_id:o2,style:0},g2);
+  assert.equal((await other()).status,200);assert.equal((await other()).status,429);
+ }finally{globalThis.fetch=previous}
+});
