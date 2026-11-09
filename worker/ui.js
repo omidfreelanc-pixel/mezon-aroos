@@ -113,8 +113,8 @@ main#app{max-width:1080px;margin:0 auto;padding:6px 20px 80px;min-height:70vh}
 .status .on .dot{background:var(--ok-soft);color:var(--ok)}
 .status .off{color:var(--muted)}
 .status .off .dot{background:var(--glass-2)}
-.linkbox{display:flex;gap:8px;align-items:center;margin-top:12px;padding:10px 10px 10px 14px;border-radius:14px;background:var(--glass)}
-.linkbox code{flex:1;min-width:0;direction:ltr;text-align:left;font-size:13px;overflow-wrap:anywhere}
+.linkbox{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;padding:10px 10px 10px 14px;border-radius:14px;background:var(--glass)}
+.linkbox code{flex:1;min-width:200px;direction:ltr;text-align:left;font-size:13px;overflow-wrap:anywhere}
 .tg-state{display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;margin-bottom:14px}
 .tg-state--on{background:var(--ok-soft);color:#1f4f30}
 .tg-state--off{background:#f8efdd;color:#674511}
@@ -267,7 +267,7 @@ function dashboard(salons){
   ]));
   out.push(el('div',{class:'dgrid'},[
    card('بازدیدکننده در روز','',columns(d.daily,'visitors','بازدیدکننده','muted'),tableOf(['روز','بازدیدکننده'],d.daily.map(function(x){return [pday(x.day),fa(x.visitors)]}))),
-   card('درخواست در روز','',columns(d.daily,'sent','درخواست','accent'),tableOf(['روز','درخواست'],d.daily.map(function(x){return [pday(x.day),fa(x.sent)]})))
+   d.daily.some(function(x){return x.sent})?card('درخواست در روز','',columns(d.daily,'sent','درخواست','accent'),tableOf(['روز','درخواست'],d.daily.map(function(x){return [pday(x.day),fa(x.sent)]}))):null
   ]));
   out.push(el('div',{class:'dgrid'},[
    card('لباس‌های پرطرفدار','بیشترین انتخاب مشتری‌ها.',hbars(d.looks),tableOf(['لباس','انتخاب'],d.looks.map(function(x){return [x.label,fa(x.count)]})))
