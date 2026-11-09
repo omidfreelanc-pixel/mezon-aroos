@@ -84,7 +84,7 @@ h3.sub{font-size:15px;margin:16px 0 4px}
 .dtable table,.stable table{width:100%;border-collapse:collapse;margin-top:8px}
 .dtable th,.dtable td,.stable th,.stable td{padding:7px 8px;border-bottom:1px solid var(--line-2);text-align:right}
 .dtable td:not(:first-child),.stable td:not(:first-child){font-variant-numeric:tabular-nums}
-.stable{overflow-x:auto}
+.stable{overflow-x:auto}.stable td a,.dtable td a{display:inline-block;min-height:44px;line-height:44px}
 .stable th{font-size:12.5px;color:var(--muted);font-weight:600}
 .linkbox__label{font-size:12.5px;flex:none}
 
@@ -472,11 +472,11 @@ function accountsCard(){
  var AQ={q:'',filter:'',sort:'new',offset:0,limit:20};
  var box=el('section',{class:'card'},[h('h2','حساب مزون‌ها و اعتبار'),h('p','هر مزون ۱۰۰ اعتبار دارد. تا وقتی حساب تأیید نشود، مدیر مزون همه‌چیز را می‌بیند و کار می‌کند اما ساخت تصویر بسته است. لینک پنل شارژ را برای مدیر مزون بفرست.','lead')]),body=el('div',{class:'stack'}),pager=el('div',{class:'pager'});
  var qi=el('input',{type:'search',placeholder:'جست‌وجوی نام، نشانی، موبایل یا مدیر','aria-label':'جست‌وجو'}),sortSel=el('select',{'aria-label':'مرتب‌سازی'},[['new','تازه‌ترین'],['name','نام'],['left','کمترین اعتبار مانده'],['used','بیشترین مصرف']].map(function(o){return el('option',{value:o[0],text:o[1]})})),chips=el('div',{class:'chips',role:'group','aria-label':'فیلتر'});
- var FL=[['','همه'],['pending','در انتظار تأیید'],['approved','فعال'],['trial','آزمایشی'],['low','اعتبار کم'],['exhausted','اعتبار تمام'],['nobot','بدون ربات']],qt=0;
- function paintChips(){chips.replaceChildren.apply(chips,FL.map(function(f){return el('button',{class:'chip',type:'button','aria-pressed':AQ.filter===f[0]?'true':'false',text:f[1],onclick:function(){AQ.filter=f[0];AQ.offset=0;paintChips();load()}})}))}
+ var FL=[['','همه'],['pending','در انتظار تأیید'],['approved','فعال'],['trial','آزمایشی'],['low','اعتبار کم'],['exhausted','اعتبار تمام'],['nobot','بدون ربات']],qt=0,CN={};
+ function paintChips(){chips.replaceChildren.apply(chips,FL.map(function(f){var n=f[0]===''?CN.all:CN[f[0]];return el('button',{class:'chip',type:'button','aria-pressed':AQ.filter===f[0]?'true':'false',text:f[1]+(n===undefined?'':' ('+fa(n)+')'),onclick:function(){AQ.filter=f[0];AQ.offset=0;paintChips();load()}})}))}
  qi.addEventListener('input',function(){clearTimeout(qt);qt=setTimeout(function(){AQ.q=qi.value.trim();AQ.offset=0;load()},300)});sortSel.addEventListener('change',function(){AQ.sort=sortSel.value;AQ.offset=0;load()});paintChips();
  box.append(el('div',{class:'tools'},[qi,sortSel]),chips,body,pager);
- function load(){body.classList.add('is-refreshing');return api('/api/owner/accounts?q='+encodeURIComponent(AQ.q)+'&filter='+AQ.filter+'&sort='+AQ.sort+'&limit='+AQ.limit+'&offset='+AQ.offset).then(function(d){body.classList.remove('is-refreshing');
+ function load(){body.classList.add('is-refreshing');return api('/api/owner/accounts?q='+encodeURIComponent(AQ.q)+'&filter='+AQ.filter+'&sort='+AQ.sort+'&limit='+AQ.limit+'&offset='+AQ.offset).then(function(d){body.classList.remove('is-refreshing');CN=d.counts||{};paintChips();
   body.replaceChildren();
   if(d.requests.length){body.append(h('b','درخواست‌های شارژ در انتظار'));d.requests.forEach(function(r){body.append(el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong',r.name+' · '+fa(r.amount)+' تصویر'),h('small',r.note||'بدون توضیح')]),el('button',{class:'btn btn--primary btn--sm',type:'button',text:'تأیید و شارژ',onclick:act(function(){return api('/api/owner/recharge',{id:r.id,action:'approve'}).then(function(){toast('اعتبار اضافه شد');return load()})})}),el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'رد',onclick:act(function(){return api('/api/owner/recharge',{id:r.id,action:'reject'}).then(load)})})]))})}
   d.accounts.forEach(function(a){
@@ -503,6 +503,7 @@ function weightsCard(){
  }).catch(function(e){body.append(h('p',e.message,'empty-note'))});
  return box;
 }
+var REF_FA={create:'ساخت مزون',migration:'اعتبار اولیه',system:'سیستم',owner:'مدیر پروژه',opening:'اعتبار اولیه'};
 function ledgerCard(salons){
  var Q={salon:'',method:'',q:'',from:'',to:'',offset:0,limit:50};
  var box=el('section',{class:'card'},[h('h2','دفتر اعتبار'),h('p','هر شارژ، تنظیم دستی و بازگشت اعتبار با تاریخ و کسی که انجامش داده.','lead')]),body=el('div',{class:'stack'}),pager=el('div',{class:'pager'});
@@ -515,7 +516,7 @@ function ledgerCard(salons){
   return api('/api/owner/ledger?'+qs(['limit='+Q.limit,'offset='+Q.offset])).then(function(d){
    body.classList.remove('is-refreshing');
    if(!d.entries.length)body.replaceChildren(empty('leads','ردیفی نیست','با شارژ یا تنظیم اعتبار، اینجا ثبت می‌شود.'));
-   else body.replaceChildren(el('div',{class:'stable'},[el('table',{},[el('thead',{},[el('tr',{},['تاریخ','مزون','مقدار','روش','مرجع','توسط','سقف بعد از تغییر'].map(function(t){return el('th',{text:t})}))]),el('tbody',{},d.entries.map(function(r){return el('tr',{},[el('td',{text:fmt(r.created_at)}),el('td',{text:r.name}),el('td',{text:(r.amount>0?'+':'')+fa(r.amount),dir:'ltr'}),el('td',{text:MTH_FA[r.method]||r.method}),el('td',{text:r.ref||'—'}),el('td',{text:r.by||'—'}),el('td',{text:fa(r.limit_after)})])}))])]));
+   else body.replaceChildren(el('div',{class:'stable'},[el('table',{},[el('thead',{},[el('tr',{},['تاریخ','مزون','مقدار','روش','مرجع','توسط','سقف بعد از تغییر'].map(function(t){return el('th',{text:t})}))]),el('tbody',{},d.entries.map(function(r){return el('tr',{},[el('td',{text:fmt(r.created_at)}),el('td',{text:r.name}),el('td',{text:(r.amount>0?'+':'')+fa(r.amount),dir:'ltr'}),el('td',{text:MTH_FA[r.method]||r.method}),el('td',{text:REF_FA[r.ref]||r.ref||'—'}),el('td',{text:REF_FA[r.by]||r.by||'—'}),el('td',{text:fa(r.limit_after)})])}))])]));
    var from=d.total?Q.offset+1:0,to=Math.min(d.total,Q.offset+Q.limit);
    pager.replaceChildren(el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'قبلی',disabled:Q.offset<=0,onclick:function(){Q.offset=Math.max(0,Q.offset-Q.limit);load()}}),h('span',fa(from)+' تا '+fa(to)+' از '+fa(d.total)),el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'بعدی',disabled:to>=d.total,onclick:function(){Q.offset+=Q.limit;load()}}));
   }).catch(function(e){body.classList.remove('is-refreshing');body.replaceChildren(h('p',e.message,'empty-note'))});
@@ -540,7 +541,7 @@ function pendingCard(){
   list.forEach(function(a){
    var sub=el('input',{type:'text',value:a.desired||'',placeholder:'زیردامنه، مثلاً rose'});sub.setAttribute('dir','ltr');sub.setAttribute('autocapitalize','off');
    sub.addEventListener('input',function(){sub.value=sub.value.toLowerCase().replace(/[^a-z0-9-]/g,'')});
-   var row=el('div',{class:'salon pend'},[el('div',{class:'grow'},[h('strong',a.name),h('small',(a.phone?'تلفن '+a.phone+' · ':'')+(a.manager?'کاربر: '+a.manager:'بدون نام کاربری')),badge(a.bot?'ربات مدیر وصل است':'ربات مدیر هنوز وصل نشده',a.bot?'ok':'warn'),sub]),
+   var row=el('div',{class:'salon pend'},[el('div',{class:'grow'},[h('strong',a.name),h('small',(a.phone?'تلفن \u2066'+a.phone+'\u2069 · ':'')+(a.manager?'کاربر: '+a.manager:'بدون نام کاربری')),badge(a.bot?'ربات مدیر وصل است':'ربات مدیر هنوز وصل نشده',a.bot?'ok':'warn'),sub]),
     el('button',{class:'btn btn--primary btn--sm',type:'button',text:'تأیید و فعال‌سازی',onclick:act(function(){
      var v=sub.value.trim();if(!v)throw new Error('زیردامنه را بنویسید');
      return api('/api/owner/account',{slug:a.slug,approved:true,subdomain:v}).then(function(r){toast('مزون فعال شد');row.replaceWith(report(a,r));return load()})})})]);

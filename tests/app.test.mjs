@@ -566,10 +566,10 @@ test('free trial salon: built from the landing form, one per mobile, 5 images an
   assert.equal((await gen()).status,200);assert.equal(tasks,1);
   const t1=e.DB.sql.prepare('SELECT * FROM trials').get();assert.ok(t1.started_at>0);assert.ok(Math.abs(t1.expires_at-t1.started_at-36000000)<1000);
   for(let i=0;i<4;i++)assert.equal((await gen()).status,200);assert.equal(tasks,5);assert.equal(e.DB.sql.prepare('SELECT approved FROM salons WHERE slug=?').get(slug).approved,0,'still not approved');
-  const sixth=await gen();assert.equal(sixth.status,402);assert.equal(tasks,5,'no paid task after the budget');
+  const sixth=await gen();assert.equal(sixth.status,402);assert.doesNotMatch(JSON.stringify(sixth.data),/تماس بگیرید|سهمیه|\d|۵/,'bride-facing 402 is neutral');assert.equal(tasks,5,'no paid task after the budget');
   assert.equal((await call(e,'/api/s/'+slug+'/public')).data.trial.images_left,0);
   e.DB.sql.prepare('UPDATE trials SET expires_at=?, images_used=0').run(Date.now()-1000);
-  assert.equal((await gen()).status,410);assert.equal((await call(e,'/api/s/'+slug+'/session',{})).status,410);
+  const gone=await gen();assert.equal(gone.status,410);assert.doesNotMatch(JSON.stringify(gone.data),/تماس بگیرید|ساعت/,'bride-facing 410 is neutral');assert.equal((await call(e,'/api/s/'+slug+'/session',{})).status,410);
   const done=await call(e,'/api/s/'+slug+'/public');assert.equal(done.status,200);assert.equal(done.data.trial.expired,true);
  }finally{globalThis.fetch=previous;tg.restore()}});
 
@@ -1367,3 +1367,14 @@ test('wording: the bride is never told «declined»; the platform owner is «ت�
   const stranger=await call(e,'/api/salons',{slug:'zz-salon',name:'x'},{user:'stranger',email:'a@b'});assert.match(stranger.data.error,/تیم مزون آینه/);
   const { BRIDE_STATUS_FA }=await import('../worker/dresses.js');assert.equal(BRIDE_STATUS_FA.declined,'فعلاً امکان‌پذیر نیست؛ مزون با تو در تماس است');
  }finally{P.done()}});
+
+test('owner settings save only touches the keys sent; accounts return per-filter counts',async()=>{const e=fixture();const s=await salon(e,'salon-p');
+ const get=()=>JSON.parse(e.DB.sql.prepare('SELECT settings FROM salons WHERE slug=?').get('salon-p').settings);
+ assert.equal((await call(e,'/api/s/salon-p/owner/settings',{generation_enabled:true,reference_verified:true,image_model:'fast',daily_limit:7},OWNER)).status,200);
+ assert.equal((await call(e,'/api/s/salon-p/owner/settings',{quota_per_line:5},OWNER)).status,200);
+ const c=get();assert.equal(c.generation_enabled,true);assert.equal(c.reference_verified,true);assert.equal(c.image_model,'fast');assert.equal(c.daily_limit,7);assert.equal(c.quota_per_line,5);
+ const l=await call(e,'/api/owner/accounts',undefined,OWNER);assert.equal(l.status,200);
+ for(const k of ['all','pending','approved','trial','low','exhausted','nobot'])assert.equal(typeof l.data.counts[k],'number',k);
+ assert.equal(l.data.counts.all,l.data.accounts.length);assert.equal(l.data.counts.approved,l.data.accounts.filter(a=>a.approved).length);
+ const f=await call(e,'/api/owner/accounts?filter=pending',undefined,OWNER);assert.equal(f.data.counts.all,l.data.counts.all,'counts ignore the active filter');
+});

@@ -14,7 +14,7 @@ export const DRESS_KEY=/^(d:\d{1,3}|p:[a-f0-9-]{36})$/;
 export const cleanDressKey=v=>DRESS_KEY.test(String(v||''))?String(v):'';
 export const LEAD_STATUSES=['new','called','booked','cancelled','declined'];
 export const CLOSED=['booked','cancelled','declined'];
-export const STATUS_FA={new:'جدید',called:'تماس گرفته شد',booked:'رزرو شد',cancelled:'لغو',declined:'قابل اجرا نیست'};
+export const STATUS_FA={new:'جدید',called:'تماس گرفته شد',booked:'رزرو شد',cancelled:'لغو',declined:'بسته شد'};
 export const DEFAULT_RETENTION_DAYS=30;
 export const retentionDays=cfg=>{const n=Number(cfg?.retention_days);return Number.isInteger(n)&&n>=0&&n<=3650?n:DEFAULT_RETENTION_DAYS}; // 0 = keep everything
 

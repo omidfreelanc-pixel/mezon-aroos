@@ -111,15 +111,17 @@ export async function adminAccounts(db,origin,params={}){
  for(const s of salons.filter(x=>!x.manage_token))s.manage_token=await ensureToken(db,s);
  const host=new URL(origin).hostname;
  let out=salons.map(s=>{const c=fold(s,usage.get(s.id)||[],W);return {slug:s.slug,name:s.name,approved:c.approved,used:c.used,limit:c.limit,left:c.left,by_kind:c.by_kind,panel:origin+'/m/'+s.manage_token,trial:s.owner_id==='trial',subdomain:s.subdomain||'',desired:s.desired_sub||'',manager:s.mgr_user||'',host:s.subdomain?s.subdomain+'.'+host:'',phone:s.t_phone||'',bot:!!(s.telegram_chat_id||s.bale_chat_id),created_at:s.created_at}});
+ const all0=out;
  const q=String(g('q')||'').trim().toLowerCase(),f=String(g('filter')||'');
  if(q)out=out.filter(a=>[a.name,a.slug,a.manager,a.phone,a.subdomain].some(x=>String(x).toLowerCase().includes(q)));
  const F={pending:a=>!a.approved,approved:a=>a.approved,trial:a=>a.trial,low:a=>a.approved&&a.limit>0&&a.left*100<=a.limit*20,exhausted:a=>a.approved&&a.left<=0,nobot:a=>!a.bot};
+ const counts={all:all0.length,...Object.fromEntries(Object.entries(F).map(([k,fn])=>[k,all0.filter(fn).length]))};
  if(F[f])out=out.filter(F[f]);
  const sort=String(g('sort')||'new');
  if(sort==='name')out.sort((a,b)=>a.name.localeCompare(b.name,'fa'));else if(sort==='left')out.sort((a,b)=>a.left-b.left);else if(sort==='used')out.sort((a,b)=>b.used-a.used);
  const total=out.length,limit=Math.min(500,Math.max(1,Number(g('limit'))||200)),offset=Math.max(0,Number(g('offset'))||0);
  const reqs=await all(db,"SELECT r.id,r.amount,r.note,r.created_at,s.slug,s.name FROM credit_requests r JOIN salons s ON s.id=r.salon_id WHERE r.status='pending' ORDER BY r.created_at");
- return {accounts:out.slice(offset,offset+limit),total,requests:reqs,packs:PACKS,weights:W};
+ return {accounts:out.slice(offset,offset+limit),total,counts,requests:reqs,packs:PACKS,weights:W};
 }
 export async function adminSetAccount(db,b,env,origin,by='owner'){
  let s=await one(db,'SELECT * FROM salons WHERE slug=?',String(b.slug||''));must(s,'مزون پیدا نشد',404);

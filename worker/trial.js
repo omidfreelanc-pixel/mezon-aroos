@@ -1,7 +1,7 @@
 import {must,phone,text,uid,digits,hash,limited} from './domain.js';
 import {notifyOwner} from './alerts.js';
 import {smsReady,sendOtp} from './sms.js';
-import {newToken} from './credits.js';
+import {newToken,NO_IMAGE_MSG} from './credits.js';
 import {newLinkCode} from './telegram.js';
 import {cleanUser,checkCreds,pwHash,subLabel,checkSub} from './manager.js';
 
@@ -21,10 +21,10 @@ export function trialPublic(t){if(!t)return null;return {expires_at:t.started_at
 // starts here, with the first image. Called before any paid request is created.
 export async function spendTrialImage(db,t,w=1){
  if(!t)return;
- must(trialLive(t),'مهلت ۱۰ ساعتهٔ صفحهٔ آزمایشی تمام شده است؛ برای ادامه با ما تماس بگیرید',410);
+ must(trialLive(t),'الان امکان ساخت تصویر نیست؛ درخواستت را برای مزون بفرست',410);
  if(!t.started_at){const now=Date.now();await run(db,'UPDATE trials SET started_at=?,expires_at=? WHERE id=? AND started_at IS NULL',now,now+TRIAL_HOURS*3600000,t.id)}
  const r=await run(db,'UPDATE trials SET images_used=images_used+? WHERE id=? AND images_used+?<=images_limit AND (started_at IS NULL OR expires_at>?)',w,t.id,w,Date.now());
- must(r.meta.changes,'سهمیهٔ '+t.images_limit+' تصویر صفحهٔ آزمایشی تمام شده است؛ برای ادامه با ما تماس بگیرید',402);
+ must(r.meta.changes,NO_IMAGE_MSG,402);
 }
 export const refundTrialImage=(db,salonId,w=1)=>run(db,'UPDATE trials SET images_used=MAX(0,images_used-?) WHERE salon_id=?',w,salonId);
 

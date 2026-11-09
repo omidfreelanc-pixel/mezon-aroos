@@ -1150,7 +1150,7 @@ function stepResult(){
   el('div',{class:'grow'},[el('b',{text:(lookName()||'هنوز چیزی انتخاب نشده')}),el('div',{class:'summary__meta',text:meta})]),
   el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){go(2)},text:'تغییر'})
  ]));
- if(state.pub.sandbox)box.append(notice('info','نسخهٔ آزمایشی: این صفحه هنوز در مرحلهٔ آزمایش است و تعداد تصویرهای ساخته‌شده محدود است.'));
+ if(state.pub.sandbox)box.append(notice('info','این صفحه هنوز در مرحلهٔ راه‌اندازی است؛ اگر تصویر ساخته نشد، درخواستت را برای مزون بفرست.'));
  if(state.error)box.append(notice('danger',state.error));
  if(state.noImage&&!state.result&&!state.busy)box.append(noImageCard(state.noImage==='x'?'':state.noImage));
  if(state.busy&&!state.result){box.append(buildStage());startBuildClock()}
