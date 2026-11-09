@@ -609,7 +609,7 @@ test('the team\'s own verified mobiles (app_settings unlimited_phones) have no i
  globalThis.fetch=async(url)=>{if(String(url).includes('file-base64-upload'))return Response.json({success:true,data:{downloadUrl:'https://provider.example/'+crypto.randomUUID()+'.jpg'}});if(String(url).includes('createTask')){tasks++;return Response.json({code:200,data:{taskId:'t'+tasks}})}return new Response(png())};
  try{
   await call(e,'/api/s/salon-a/owner/settings',{generation_enabled:true,catalog:true,reference_verified:true,daily_limit:2},OWNER);
-  e.DB.sql.prepare("INSERT INTO app_settings(key,value,updated_at) VALUES('unlimited_phones',?,?)").run(JSON.stringify(['+989120000001']),Date.now());
+  e.DB.sql.prepare("INSERT OR REPLACE INTO app_settings(key,value,updated_at) VALUES('unlimited_phones',?,?)").run(JSON.stringify(['+989120000001']),Date.now());
   const g=await guest(e,s),sid=e.DB.sql.prepare('SELECT id FROM sessions ORDER BY created_at DESC LIMIT 1').get().id;
   e.DB.sql.prepare('UPDATE sessions SET verified_phone=? WHERE id=?').run('+989120000001',sid);
   const o=await upload(e,s,g);
@@ -1401,4 +1401,12 @@ test('QR handoff button never passes the click event as the generation id',()=>{
  const js=customerHTML;const src=typeof js==='function'?String(js):String(js);
  assert.doesNotMatch(src,/onclick:openQR[,}]/);
  assert.match(src,/typeof job!=='string'/);
+});
+
+test('migration 0023 puts the three team mobiles on the unlimited list and keeps existing entries',()=>{
+ const e=fixture();const row=e.DB.sql.prepare("SELECT value FROM app_settings WHERE key='unlimited_phones'").get();
+ const list=JSON.parse(row.value);for(const p of ['+989105647497','+989933773515','+989375129991'])assert(list.includes(p),p);
+ const sql=readFileSync(new URL('../drizzle/0023_unlimited_team_phones.sql',import.meta.url),'utf8');
+ e.DB.sql.prepare("UPDATE app_settings SET value=? WHERE key='unlimited_phones'").run('["+989120000001"]');e.DB.sql.exec(sql);
+ const after=JSON.parse(e.DB.sql.prepare("SELECT value FROM app_settings WHERE key='unlimited_phones'").get().value);assert(after.includes('+989120000001')&&after.length===4,'merged, no duplicates');
 });
