@@ -10,6 +10,24 @@ export const fontFaces=String.raw`
 @font-face{font-family:"Estedad";font-style:normal;font-weight:100 900;font-display:swap;src:url(/fonts/estedad-arabic.woff2) format("woff2");unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+200C-200F,U+FB50-FDFF,U+FE70-FEFC}
 `;
 
+// Antique gilded mirror: one silhouette (pointed ogee crown + mirrored ogee base, rounded shoulders)
+// used as mask for the photo and as the outline of three stacked gold layers (outer facet, inner
+// facet, soft inner shadow + hairline). Strokes are non-scaling so the gold stays the same
+// thickness (~11px) at any frame size; the path itself stretches with the box.
+const MZ_D="M50 0C47.67 1.08 38.84 2.96 32.79 5.11C30 6.19 28.6 6.99 28.6 8.34C28.6 9.01 25.81 8.87 22.09 9.41C16.98 10.08 14.19 11.56 14.19 13.45C14.19 14.25 11.4 14.12 8.14 15.33C3.49 17.21 0 19.36 0 24.74V75.26C0 80.64 3.49 82.79 8.14 84.67C11.4 85.88 14.19 85.75 14.19 86.55C14.19 88.44 16.98 89.92 22.09 90.59C25.81 91.13 28.6 90.99 28.6 91.66C28.6 93.01 30 93.81 32.79 94.89C38.84 97.04 47.67 98.92 50 100C52.33 98.92 61.16 97.04 67.21 94.89C70 93.81 71.4 93.01 71.4 91.66C71.4 90.99 74.19 91.13 77.91 90.59C83.02 89.92 85.81 88.44 85.81 86.55C85.81 85.75 88.6 85.88 91.86 84.67C96.51 82.79 100 80.64 100 75.26V24.74C100 19.36 96.51 17.21 91.86 15.33C88.6 14.12 85.81 14.25 85.81 13.45C85.81 11.56 83.02 10.08 77.91 9.41C74.19 8.87 71.4 9.01 71.4 8.34C71.4 6.99 70 6.19 67.21 5.11C61.16 2.96 52.33 1.08 50 0Z";
+const uri=svg=>'url("data:image/svg+xml,'+encodeURIComponent(svg).replace(/'/g,'%27').replace(/"/g,'%22')+'")';
+const svgOpen="<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'>";
+const ns="vector-effect='non-scaling-stroke'";
+const stops=a=>a.map(([o,c,op])=>"<stop offset='"+o+"' stop-color='"+c+"'"+(op==null?'':" stop-opacity='"+op+"'")+"/>").join('');
+const lg=(id,x1,y1,x2,y2,a)=>"<linearGradient id='"+id+"' x1='"+x1+"' y1='"+y1+"' x2='"+x2+"' y2='"+y2+"'>"+stops(a)+"</linearGradient>";
+const MZ={
+ shape:uri(svgOpen+"<path d='"+MZ_D+"'/></svg>"),
+ bevel:uri(svgOpen+"<defs>"+lg('m',0,0,1,1,[[0,'#F4E8C6'],[.1,'#C6A462'],[.2,'#FFF8DE'],[.3,'#A68150'],[.42,'#F2E3B6'],[.55,'#8D6A38'],[.66,'#F8EECB'],[.78,'#B18C55'],[.9,'#F0E0B3'],[1,'#98763F']])+lg('h',0,0,1,1,[[0,'#FFFFFF',.95],[.35,'#FFF4D2',.55],[.7,'#7A5A22',.25],[1,'#5E4318',.5]])+"</defs><path d='"+MZ_D+"' fill='url(#m)'/><path d='"+MZ_D+"' fill='none' stroke='url(#h)' stroke-width='9' "+ns+"/><path d='"+MZ_D+"' fill='none' stroke='#86693A' stroke-opacity='.8' stroke-width='2' "+ns+"/></svg>"),
+ hair:uri(svgOpen+"<defs>"+lg('i',1,1,0,0,[[0,'#FFFAE8'],[.3,'#DCC38C'],[.62,'#A9885A'],[1,'#765828']])+"</defs><path d='"+MZ_D+"' fill='none' stroke='url(#i)' stroke-width='10' "+ns+"/><path d='"+MZ_D+"' fill='none' stroke='#FFF4CF' stroke-opacity='.7' stroke-width='1.4' "+ns+"/></svg>"),
+ hairOn:uri(svgOpen+"<path d='"+MZ_D+"' fill='none' stroke='#0F4C4A' stroke-opacity='.88' stroke-width='10' "+ns+"/></svg>"),
+ inner:uri(svgOpen+"<defs><filter id='b' x='-10%' y='-10%' width='120%' height='120%'><feGaussianBlur stdDeviation='1.1'/></filter></defs><path d='"+MZ_D+"' fill='none' stroke='#2E2008' stroke-opacity='.17' stroke-width='14' "+ns+" filter='url(#b)'/><path d='"+MZ_D+"' fill='none' stroke='#F5E7BF' stroke-width='2' stroke-opacity='.95' "+ns+"/><path d='"+MZ_D+"' fill='none' stroke='#8A6527' stroke-width='1' stroke-opacity='.5' "+ns+"/></svg>")
+};
+
 export const baseCSS=fontFaces+String.raw`
 :root{
  --glass:#e8edeb;--glass-2:#dde5e2;--surface:#fafbfa;--surface-2:#f2f5f4;
@@ -20,10 +38,11 @@ export const baseCSS=fontFaces+String.raw`
  --r-lg:26px;--r:18px;--r-sm:12px;--pill:999px;
  --arch:999px 999px var(--r) var(--r);
  --mz-gold:linear-gradient(135deg,#C9A96A,#E8D9B0 45%,#C9A96A);--mz-ivory:#F7F3EC;--mz-emerald:#0F4C4A;
- --mz-shape:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 96Q0 100 4 100H96Q100 100 100 96V42C100 28 85 23 72 15C62 9 55 4.5 51.5 1Q50 0 48.5 1C45 4.5 38 9 28 15C15 23 0 28 0 42Z'/%3E%3C/svg%3E");
- --mz-bevel:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23C9A96A'/%3E%3Cstop offset='.4' stop-color='%23E8D9B0'/%3E%3Cstop offset='.5' stop-color='%23F6EDD0'/%3E%3Cstop offset='.6' stop-color='%23E8D9B0'/%3E%3Cstop offset='1' stop-color='%23C9A96A'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 96Q0 100 4 100H96Q100 100 100 96V42C100 28 85 23 72 15C62 9 55 4.5 51.5 1Q50 0 48.5 1C45 4.5 38 9 28 15C15 23 0 28 0 42Z' fill='%23F7F3EC' stroke='url(%23g)' stroke-width='4' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
- --mz-hair:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23C9A96A'/%3E%3Cstop offset='.4' stop-color='%23E8D9B0'/%3E%3Cstop offset='.5' stop-color='%23F6EDD0'/%3E%3Cstop offset='.6' stop-color='%23E8D9B0'/%3E%3Cstop offset='1' stop-color='%23C9A96A'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 96Q0 100 4 100H96Q100 100 100 96V42C100 28 85 23 72 15C62 9 55 4.5 51.5 1Q50 0 48.5 1C45 4.5 38 9 28 15C15 23 0 28 0 42Z' fill='none' stroke='url(%23g)' stroke-opacity='.85' stroke-width='2' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
- --mz-hair-on:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M0 96Q0 100 4 100H96Q100 100 100 96V42C100 28 85 23 72 15C62 9 55 4.5 51.5 1Q50 0 48.5 1C45 4.5 38 9 28 15C15 23 0 28 0 42Z' fill='none' stroke='%230F4C4A' stroke-width='3' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+ --mz-shape:${MZ.shape};
+ --mz-bevel:${MZ.bevel};
+ --mz-hair:${MZ.hair};
+ --mz-hair-on:${MZ.hairOn};
+ --mz-inner:${MZ.inner};
 
  --lift:0 1px 0 rgba(255,255,255,.7) inset,0 18px 40px -26px rgba(35,23,15,.45);
  --float:0 30px 70px -30px rgba(35,23,15,.55);
@@ -53,16 +72,16 @@ img{display:block;max-width:100%}
 .tiny{font-size:12.5px;line-height:1.85}
 
 /* --- the mirror: antique-mirror frame (ogee crown, double champagne-gold bevel) used for every photo --- */
-.mirror{--mz-pad:9px;position:relative;padding:var(--mz-pad);isolation:isolate;filter:drop-shadow(0 16px 16px rgba(35,23,15,.13)) drop-shadow(0 1px 1px rgba(35,23,15,.08))}
+.mirror{--mz-pad:11px;position:relative;padding:var(--mz-pad);isolation:isolate;filter:drop-shadow(0 20px 18px rgba(35,23,15,.17)) drop-shadow(0 2px 2px rgba(35,23,15,.12)) drop-shadow(0 0 20px rgba(255,247,226,.7))}
 .mirror::before,.mirror::after{content:"";position:absolute;pointer-events:none;background-size:100% 100%;background-repeat:no-repeat;-webkit-mask:var(--mz-shape) 0 0/100% 100% no-repeat;mask:var(--mz-shape) 0 0/100% 100% no-repeat}
 .mirror::before{inset:0;z-index:-1;background-image:var(--mz-bevel)}
-.mirror::after{inset:calc(var(--mz-pad) - 4px);z-index:2;background-image:var(--mz-hair)}
+.mirror::after{inset:calc(var(--mz-pad) - 5px);z-index:2;background-image:var(--mz-hair)}
 .mirror>*{-webkit-mask:var(--mz-shape) 0 0/100% 100% no-repeat;mask:var(--mz-shape) 0 0/100% 100% no-repeat}
 .mirror__glass{position:relative;overflow:hidden;background:linear-gradient(172deg,#FBF8F2,#EEE8DB)}
 .mirror__glass>img{width:100%;height:100%;object-fit:cover}
-.mirror__glass::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(118deg,transparent 40%,rgba(255,255,255,.16) 48%,transparent 56%)}
+.mirror__glass::after{content:"";position:absolute;inset:0;pointer-events:none;background:var(--mz-inner) 0 0/100% 100% no-repeat,linear-gradient(118deg,transparent 40%,rgba(255,255,255,.14) 48%,transparent 56%)}
 .mz-shape{-webkit-mask:var(--mz-shape) 0 0/100% 100% no-repeat;mask:var(--mz-shape) 0 0/100% 100% no-repeat;border-radius:0}
-.mz-mini{display:block;padding:2px;border:0;background:var(--mz-gold);-webkit-mask:var(--mz-shape) 0 0/100% 100% no-repeat;mask:var(--mz-shape) 0 0/100% 100% no-repeat;overflow:hidden}
+.mz-mini{display:block;padding:3px;border:0;background:linear-gradient(135deg,#F6E6B0,#C79F4E 38%,#FFF3CB 52%,#A47C35 78%,#E3C879);-webkit-mask:var(--mz-shape) 0 0/100% 100% no-repeat;mask:var(--mz-shape) 0 0/100% 100% no-repeat;overflow:hidden}
 .mz-mini>*{display:block;width:100%;height:100%;object-fit:cover;-webkit-mask:var(--mz-shape) 0 0/100% 100% no-repeat;mask:var(--mz-shape) 0 0/100% 100% no-repeat;background-color:#EEE8DB}
 
 /* --- buttons --- */

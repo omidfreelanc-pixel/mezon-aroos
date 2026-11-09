@@ -79,7 +79,7 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 /* ---------- step 1: the empty mirror ---------- */
 .shoot{display:grid;gap:22px}
 @media(min-width:700px){.shoot{grid-template-columns:260px minmax(0,1fr);align-items:center;gap:30px}}
-.upload{--mz-pad:9px;display:block;width:min(100%,280px);margin:0 auto;aspect-ratio:3/4;padding:var(--mz-pad);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.upload{--mz-pad:11px;display:block;width:min(100%,280px);margin:0 auto;aspect-ratio:4/7;padding:var(--mz-pad);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .upload__in{height:100%;display:grid;place-items:center;align-content:center;gap:12px;padding:24px 22px;text-align:center;background:linear-gradient(172deg,#FBF8F2,#EEE8DB);transition:background .25s var(--ease)}
 .upload:hover .upload__in,.upload.is-drag .upload__in{background:linear-gradient(172deg,#FFFDF8,#F3ECDD)}
 .upload:focus-within{outline:2px solid var(--accent-ring);outline-offset:4px}
@@ -96,7 +96,7 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .tip svg{width:18px;height:18px;flex:none;margin-top:3px;color:var(--accent)}
 .tip b{font-weight:700;color:var(--ink)}
 .photo{width:min(100%,320px);margin:0 auto}
-.photo .mirror__glass{aspect-ratio:3/4}
+.photo .mirror__glass{aspect-ratio:4/7}
 .photo__bar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:12px;font-size:13.5px;font-weight:600;color:var(--ink-2)}
 .photo__bar span{display:inline-flex;align-items:center;gap:6px}
 .photo__bar span svg{width:18px;height:18px;color:var(--accent)}
@@ -163,14 +163,14 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .rail{display:grid;grid-auto-flow:column;grid-auto-columns:138px;gap:12px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x mandatory;scrollbar-width:thin}
 .port-card{scroll-snap-align:start;border:0;background:transparent;padding:0;text-align:start}
 .port-card .mirror{--mz-pad:6px}
-.port-card .mirror__glass{aspect-ratio:3/4}
+.port-card .mirror__glass{aspect-ratio:4/7}
 .port-card span.pc-name{display:block;padding:8px 4px 0;font-size:13px;color:var(--ink-2);font-weight:600}
 .port-card.is-on .mirror{--mz-hair:var(--mz-hair-on)}
 .port-card.is-on span.pc-name{color:var(--accent-ink)}
 .picked{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;padding:10px 12px 10px 10px;border-radius:14px;background:var(--accent-soft);color:var(--accent-ink);font-size:13.5px;font-weight:600}
 .picked .btn{min-height:34px}
 .ref-photo{width:min(100%,240px);margin:14px auto 0}
-.ref-photo .mirror__glass{aspect-ratio:3/4}
+.ref-photo .mirror__glass{aspect-ratio:4/7}
 
 /* ---------- step 3: result ---------- */
 .summary{display:flex;gap:12px;align-items:center;padding:10px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line-2)}
@@ -178,12 +178,12 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .summary__meta{font-size:12.5px;color:var(--muted)}
 .summary b{display:block;font-size:14px;color:var(--ink)}
 .stage{width:min(100%,360px);margin:18px auto 0}
-.stage .mirror__glass{aspect-ratio:3/4;display:grid;place-items:center}
+.stage .mirror__glass{aspect-ratio:4/7;display:grid;place-items:center}
 .stage__empty svg{width:96px;height:auto;display:block;margin:0 auto 6px;opacity:.9}.stage__empty{position:relative;z-index:1;color:var(--muted);font-size:13px;text-align:center;padding:24px;max-width:22ch;line-height:1.9}
 .rev__tips{margin:8px 0 0;padding:0 18px;font-size:13px;line-height:2;color:var(--muted)}
 .sizes{margin:10px 0;padding:10px 12px;border:1px solid var(--glass-2);border-radius:var(--r-lg)}.sizes summary{cursor:pointer}.sizes__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.sizes__grid input{width:100%;text-align:center}
 .compare-wrap{width:min(100%,400px);margin:18px auto 0}
-.compare{position:relative;aspect-ratio:3/4;overflow:hidden;background:var(--glass-2);touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:ew-resize;direction:ltr}
+.compare{position:relative;aspect-ratio:4/7;overflow:hidden;background:var(--glass-2);touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:ew-resize;direction:ltr}
 .compare img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}
 .compare__after{position:absolute;inset:0;clip-path:inset(0 calc(100% - var(--x,50%)) 0 0)}
 .compare__handle{position:absolute;top:0;bottom:0;left:var(--x,50%);width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.1),0 0 12px rgba(0,0,0,.25);pointer-events:none}
@@ -194,7 +194,7 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .compare__grip svg{width:14px;height:14px}
 .compare__range{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;bottom:0;left:0}
 .compare:has(.compare__range:focus-visible){outline:3px solid var(--accent-ring);outline-offset:3px}
-.compare__tag{position:absolute;bottom:12px;z-index:2;background:rgba(250,251,250,.94);padding:3px 12px;border-radius:999px;font-size:12px;font-weight:700;color:var(--ink-2);pointer-events:none}
+.compare__tag{position:absolute;bottom:26%;z-index:2;background:rgba(250,251,250,.94);padding:3px 12px;border-radius:999px;font-size:12px;font-weight:700;color:var(--ink-2);pointer-events:none}
 .compare__tag--before{right:12px}
 .compare__tag--after{left:12px}
 .compare__hint{text-align:center;font-size:12.5px;color:var(--muted);margin-top:10px}
@@ -216,7 +216,7 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 @media(min-width:560px) and (max-width:959px){.gallery{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .pcard{border:0;padding:0;background:transparent;text-align:start}
 .pcard .mirror{--mz-pad:6px}
-.pcard .mirror__glass{aspect-ratio:4/5}
+.pcard .mirror__glass{aspect-ratio:2/3}
 .pcard h3{font-size:13.5px;margin-top:8px}
 .pcard p{font-size:12px;color:var(--muted)}
 .pcard:hover .mirror{--mz-hair:var(--mz-hair-on)}
@@ -285,7 +285,7 @@ body.is-touring{overflow:hidden}
 .compare--demo{cursor:default;pointer-events:none}
 .demo{flex:none}
 .demo--small{width:118px;--mz-pad:6px}
-.demo .compare__tag{font-size:12px;padding:1px 8px;bottom:8px}
+.demo .compare__tag{font-size:12px;padding:1px 8px;bottom:26%}
 .demo .compare__tag--before{right:8px}.demo .compare__tag--after{left:8px}
 .demo-row{display:flex;gap:14px;align-items:center;margin:0 0 18px;padding:10px 14px 10px 10px;border-radius:20px;background:var(--glass)}
 .demo-row__text{display:grid;gap:3px;font-size:13px;line-height:1.85;color:var(--ink-2)}
@@ -394,7 +394,7 @@ body.is-touring{overflow:hidden}
 /* 360 viewer */
 .spin-wrap{width:min(100%,330px);margin:4px auto 0;padding:6px}
 @media(max-width:420px){.spin-wrap{width:min(100%,330px,calc((100svh - 340px)*.62))}.result-actions{display:grid;grid-template-columns:1fr 1fr}.result-actions .btn{min-width:0;padding:0 10px}}
-.spin{position:relative;aspect-ratio:3/5;border-radius:999px 999px 13px 13px;overflow:hidden;background:linear-gradient(170deg,#f4f7f6,#d6dfdb);touch-action:pan-y;user-select:none;-webkit-user-select:none;outline:none}
+.spin{position:relative;aspect-ratio:4/7;border-radius:999px 999px 13px 13px;overflow:hidden;background:linear-gradient(170deg,#f4f7f6,#d6dfdb);touch-action:pan-y;user-select:none;-webkit-user-select:none;outline:none}
 .spin:focus-visible{box-shadow:0 0 0 3px var(--accent-ring)}
 .spin.is-ready{cursor:grab}.spin.is-ready:active{cursor:grabbing}
 .spin__layer{position:absolute;inset:0;background-repeat:no-repeat;background-size:300% 100%;opacity:0;transition:opacity .35s ease}
@@ -417,7 +417,7 @@ body.is-touring{overflow:hidden}
 .spin__dot::after{content:"";position:absolute;left:50%;top:2px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:var(--accent)}
 .spin__angle{min-width:58px;font-weight:700;font-size:14px;text-align:center}
 .spin__thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:240px;margin:0 auto;width:100%}
-.spin__thumb{aspect-ratio:3/5;min-height:44px;opacity:.55;cursor:pointer;transition:opacity .15s}
+.spin__thumb{aspect-ratio:4/7;min-height:44px;opacity:.55;cursor:pointer;transition:opacity .15s}
 .spin__thumb i{background-size:300% 100%;background-repeat:no-repeat}
 .spin__thumb.is-on{opacity:1}
 .spin__note{text-align:center;margin-top:10px}
@@ -501,7 +501,7 @@ img[loading="lazy"].is-in{opacity:1}
 .build-wrap{display:grid;gap:16px;margin-top:16px}
 @media(min-width:640px){.build-wrap{grid-template-columns:minmax(0,300px) minmax(0,1fr);align-items:center;gap:26px}}
 .build{width:min(100%,320px);margin:0 auto}
-.build .mirror__glass{position:relative;aspect-ratio:3/4;overflow:hidden;background:#20302e}
+.build .mirror__glass{position:relative;aspect-ratio:4/7;overflow:hidden;background:#20302e}
 .build__photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .build__scan{position:absolute;inset-inline:0;top:-40%;height:40%;background:linear-gradient(180deg,transparent,rgba(247,243,236,.34) 38%,rgba(232,217,176,.42) 52%,transparent);animation:veil 3.2s ease-in-out infinite}
 @keyframes veil{0%{top:-40%}100%{top:100%}}
@@ -557,7 +557,7 @@ var ICO={
  chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 3.5V17A2.5 2.5 0 0 1 4 14.5z"/></svg>',
  ban:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></svg>',
  hand:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12h7"/></svg>',
- SIL:'<svg viewBox="0 0 60 140" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="30" cy="14" r="8"/><path d="M30 22v7M23 33q7-5 14 0l-1.5 21c2.5 22 7 52 11.5 74H12.5c4.500-22 9-52 11.500-74z"/><path d="M26 54h8"/></svg>',
+ SIL:'<svg viewBox="0 0 60 140" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="30" cy="13" r="7.5"/><path d="M27 20.500v5.500M33 20.500v5.500"/><path d="M27 26c-4 1.200-8 2.200-10.500 5.500C13.500 36 13 46 12 58M33 26c4 1.200 8 2.200 10.500 5.500C46.500 36 47 46 48 58"/><path d="M22.500 33.500Q30 40 37.500 33.500"/><path d="M23 34c1.200 9 2.200 18 1.500 28M37 34c-1.200 9-2.200 18-1.500 28"/><path d="M24.500 62Q30 64.500 35.500 62"/><path d="M24.500 62C22 86 14 108 5.500 129Q30 135 54.500 129C46 108 38 86 35.500 62"/><path d="M27.500 68C25 94 20 112 16.500 128M32.500 68C35 94 40 112 43.500 128" stroke-opacity=".55"/></svg>',
  spark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V10c0-3.5 2.7-6 6-8 3.3 2 6 4.5 6 8v11z"/><path d="M10 18c.6-3 1.4-4.5 2-6 .6 1.5 1.4 3 2 6"/></svg>',
  download:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="m7.5 11 4.5 4.5L16.5 11"/><path d="M4.5 19.5h15"/></svg>',
  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>',

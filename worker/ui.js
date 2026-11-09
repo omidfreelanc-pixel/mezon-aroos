@@ -158,7 +158,7 @@ input[dir=ltr],textarea[dir=ltr],.field input[type=url],.field input[type=tel],#
 .empty-note{color:var(--muted);font-size:13.5px;line-height:1.9;padding:8px 0}
 .login{max-width:420px;margin:30px auto 0}
 .login .mirror{width:120px;margin:0 auto 18px}
-.login .mirror__glass{aspect-ratio:3/4;display:grid;place-items:center}
+.login .mirror__glass{aspect-ratio:4/7;display:grid;place-items:center}
 .login .mirror__glass span{display:block;width:40%;position:relative;z-index:1}
 .login h1{font-family:var(--display);font-weight:800;font-size:28px;text-align:center}
 .login p{text-align:center;color:var(--muted);margin:6px 0 18px;line-height:1.9}
