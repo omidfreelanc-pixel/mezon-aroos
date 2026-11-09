@@ -32,6 +32,7 @@ const catalogOn=cfg=>cfg.catalog===true,ownDressOn=cfg=>cfg.allow_own_dress===tr
 // All photos (up to 4 angles: front first) of the owner's published dress that contains this media id.
 async function dressAngles(db,salon,line,id){const row=await one(db,"SELECT images,look FROM portfolio WHERE salon_id=? AND published=1 AND try_on=1 AND permission=1 AND line=? AND EXISTS(SELECT 1 FROM json_each(images) WHERE value=?)",salon.id,line,id);if(!row)return{media:[],look:''};let ids=[];try{ids=JSON.parse(row.images)}catch{}const media=[];for(const i of ids.slice(0,4)){const m=await one(db,'SELECT * FROM media WHERE id=? AND salon_id=?',i,salon.id);if(m)media.push(m);}return{media,look:row.look||''};}
 // Output shape follows the customer's photo (a full-length photo is rarely 3:4).
+export const CONSENT_VERSION='2026-11';
 const RATIOS=['1:1','2:3','3:2','3:4','4:3','4:5','5:4','9:16','16:9'];
 // Each person gets a few dress images on a boutique page (trial and demo pages have their own budgets),
 // so a test day cannot run up the image bill. A person is this session, this browser id and, once
@@ -43,7 +44,7 @@ const dailyLimit=cfg=>Number.isInteger(cfg?.daily_limit)?cfg.daily_limit:DAILY_L
 // same bride in the same dress, made from her result photo.
 // 360-degree turntable clip made from the finished try-on photo (image-to-video). The bride stays still and the
 // camera circles her once, so every angle (side, back, train) is shown in one smooth rotation.
-export const BACK_PROMPT='Photo 1 is a bride wearing a wedding dress, seen from the front. Create a photo of the SAME woman wearing the SAME dress seen exactly from BEHIND (camera directly behind her, 180 degrees from photo 1): same pose, same distance, full body from head to the floor including the whole hem and train, same body shape and size, same hair seen from behind, same background and lighting. If more photos are given, they show the same dress from other angles (side, back, detail): copy the real back, buttons, lace and train design exactly from them. If no back photo is given, continue the front design naturally. Photorealistic, no text, no watermark.';
+export const BACK_PROMPT='Photo 1 is a bride wearing a wedding dress, seen from the front. Create a photo of the SAME woman wearing the SAME dress seen exactly from BEHIND (camera directly behind her, 180 degrees from photo 1): same pose, same distance, full body from head to the floor including the whole hem and train, same body shape and size, same hair seen from behind, same background and lighting. Image 1 = the bride seen from the front. If more images are given (Image 2 and later), they show the same dress from other angles (side, back, detail): copy the real back, buttons, lace and train design exactly from them. If no back photo is given, the back is only an estimate: continue the front design calmly and simply, and never invent lace, beading, buttons, bows or other details that are not visible in the given photos. Natural anatomy, five fingers on each hand, no extra people, no cropped feet. Photorealistic, no text, no watermark.';
 const SPIN_BASE=' always showing her FULL body from head to the floor including the hem and train. The bride stands completely still in a relaxed pose; the camera moves, not her. She is the SAME woman with the SAME body, hair and wedding dress in every frame; the dress keeps its exact design, fabric, lace, volume and colour all the way round. Plain, evenly lit, unchanged background and floor. No zoom, no cuts, no text, no watermark, no extra people.';
 export const SPIN_A_PROMPT='Smooth, steady half-turn orbit: the camera starts at the front view (the first image) and moves around the standing bride, passing her LEFT side, at constant speed and constant distance to end exactly at the back view (the last image),'+SPIN_BASE;
 export const SPIN_B_PROMPT='Smooth, steady half-turn orbit that continues the same rotation direction as before: the camera starts at the back view (the first image) and keeps moving around the standing bride, passing her RIGHT side, at constant speed and constant distance to end exactly at the front view (the last image),'+SPIN_BASE;
@@ -88,6 +89,19 @@ async function ownMedia(db,s,id){const m=await one(db,'SELECT * FROM media WHERE
 // Retention: submissions (leads) are kept for good, and so are their photos until the request is closed
 // plus N days. Photos and results that never became a request are deleted after N days by purgePhotos
 // (a boutique setting, default 30). Here only expired technical rows go.
+// A generation the provider never finished must not hold a credit or quota forever: state 'fail' refunds both.
+export async function failStale(db,now=Date.now()){
+ const a=await run(db,"UPDATE generations SET state='fail',updated_at=? WHERE state='waiting' AND result_id IS NULL AND COALESCE(updated_at,created_at)<? AND ((kind='spin' AND COALESCE(updated_at,created_at)<?) OR (kind<>'spin' AND COALESCE(updated_at,created_at)<?))",now,now-10*60000,now-20*60000,now-10*60000);
+ const b=await run(db,"UPDATE generations SET state='fail',updated_at=? WHERE state IN('creating','unknown') AND task_id IS NULL AND result_id IS NULL AND created_at<?",now,now-15*60000);
+ return (a.meta?.changes||0)+(b.meta?.changes||0);
+}
+// Personal data goes after 30 days unless a lead is still open; submitted leads themselves are kept (see above).
+export async function purgePii(db,now=Date.now()){
+ const cut=now-30*86400000;
+ const a=await run(db,"UPDATE sessions SET cust_name='',cust_phone='',verified_phone=NULL,verified_name=NULL WHERE created_at<? AND (cust_name<>'' OR cust_phone<>'' OR verified_phone IS NOT NULL OR verified_name IS NOT NULL) AND NOT EXISTS(SELECT 1 FROM leads l WHERE l.session_id=sessions.id AND l.closed_at IS NULL)",cut);
+ const b=await run(db,'DELETE FROM invites WHERE created_at<?',cut);
+ return (a.meta?.changes||0)+(b.meta?.changes||0);
+}
 async function cleanup(env){const now=Date.now();
  await run(env.DB,'DELETE FROM sessions WHERE expires_at<? AND id NOT IN(SELECT session_id FROM requests) AND id NOT IN(SELECT session_id FROM leads) AND id NOT IN(SELECT session_id FROM generations) AND id NOT IN(SELECT session_id FROM media WHERE session_id IS NOT NULL)',now);
  await run(env.DB,'DELETE FROM pairings WHERE expires_at<?',now-3600000);
@@ -96,7 +110,9 @@ async function cleanup(env){const now=Date.now();
  await run(env.DB,'DELETE FROM events_log WHERE created_at<?',now-400*86400000);
  await run(env.DB,'DELETE FROM bot_seen WHERE created_at<?',now-3*86400000);
  await run(env.DB,'DELETE FROM activity WHERE created_at<?',now-400*86400000);
- return {leads:0};
+ const stale=await failStale(env.DB,now);
+ const pii=await purgePii(env.DB,now);
+ return {leads:0,stale,pii};
 }
 
 // Moves one generation forward: asks the provider and, on success, stores the picture. Used by the
@@ -370,7 +386,7 @@ return new Response(object.body,{headers:base});}
  if(route==='erase'&&req.method==='POST'){await limited(db,'erase:'+s.id,40);return J({ok:true,deleted:await eraseSession(env,db,salon,s)});}
  if(route==='views'&&req.method==='POST'){await limited(db,'gen-ip:'+salon.id+':'+clientIp(req),15,'امروز چند تصویر از این شبکه ساخته شده؛ فردا دوباره امتحان کنید');await limited(db,'gen-salon:'+salon.id,400,'سقف ساخت تصویر امروز این مزون پر شده است؛ فردا دوباره امتحان کنید');
   const b=await req.json();must(!demo,'نمای سه‌زاویه در نسخهٔ نمونه نیست');must(env.KIE_API_KEY&&cfg.generation_enabled,'ساخت تصویر برای این مزون هنوز فعال نشده',503);must(/^[a-f0-9-]{36}$/.test(b.idem));const existing=await one(db,'SELECT id,state FROM generations WHERE session_id=? AND idem=?',s.id,b.idem);if(existing)return J(existing);const base=await one(db,"SELECT * FROM generations WHERE id=? AND session_id=? AND salon_id=? AND state='success'",b.parent,s.id,salon.id);must(base?.result_id,'عکس پایه معتبر نیست');must((base.line||'dress')==='dress','نمای سه‌زاویه فقط برای لباس عروس است');const m=await ownMedia(db,s,base.result_id),id=uid(),now=Date.now();const visitor=visitorOf(b),free=await unlimited(db,s);if(!free)await creditGate(db,env,salon);if(!trial&&!free)await spendQuota(db,salon,s,visitor,'dress');if(dailyLimit(cfg)>0&&!free)await limited(db,'views:'+salon.id,Math.min(20,dailyLimit(cfg)));await spendTrialImage(db,trial);await run(db,"INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,created_at,updated_at,visitor) VALUES(?,?,?,?,'views','creating',?,?,?,?)",id,salon.id,s.id,b.idem,base.original_id,now,now,visitor);
-  try{const img=await uploadProvider(env,m);const ang=base.reference_id?(await dressAngles(db,salon,'dress',base.reference_id)).media.slice(1):[];const extra=[];for(const x of ang)extra.push(await uploadProvider(env,x));const task=await createImageTask(env,cfg,{prompt:VIEWS_PROMPT+(extra.length?' Photos 2 to '+(extra.length+1)+' show the same dress from other angles (side, back, detail): copy the real side and back design from them for the side and back tiles.':''),image_input:[img,...extra],aspect_ratio:'16:9',resolution:'2K',output_format:'jpg'});await run(db,"UPDATE generations SET state='waiting',task_id=? WHERE id=?",task.taskId,id);return J({id,state:'waiting'});}catch{await run(db,"UPDATE generations SET state='unknown' WHERE id=?",id);throw new Problem(502,'ساخت تصویر با خطا روبه‌رو شد؛ لطفاً دوباره امتحان کنید');}
+  try{const img=await uploadProvider(env,m);const ang=base.reference_id?(await dressAngles(db,salon,'dress',base.reference_id)).media.slice(1):[];const extra=[];for(const x of ang)extra.push(await uploadProvider(env,x));const task=await createImageTask(env,cfg,{prompt:VIEWS_PROMPT+(extra.length?' Photos 2 to '+(extra.length+1)+' show the same dress from other angles (side, back, detail): copy the real side and back design from them for the side and back tiles.':''),image_input:[img,...extra],aspect_ratio:'16:9',resolution:'2K',output_format:'jpg'});await run(db,"UPDATE generations SET state='waiting',task_id=?,model=? WHERE id=?",task.taskId,String(task.model||''),id);return J({id,state:'waiting'});}catch{await run(db,"UPDATE generations SET state='unknown' WHERE id=?",id);throw new Problem(502,'ساخت تصویر با خطا روبه‌رو شد؛ لطفاً دوباره امتحان کنید');}
  }
  if(route==='spin'&&req.method==='POST'){await limited(db,'gen-ip:'+salon.id+':'+clientIp(req),15,'امروز چند تصویر از این شبکه ساخته شده؛ فردا دوباره امتحان کنید');await limited(db,'gen-salon:'+salon.id,400,'سقف ساخت تصویر امروز این مزون پر شده است؛ فردا دوباره امتحان کنید');
   const b=await req.json();must(!demo,'چرخش ۳۶۰ در نسخهٔ نمونه نیست');must(env.KIE_API_KEY&&cfg.generation_enabled,'ساخت تصویر برای این مزون هنوز فعال نشده',503);must(/^[a-f0-9-]{36}$/.test(b.idem));
@@ -387,12 +403,12 @@ return new Response(object.body,{headers:base});}
  if(route==='generate'&&req.method==='POST'){await limited(db,'gen-ip:'+salon.id+':'+clientIp(req),15,'امروز چند تصویر از این شبکه ساخته شده؛ فردا دوباره امتحان کنید');await limited(db,'gen-salon:'+salon.id,400,'سقف ساخت تصویر امروز این مزون پر شده است؛ فردا دوباره امتحان کنید');
   const b=await req.json();const line=LINE_KEYS.includes(b.line)?b.line:'dress';
   must(!smsReady(env)||s.verified_phone,'اول شمارهٔ موبایلت را تأیید کن',403);must(!demo||smsReady(env),'ساخت تصویر در نسخهٔ نمونه هنوز فعال نشده است',503);
-  must(b.image_consent===true,'رضایت ارسال عکس برای پردازش لازم است');
+  must(b.image_consent===true,'رضایت ارسال عکس برای پردازش لازم است');await run(db,"UPDATE sessions SET consent_at=COALESCE(consent_at,?),consent_version=? WHERE id=?",Date.now(),CONSENT_VERSION,s.id);
   must(cfg.generation_enabled&&env.KIE_API_KEY,'تولید واقعی این مزون هنوز فعال نشده است',503);
   must(/^[a-f0-9-]{36}$/.test(b.idem));
   const old=await one(db,'SELECT * FROM generations WHERE session_id=? AND idem=?',s.id,b.idem);if(old)return J({id:old.id,state:old.state});
   const original=await ownMedia(db,s,b.original_id);must(original.kind==='original','عکس چهره لازم است');
-  const ratio=RATIOS.includes(b.ratio)?b.ratio:'2:3';
+  const ratio=typeof b.ratio==='string'&&RATIOS.includes(b.ratio)?b.ratio:'2:3';
   let reference=null,angles=[],note='';
   if(b.reference_id){
    const d=await dressAngles(db,salon,line,b.reference_id);
@@ -410,7 +426,7 @@ return new Response(object.body,{headers:base});}
    const venue=bgOf(b.bg);if(venue)images.push((env.APP_ORIGIN||u.origin)+'/bg/'+venue.id+'.jpg');
    const gopts={makeup:b.makeup===true,angles:angles.length,note,bg:venue?images.length:0};const prompt=linePrompt(line,reference?'reference':'catalog',reference?'':lineStyles(line)[b.style][3],gopts);
    sent=true;const job=await createImageTask(env,cfg,{prompt,image_input:images,aspect_ratio:ratio,resolution:'2K',output_format:'jpg'});
-   await run(db,"UPDATE generations SET state='waiting',task_id=? WHERE id=?",job.taskId,id);return J({id,state:'waiting'});
+   await run(db,"UPDATE generations SET state='waiting',task_id=?,model=? WHERE id=?",job.taskId,String(job.model||''),id);return J({id,state:'waiting'});
   }catch(e){console.error('generate failed',e&&e.message);await run(db,"UPDATE generations SET state=? WHERE id=?",sent?'unknown':'fail',id);throw new Problem(502,'وضعیت ارسال نامشخص است؛ برای جلوگیری از هزینه تکراری، درخواست تازه خودکار ساخته نمی‌شود');}
  }
  if(route.startsWith('generation/')){const id=route.slice(11),g=await one(db,'SELECT * FROM generations WHERE id=? AND salon_id=? AND session_id=?',id,salon.id,s.id);must(g,'درخواست تولید یافت نشد',404);const r=await settle(env,db,salon,s,g);if(r.state==='success'&&g.kind==='single')await sendResultToBot(env,env.APP_ORIGIN||u.origin,salon,s,{...g,result_id:r.result_id}).catch(e=>console.error('bot result',e?.message));return J(r);}

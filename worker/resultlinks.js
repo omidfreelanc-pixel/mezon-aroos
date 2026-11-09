@@ -60,5 +60,6 @@ export async function eraseSession(env,db,salon,session){
  for(const m of rows){try{await bucketFor(env).delete(m.object_key)}catch(e){console.error('erase object',e?.message);continue}await run(db,'DELETE FROM media WHERE id=?',m.id);n++}
  await run(db,'DELETE FROM result_links WHERE session_id=?',session.id);
  await run(db,'DELETE FROM pairings WHERE session_id=?',session.id);
+ await run(db,"UPDATE sessions SET cust_name='',cust_phone='',verified_phone=NULL,verified_name=NULL WHERE id=?",session.id);
  return n;
 }

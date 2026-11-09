@@ -133,9 +133,12 @@ main#app{max-width:1080px;margin:0 auto;padding:6px 20px 80px;min-height:70vh}
 .uploadbox__txt small{color:var(--muted);font-size:12px}
 .two{display:grid;gap:0 14px}
 @media(min-width:620px){.two{grid-template-columns:1fr 1fr}}
-.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;margin:0 0 6px;position:sticky;top:0;z-index:5;background:var(--glass);scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;border:0;border-radius:999px;padding:10px 16px;font:700 14px inherit;font-family:inherit;background:#e8edeb;color:#23170f;cursor:pointer;white-space:nowrap}.tab.is-on{background:#0c6b6b;color:#fff}.tabpanels{display:grid;gap:16px}.tabpanels>[hidden]{display:none}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;margin:0 0 6px;position:sticky;top:0;z-index:5;background:var(--glass);scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;border:0;border-radius:999px;padding:10px 16px;font:700 14px inherit;font-family:inherit;background:#e8edeb;color:#23170f;cursor:pointer;white-space:nowrap}.tab{min-height:44px;transition:background .15s,box-shadow .15s}.tab:hover{background:#d6e0dc}.tab.is-on:hover{background:#0a5a5a}.tab:focus-visible{outline:3px solid #0c6b6b;outline-offset:2px}.tab.is-on{background:#0c6b6b;color:#fff}.tabpanels{display:grid;gap:16px}.tabpanels>[hidden]{display:none}
 .login input{font-family:system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;color:#23170f;-webkit-text-fill-color:#23170f;background:#fff;caret-color:#23170f;color-scheme:light;font-size:16px}
-.field input[type=url],.field input[type=tel],#slug{direction:ltr;text-align:right}
+input[dir=ltr],textarea[dir=ltr],.field input[type=url],.field input[type=tel],#slug{direction:ltr;text-align:left}
+.card h2{font-size:21px}
+.pw{position:relative;display:block}.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:6px;vertical-align:-1px}
+.checklist{border:2px solid #0c6b6b}.checklist ol{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px}.checklist li{display:flex;gap:10px;align-items:center;min-height:44px;padding:8px 12px;border-radius:14px;background:var(--surface-2);font-size:14px}.checklist li.is-done{color:var(--muted);text-decoration:line-through}.checklist li b{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#0c6b6b;color:#fff;font-size:13px;flex:none;text-decoration:none}.checklist li.is-done b{background:var(--ok)}
 .ports{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px}
 .port-add{display:grid;gap:10px;margin-top:18px;padding:14px;border:1.5px dashed var(--line);border-radius:16px}
 .port-add__list{display:grid;gap:6px}.port-add__list input{min-height:40px}
@@ -216,8 +219,8 @@ function login(me){
 var dashState={days:30,salon:new URLSearchParams(location.search).get('salon')||''};
 function pct(x){return x==null?'—':fa(Math.round(x*100))+'٪'}
 function compact(n){n=Number(n)||0;return n>=10000?fa(Math.round(n/1000))+'هزار':fa(n)}
-function delta(cur,prev,isRate){if(!prev&&!cur)return null;if(!prev)return {t:'دورهٔ قبل داده‌ای نبود',up:true,plain:true};var d=isRate?(cur-prev)*100:(cur-prev)/prev*100;var r=Math.round(d);return {t:(r>0?'+':'')+fa(r)+(isRate?' واحد':'٪'),up:r>=0}}
-function tile(label,value,dl,hint){return el('div',{class:'kpi'},[h('span',label,'kpi__label'),h('b',value,'kpi__value'),dl?h('span',dl.plain?dl.t:dl.t+' نسبت به دورهٔ قبل','kpi__delta '+(dl.plain?'':(dl.up?'is-up':'is-down'))):(hint?h('span',hint,'kpi__delta'):null)])}
+function delta(cur,prev,isRate){if(!prev&&!cur)return null;if(!prev)return {plain:true};var d=isRate?(cur-prev)*100:(cur-prev)/prev*100;var r=Math.round(d);return {t:(r>0?'+':'')+fa(r)+(isRate?' واحد':'٪'),up:r>=0}}
+function tile(label,value,dl,hint){return el('div',{class:'kpi'},[h('span',label,'kpi__label'),h('b',value,'kpi__value'),dl&&!dl.plain?h('span',dl.t+' نسبت به دورهٔ قبل','kpi__delta '+(dl.up?'is-up':'is-down')):null,hint?h('span',hint,'kpi__delta'):null])}
 var tipEl=null;
 function tipShow(e,lines){if(!tipEl){tipEl=el('div',{class:'dtip',role:'tooltip'});document.body.append(tipEl)}tipEl.replaceChildren.apply(tipEl,lines.map(function(l,i){return el('div',{class:i?'dtip__sub':'dtip__main',text:l})}));tipEl.hidden=false;var r=(e.currentTarget||e.target).getBoundingClientRect();var x=Math.min(window.innerWidth-tipEl.offsetWidth-8,Math.max(8,r.left+r.width/2-tipEl.offsetWidth/2));tipEl.style.transform='translate('+x+'px,'+Math.max(8,r.top-tipEl.offsetHeight-8)+'px)'}
 function tipHide(){if(tipEl)tipEl.hidden=true}
@@ -243,7 +246,7 @@ function columns(daily,key,label,tone){
   plot.append(hoverable(el('span',{class:'col'+(last?' is-today':'')},[el('span',{class:'col__bar col__bar--'+tone,style:'height:'+(v?Math.max(hgt,2):0)+'%'})]),[fa(v)+' '+label,pday(d.day)]))});
  var ticks=el('div',{class:'cols__y'},[h('span',compact(top)),h('span',compact(top/2)),h('span','۰')]);
  var xs=el('div',{class:'cols__x'},[h('span',pday(daily[0].day)),h('span',pday(daily[Math.floor(daily.length/2)].day)),h('span','امروز')]);
- return el('div',{class:'colchart'},[ticks,el('div',{class:'cols__grid'},[plot,xs])]);
+ var chart=el('div',{class:'colchart'},[ticks,el('div',{class:'cols__grid'},[plot,xs])]);if(tone!=='muted')return chart;return el('div',{},[chart,el('div',{class:'legend'},[el('span',{},[el('i',{style:'background:#9fb0a9'}),document.createTextNode('روزهای قبل')]),el('span',{},[el('i',{style:'background:var(--ink-2)'}),document.createTextNode('امروز')])])]);
 }
 function pday(iso){try{return new Intl.DateTimeFormat('fa-IR-u-ca-persian',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(iso+'T12:00:00Z'))}catch(e){return iso}}
 function mins(m){if(m==null)return '—';if(m<60)return fa(Math.round(m))+' دقیقه';if(m<1440)return fa(Math.round(m/60))+' ساعت';return fa(Math.round(m/1440))+' روز'}
@@ -254,15 +257,16 @@ function dashboard(salons){
  [[7,'۷ روز'],[30,'۳۰ روز'],[90,'۹۰ روز']].forEach(function(o){range.append(el('button',{type:'button','aria-pressed':dashState.days===o[0]?'true':'false',text:o[1],onclick:function(){dashState.days=o[0];draw()}}))});
  var pick=el('select',{'aria-label':'مزون'},(MGR?[]:[el('option',{value:'',text:'همهٔ مزون‌ها'})]).concat(salons.map(function(s){return el('option',{value:s.slug,text:s.name})})));pick.value=dashState.salon;pick.addEventListener('change',function(){dashState.salon=pick.value;draw()});
  var body=el('div',{class:'dash__body'},[el('div',{class:'loading',text:'در حال آوردن آمار…'})]);
- root.append(el('div',{class:'dash__filters'},[range,pick]),body);
+ root.append(el('div',{class:'dash__filters'},[range,(MGR||salons.length<=1)?null:pick]),body);
  function draw(){
   Array.prototype.forEach.call(range.children,function(b,i){b.setAttribute('aria-pressed',[7,30,90][i]===dashState.days?'true':'false')});
   body.classList.add('is-refreshing');
-  api('/api/owner/stats?days='+dashState.days+(dashState.salon?'&salon='+encodeURIComponent(dashState.salon):'')).then(function(d){body.classList.remove('is-refreshing');body.replaceChildren.apply(body,render(d));if(MGR){Array.prototype.slice.call(body.querySelectorAll('.card')).forEach(function(c){var t=(c.querySelector('h2,h3')||{}).textContent||'';if(/پاسخ مزون‌ها|کیفیت فنی|مقایسهٔ مزون‌ها|رفرال|معرف|درخت/.test(t))c.remove()});return}var slot=el('div',{class:'dgrid dgrid--1'},[el('div',{class:'loading',text:'در حال آوردن رفرال‌ها…'})]);body.append(slot);return api('/api/owner/referrals'+(dashState.salon?'?salon='+encodeURIComponent(dashState.salon):'')).then(function(r){slot.replaceChildren.apply(slot,referrals(r))},function(e){slot.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))})}).catch(function(e){body.classList.remove('is-refreshing');body.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))});
+  api('/api/owner/stats?days='+dashState.days+(dashState.salon?'&salon='+encodeURIComponent(dashState.salon):'')).then(function(d){body.classList.remove('is-refreshing');body.replaceChildren.apply(body,render(d));if(MGR){Array.prototype.slice.call(body.querySelectorAll('.card')).forEach(function(c){var t=(c.querySelector('h2,h3')||{}).textContent||'';if(/پاسخ مزون‌ها|کیفیت فنی|مقایسهٔ مزون‌ها|رفرال|معرف|درخت/.test(t))c.remove()});Array.prototype.forEach.call(body.querySelectorAll('.dgrid'),function(g){if(g.children.length===1)g.classList.add('dgrid--1')});return}var slot=el('div',{class:'dgrid dgrid--1'},[el('div',{class:'loading',text:'در حال آوردن رفرال‌ها…'})]);body.append(slot);return api('/api/owner/referrals'+(dashState.salon?'?salon='+encodeURIComponent(dashState.salon):'')).then(function(r){slot.replaceChildren.apply(slot,referrals(r))},function(e){slot.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))})}).catch(function(e){body.classList.remove('is-refreshing');body.replaceChildren(el('p',{class:'notice notice--warn',text:e.message}))});
  }
  function render(d){
   var k=d.kpi,p=d.prev,out=[];
-  out.push(el('div',{class:'kpis'},[tile('بازدیدکننده',compact(k.visitors),delta(k.visitors,p.visitors)),tile('عکس گذاشتند',compact(k.photos),delta(k.photos,p.photos)),tile('شبیه‌سازی',compact(k.simulations),delta(k.simulations,p.simulations)),tile('برای مزون فرستادند',compact(k.sent),delta(k.sent,p.sent)),tile('نرخ تبدیل',pct(k.conversion),delta(k.conversion,p.conversion,true),'فرستاده ÷ بازدیدکننده')]));
+  out.push(el('div',{class:'kpis'},[tile('بازدیدکننده',compact(k.visitors),delta(k.visitors,p.visitors)),tile('عکس گذاشتند',compact(k.photos),delta(k.photos,p.photos)),tile('شبیه‌سازی',compact(k.simulations),delta(k.simulations,p.simulations)),tile('برای مزون فرستادند',compact(k.sent),delta(k.sent,p.sent)),tile('نرخ تبدیل',pct(k.conversion),delta(k.conversion,p.conversion,true),'از هر ۱۰۰ بازدیدکننده چند نفر درخواست فرستادند')]));
+  if([[k.visitors,p.visitors],[k.photos,p.photos],[k.simulations,p.simulations],[k.sent,p.sent]].some(function(x){return x[0]&&!x[1]}))out.push(h('p','برای بعضی شاخص‌ها در دورهٔ قبل داده‌ای ثبت نشده بود، پس مقایسه نشان داده نمی‌شود.','kpi__delta'));
   var top=d.funnel[0]?.count||0;
   out.push(el('div',{class:'dgrid'},[
    card('قیف مشتری','چند نفر از بازدیدکننده‌ها به هر قدم رسیدند.',hbars(d.funnel.map(function(f){return {label:f.label,count:f.count}}),{fmt:function(it){return fa(it.count)+(top?' ('+pct(it.count/top)+')':'')}}),tableOf(['قدم','نفر','از بازدید'],d.funnel.map(function(f){return [f.label,fa(f.count),top?pct(f.count/top):'—']}))),
@@ -396,7 +400,7 @@ function botCard(bot){
 }
 // Accounts: approval, image credit and recharge requests per salon (the project owner's side of /m/<token>).
 function accountsCard(){
- var box=el('section',{class:'card'},[h('h2','حساب مزون‌ها و اعتبار تصویر'),h('p','هر مزون ۱۰۰ تصویر دارد. تا وقتی حساب تأیید نشود، مزون‌دار همه‌چیزز را می‌بیند و کار می‌کند اما ساخت تصویر بسته است. لینک پنل شارژ را برای مزون‌دار بفرست.','lead')]),body=el('div',{class:'stack'});
+ var box=el('section',{class:'card'},[h('h2','حساب مزون‌ها و اعتبار تصویر'),h('p','هر مزون ۱۰۰ تصویر دارد. تا وقتی حساب تأیید نشود، مزون‌دار همه‌چیز را می‌بیند و کار می‌کند اما ساخت تصویر بسته است. لینک پنل شارژ را برای مزون‌دار بفرست.','lead')]),body=el('div',{class:'stack'});
  box.append(body);
  function load(){return api('/api/owner/accounts').then(function(d){
   body.replaceChildren();
@@ -407,7 +411,7 @@ function accountsCard(){
     el('button',{class:'btn btn--ghost btn--sm',type:'button',text:a.approved?'تعلیق':'تأیید حساب',onclick:act(function(){if(a.approved)return api('/api/owner/account',{slug:a.slug,approved:false}).then(load);var sub=a.subdomain||prompt('زیردامنهٔ انگلیسی مزون (مثلاً rose برای rose.'+location.hostname.replace(/^www\./,'')+'):',a.desired||(a.trial?'':a.slug));if(!sub)return;return api('/api/owner/account',{slug:a.slug,approved:true,subdomain:sub}).then(function(r){toast('تأیید شد'+(r.subdomain?' · زیردامنه: '+r.subdomain:''));return load()})})}),el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'نام کاربری/رمز مدیر',onclick:act(function(){var u=prompt('نام کاربری مدیر (انگلیسی):',a.manager||'');if(!u)return;var pw=prompt('رمز عبور (حداقل ۸ نویسه):');if(!pw)return;return api('/api/owner/manager',{slug:a.slug,username:u,password:pw}).then(function(){toast('اطلاعات ورود مدیر ذخیره شد');return load()})})}),
     el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'+۱۰۰ اعتبار',onclick:act(function(){return api('/api/owner/account',{slug:a.slug,add:100}).then(function(){toast('۱۰۰ تصویر اضافه شد');return load()})})}),
     el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'کپی لینک پنل',onclick:act(function(){return navigator.clipboard.writeText(a.panel).then(function(){toast('لینک پنل کپی شد')})})})]))});
-   if(!d.accounts.length)body.append(h('p','هنوز مزونی نیست.','empty-note'));
+   if(!d.accounts.length)body.append(h('p','هنوز حسابی برای نمایش نیست؛ بعد از ساخت مزون اینجا دیده می‌شود.','empty-note'));
   })}
  load().catch(function(e){body.append(h('p',e.message,'empty-note'))});
  return box;
@@ -439,8 +443,8 @@ function pendingCard(){
 }
 function tabsView(defs,key){
  var bar=el('div',{class:'tabs',role:'tablist'}),box=el('div',{class:'tabpanels'}),btns=[],panes=[];
- function pick(i){btns.forEach(function(b,k){b.classList.toggle('is-on',k===i);b.setAttribute('aria-selected',k===i?'true':'false')});panes.forEach(function(x,k){x.hidden=k!==i});try{sessionStorage.setItem('tab:'+key,String(i))}catch(e){}}
- defs.forEach(function(t,i){var b=el('button',{class:'tab',type:'button',role:'tab',text:t[0],onclick:function(){pick(i)}});btns.push(b);bar.append(b);var pn=el('div',{class:'stack',role:'tabpanel'},t[1]);pn.hidden=true;panes.push(pn);box.append(pn)});
+ function pick(i){btns.forEach(function(b,k){b.classList.toggle('is-on',k===i);b.setAttribute('aria-selected',k===i?'true':'false');b.tabIndex=k===i?0:-1});panes.forEach(function(x,k){x.hidden=k!==i});try{sessionStorage.setItem('tab:'+key,String(i))}catch(e){}}
+ defs.forEach(function(t,i){var b=el('button',{class:'tab',type:'button',role:'tab',id:'tab-'+key+'-'+i,'aria-controls':'pn-'+key+'-'+i,text:t[0],onclick:function(){pick(i)}});b.addEventListener('keydown',function(e){var n=e.key==='ArrowLeft'?i+1:e.key==='ArrowRight'?i-1:e.key==='Home'?0:e.key==='End'?defs.length-1:-1;if(n<0||n>=defs.length)return;e.preventDefault();pick(n);btns[n].focus()});btns.push(b);bar.append(b);var pn=el('div',{class:'stack',role:'tabpanel',id:'pn-'+key+'-'+i,'aria-labelledby':'tab-'+key+'-'+i},t[1]);pn.hidden=true;panes.push(pn);box.append(pn)});
  var start=0;try{start=Math.min(defs.length-1,Number(sessionStorage.getItem('tab:'+key))||0)}catch(e){}
  pick(start);return el('div',{},[bar,box]);
 }
@@ -449,7 +453,7 @@ function home(){return api('/api/owner').then(function(d){
  var head=el('div',{class:'page-head'},[el('div',{},[h('h1','داشبورد'),h('p','مشتری‌ها چطور از صفحه‌ها استفاده می‌کنند و مزون‌ها چقدر جواب می‌دهند. با تب‌های زیر بین مزون‌ها، آمار و تنظیمات جابه‌جا شوید.')])]);
  var list=el('div',{class:'salons'});
  d.salons.forEach(function(s){list.append(el('div',{class:'salon'},[el('div',{class:'grow'},[h('strong',s.name),h('small','/s/'+s.slug)]),badge(s.telegram&&s.bale?'تلگرام و بله وصل':s.telegram?'تلگرام وصل':s.bale?'بله وصل':'ربات وصل نیست',s.telegram||s.bale?'ok':'warn'),h('small',fa(s.portfolio)+' نمونه‌کار، '+fa(s.leads)+' درخواست'+(s.team?'، تیم '+fa(s.team_linked)+'/'+fa(s.team)+' وصل':'')),setupLine(s),(s.waiting||s.overdue)?el('div',{class:'row',style:'gap:6px'},[s.waiting?badge(fa(s.waiting)+' درخواست منتظر وصل شدن','warn'):null,s.overdue?badge(fa(s.overdue)+' بی‌جواب بیش از ۲۴ ساعت','danger'):null]):null,el('a',{class:'btn btn--ghost btn--sm',href:'/s/'+s.slug,target:'_blank',rel:'noopener',text:'صفحهٔ مشتری'}),el('a',{class:'btn btn--primary btn--sm',href:'/admin/'+s.slug,text:'تنظیمات'})]))});
- if(!d.salons.length)list.append(h('p','هنوز مزونی نساخته‌اید.','empty-note'));
+ if(!d.salons.length)list.append(h('p','هنوز مزونی ثبت نشده؛ از فرم «مزون تازه» اولین مزون را بسازید.','empty-note'));
  var create=el('section',{class:'card'},[h('h2','مزون تازه'),field('name','نام مزون'),field('slug','نشانی انگلیسی صفحه','', 'text','فقط حروف انگلیسی، عدد و خط تیره؛ حروف بزرگ و فاصله خودکار درست می‌شوند.'),el('button',{class:'btn btn--primary',type:'button',text:'ساخت مزون',onclick:act(function(){return api('/api/salons',{name:$('#name').value,slug:$('#slug').value.trim()}).then(function(s){location.href='/admin/'+s.slug})})})]);
  // The page address is cleaned as it is typed: lowercase, spaces become dashes, nothing else allowed.
  (function(){var si=create.querySelector('#slug');if(!si)return;si.setAttribute('dir','ltr');si.setAttribute('autocapitalize','off');si.setAttribute('autocorrect','off');si.setAttribute('spellcheck','false');si.setAttribute('inputmode','url');si.setAttribute('placeholder','aliadli-salon');
@@ -493,8 +497,8 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  function connectBot(pl){var w=window.open('about:blank','_blank');return api('/api/s/'+slug+'/owner/telegram-link',{}).then(function(r){var url=(r.links||{})[pl];if(!url){if(w)w.close();throw new Error('ربات هنوز تنظیم نشده')}if(w)w.location.href=url;else location.href=url;toast('در برنامه دکمهٔ Start را بزنید؛ اتصال خودکار انجام می‌شود…');pollBot()})}
  [['telegram',d.bot.telegram,'تلگرام'],['bale',d.bot.bale,'بله']].forEach(function(x){if(x[1]&&x[1].ready&&x[1].username)tg.append(el('button',{class:'btn btn--primary',type:'button',style:'margin-inline-end:8px;margin-top:8px',text:(on?'اتصال دوباره به ':'اتصال به ')+x[2],onclick:act(function(){return connectBot(x[0])})}))});
  if(!(d.bot.telegram&&d.bot.telegram.ready&&d.bot.telegram.username)&&!(d.bot.bale&&d.bot.bale.ready&&d.bot.bale.username))tg.append(el('p',{class:'notice notice--warn',text:'ربات هنوز روی سایت تنظیم نشده است.'}));
- if(!on)tg.append(el('p',{class:'tiny muted',style:'margin-top:8px',text:'روی دکمه بزنید تا برنامه باز شود؛ آنجا فقط «Start» را بزنید و همه‌چیزز خودکار وصل می‌شود.'}));
- else tg.append(el('p',{class:'notice notice--warn',text:'اول ربات را در صفحهٔ «همهٔ مزون‌ها» تنظیم کنید.'}));
+ if(!on)tg.append(el('p',{class:'tiny muted',style:'margin-top:8px',text:'روی دکمه بزنید تا برنامه باز شود؛ آنجا فقط «Start» را بزنید و همه‌چیز خودکار وصل می‌شود.'}));
+
  tg.append(linkOut);
  [['telegram','تلگرام',S.telegram],['bale','بله',S.bale]].forEach(function(x){if(x[2])tg.append(el('button',{class:'btn btn--danger btn--sm',type:'button',style:'margin-top:12px;margin-inline-end:8px',text:'قطع '+x[1],onclick:act(function(){if(!confirm('اتصال '+x[1]+' این مزون قطع شود؟'))return;return api('/api/s/'+slug+'/owner/telegram-unlink',{platform:x[0]}).then(salonPage)})}))});
 
@@ -567,8 +571,19 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
  else smsC.append(h('p','ارسال پیامک هنوز فعال نشده است. تا آن موقع می‌توانید لینک صفحه را از ربات یا پیام‌رسان‌ها برای مشتری بفرستید.','notice notice--warn'));
  var pageUrl=location.origin+(MGR&&location.hostname.split('.').length>2?'/':'/s/'+slug);
  var share=el('section',{class:'card'},[h('h2','لینک صفحهٔ مزون'),h('p','این لینک را به مشتری‌ها بدهید یا در اینستاگرام بگذارید.','lead'),copyRow('صفحهٔ مشتری‌ها',pageUrl),(function(){var q=qrcode(0,'M');q.addData(pageUrl);q.make();var svg=q.createSvgTag({cellSize:6,margin:2,scalable:true});var wrap=el('div',{class:'qrbox',dir:'ltr',html:svg,style:'width:180px;max-width:100%;margin:14px auto 6px;background:#fff;padding:8px;border-radius:14px'});var row=el('div',{class:'row',style:'display:flex;gap:8px;flex-wrap:wrap;justify-content:center'},[el('button',{class:'btn btn--soft btn--sm',type:'button',text:'اشتراک‌گذاری',onclick:function(){if(navigator.share)navigator.share({title:'امتحان لباس عروس',url:pageUrl}).catch(function(){});else{navigator.clipboard&&navigator.clipboard.writeText(pageUrl);toast('لینک کپی شد.')}}}),el('button',{class:'btn btn--soft btn--sm',type:'button',text:'چاپ QR',onclick:function(){var w=window.open('','_blank');if(!w)return;w.document.write('<!doctype html><meta charset=utf-8><title>QR</title><body style="text-align:center;font-family:sans-serif;padding:40px"><div style="width:320px;margin:auto">'+svg+'</div><p>برای امتحان لباس، کد را با گوشی اسکن کنید</p>');w.document.close();w.focus();w.print()}})]);return el('div',{},[wrap,row])})()]);
+ var SK='shared:'+slug;share.addEventListener('click',function(e){if(e.target.closest&&e.target.closest('button,a')){try{localStorage.setItem(SK,'1')}catch(x){}}});
+ function checklistCard(){
+  var shared=false;try{shared=!!localStorage.getItem(SK)}catch(x){}
+  var items=[['بارگذاری ۳ لباس',(d.portfolio||[]).length>=3,'نمونه‌کارها'],['وصل کردن ربات',!!(S.telegram||S.bale),'ارتباط با مشتری'],['اشتراک‌گذاری لینک یا QR',shared,null],['اولین درخواست مشتری',(d.leads||[]).length>0,'درخواست‌ها']];
+  if(items.every(function(x){return x[1]}))return null;
+  var done=items.filter(function(x){return x[1]}).length;
+  var ol=el('ol',{});
+  items.forEach(function(x,i){ol.append(el('li',{class:x[1]?'is-done':''},[el('b',{text:x[1]?'✓':fa(i+1)}),el('span',{text:x[0]}),x[2]&&!x[1]?el('button',{class:'btn btn--soft btn--sm',type:'button',style:'margin-inline-start:auto',text:'برو',onclick:function(){var t=Array.prototype.filter.call(document.querySelectorAll('button.tab'),function(b){return b.textContent===x[2]})[0];if(t)t.click();window.scrollTo({top:0,behavior:'smooth'})}}):null]))});
+  return el('section',{class:'card checklist'},[h('h2','شروع سریع'),h('p',fa(done)+' از '+fa(items.length)+' قدم انجام شده. با این چهار قدم مزون آمادهٔ دریافت مشتری می‌شود.','lead'),ol]);
+ }
+ var cl=MGR?checklistCard():null;
  function tabs(defs){return tabsView(defs,slug)}
- var defs=MGR?[['نمای کلی',[mgrCredits(),dashboard([{slug:MGR,name:S.name}]),share]],['درخواست‌ها',[leads]],['نمونه‌کارها',[port,social]],['مشخصات مزون',[prof]],['تیم',[teamC]],['ارتباط با مشتری',[tg,smsC]]]
+ var defs=MGR?[['نمای کلی',[cl,dashboard([{slug:MGR,name:S.name}]),share,mgrCredits()]],['درخواست‌ها',[leads]],['نمونه‌کارها',[port,social]],['مشخصات مزون',[prof]],['تیم',[teamC]],['ارتباط با مشتری',[tg,smsC]]]
   :[['نمای کلی',[share]],['درخواست‌ها',[leads]],['نمونه‌کارها',[port,social]],['مشخصات مزون',[prof]],['تیم',[teamC]],['ارتباط با مشتری',[tg,smsC]],['تنظیمات',[set]]];
  if(MGR)dashState.salon=MGR;
  $('#app').replaceChildren(head,tabs(defs));

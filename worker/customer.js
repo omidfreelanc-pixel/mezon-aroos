@@ -30,6 +30,10 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .hchip__ico{display:inline-grid;color:var(--accent)}.hchip__ico svg{width:15px;height:15px}
 .hchip__txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62vw}
 .hero__cta .btn{width:100%}
+@media(max-width:959px){.hero__cta{display:none}}
+@media(max-width:959px){.btn--build{display:none}}
+@media(max-width:560px){.flow--shoot .flow__sub,.demo-row__text span{display:none}.flow--shoot .upload{aspect-ratio:auto;min-height:150px;width:100%;border-radius:22px;padding:18px}.demo-row{margin-bottom:12px}}
+.tipsbox{border-top:0;padding-top:0}.tipsbox .tips{margin-top:10px}
 .btn--lg{min-height:54px;font-size:16px;padding-inline:26px}
 @media(min-width:760px){
  .hero{padding:20px 0 30px}
@@ -249,17 +253,17 @@ a.hchip,button.hchip{cursor:pointer}a.hchip:hover,button.hchip:hover{border-colo
 .tour__path::before{content:"";position:absolute;top:21px;inset-inline:16%;height:2px;background:var(--line)}
 .tour__path li{display:grid;justify-items:center;gap:7px;position:relative;font-size:12.5px}
 .tour__path span{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:#fff;box-shadow:0 0 0 5px var(--surface)}
-.tour__path li:nth-child(2) span{background:var(--ink)}
+.tour__path li:nth-child(2) span{background:#9a3f5b}
 .tour__path li:nth-child(3) span{background:var(--honey)}
 .tour__path svg{width:20px;height:20px}
 .tour__actions{display:grid;gap:8px}
-.tour__skip{border-color:transparent}
+.tour__skip{border-color:transparent;min-height:48px}
 .tour__top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .tour__dots{display:flex;gap:5px}
 .tour__dots span{width:7px;height:7px;border-radius:9px;background:var(--line);transition:width .25s var(--ease),background-color .25s}
 .tour__dots .is-on{width:20px;background:var(--accent)}
 .tour__dots .is-done{background:var(--accent-soft)}
-.tour__x{width:34px;height:34px;border:0;border-radius:50%;background:var(--glass);color:var(--ink-2);font-size:19px;line-height:1}
+.tour__x{width:44px;height:44px;border:0;border-radius:50%;background:var(--glass);color:var(--ink-2);font-size:19px;line-height:1}
 .tour__nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px}
 .tour__count{font-size:12px;color:var(--muted)}
 .tour--still,.tour--still *{animation:none!important;transition:none!important}
@@ -557,10 +561,11 @@ function el(tag,attrs,children){var e=document.createElement(tag);attrs=attrs||{
 function h(tag,text,cls){return el(tag,{class:cls||'',text:text})}
 function media(id){return '/api/s/'+SLUG+'/media/'+id}
 function dressInfo(p){var m={sale:'فروش',rent:'اجاره',both:'فروش و اجاره'}[p.mode]||'',t=[m,p.price].filter(Boolean).join(' · '),st=p.stock==='available'?'موجود':p.stock==='ask'?'موجودی: بپرسید':'';if(!t&&!st)return el('span',{class:'dress-info'});return el('span',{class:'dress-info'},[t?el('span',{text:t}):null,st?el('em',{class:p.stock==='available'?'ok':'',text:st}):null])}
+function fa_msg(m,fb){return typeof m==='string'&&/[\u0600-\u06FF]/.test(m)?m:(fb||'مشکلی پیش آمد؛ کمی بعد دوباره امتحان کن.')}
 function api(path,body,raw){
  var init={};
  if(body!==undefined){init.method='POST';init.headers=raw?{}:{'Content-Type':'application/json'};init.body=raw?body:JSON.stringify(body)}
- return fetch('/api/s/'+SLUG+'/'+path,init).catch(function(){throw new Error('ارتباط برقرار نشد؛ اینترنتت را بررسی کن و دوباره امتحان کن.')}).then(function(r){return r.json().catch(function(){return {}}).then(function(d){if(!r.ok)throw new Error(d.error||'خطای ارتباط با سرور');return d})})
+ return fetch('/api/s/'+SLUG+'/'+path,init).catch(function(){throw new Error('ارتباط برقرار نشد؛ اینترنتت را بررسی کن و دوباره امتحان کن.')}).then(function(r){return r.json().catch(function(){return {}}).then(function(d){if(!r.ok)throw new Error(fa_msg(d.error));return d})})
 }
 function toast(msg,kind){
  var t=$('#toast');if(!t)return;
@@ -743,7 +748,7 @@ function flowHead(title,sub){
 }
 function openCamera(){if(DESK&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){kioskCamera();return}var cam=el('input',{type:'file',accept:'image/*',capture:'user'});cam.style.display='none';cam.addEventListener('change',function(){handleFile(cam.files&&cam.files[0],'original');cam.remove()});document.body.append(cam);cam.click()}
 function stepPhoto(){
- var box=el('div',{class:'panel flow'});
+ var box=el('div',{class:'panel flow flow--shoot'});
  if(!state.original&&state.preview){
   box.append(flowHead('دارم عکست را بارگذاری می‌کنم','چند ثانیه صبر کن؛ همین که آماده شد خبرت می‌کنم.'));
   box.append(el('div',{class:'photo'},[el('div',{class:'mirror'},[el('div',{class:'mirror__glass'},[el('img',{src:state.preview,alt:'عکس انتخابی شما'}),el('div',{class:'upl',role:'status'},[el('span',{class:'upl__scan'}),el('span',{text:'در حال بارگذاری…'}),el('span',{class:'upl__bar'},[el('i')])])])])]));
@@ -761,7 +766,7 @@ function stepPhoto(){
   ['dragleave','drop'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove('is-drag')})});
   drop.addEventListener('drop',function(e){var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];handleFile(f,'original')});
   var side=el('div',{class:'shoot__side'},[
-   el('ul',{class:'tips'},LP().tips.map(function(t){return el('li',{class:'tip'},[el('span',{html:ICO[t[0]]}),el('span',{},[el('b',{text:t[1]}),document.createTextNode(t[2])])])})),
+   el('details',{class:'collapse tipsbox',open:window.matchMedia('(min-width:700px)').matches?'':null},[el('summary',{html:ICO.info+'<span>نکات یک عکس خوب</span>'}),el('ul',{class:'tips'},LP().tips.map(function(t){return el('li',{class:'tip'},[el('span',{html:ICO[t[0]]}),el('span',{},[el('b',{text:t[1]}),document.createTextNode(t[2])])])}))]),
    el('div',{class:'shoot__btns'},[
     DESK?null:el('button',{class:'btn btn--primary',type:'button',onclick:pickNow,html:ICO.gallery+'<span>انتخاب از گالری</span>'}),
     el('button',{class:DESK?'btn btn--primary':'btn btn--ghost',type:'button',onclick:openCamera,html:ICO.camera+'<span>عکس با دوربین</span>'}),
@@ -849,7 +854,7 @@ function stepModel(){
  if(tabs.length>1)box.append(seg);
  if(state.tab==='salon'){
   var items=(state.pub.portfolio||[]).filter(function(p){return (p.published||p.try_on)&&(p.line||'dress')==='dress'});
-  if(!items.length)box.append(notice('info',state.pub.catalog||state.pub.own_dress?'مزون هنوز لباسی نگذاشته. از «'+TAB_LABEL.dress[1]+'» یا «'+TAB_LABEL.dress[2]+'» استفاده کن.':'هنوز لباسی در این مزون ثبت نشده. از مزون‌دار بخواه لباس‌ها را اضافه کند.'));
+  if(!items.length)box.append(notice('info',state.pub.catalog||state.pub.own_dress?'گالری این مزون هنوز لباسی ندارد. تا اضافه شدن لباس‌ها، از «'+TAB_LABEL.dress[1]+'» یا «'+TAB_LABEL.dress[2]+'» استفاده کن.':'گالری این مزون هنوز لباسی ندارد و به‌زودی پر می‌شود. می‌توانی از دکمهٔ «دربارهٔ مزون» با خود مزون در تماس باشی.'));
   else{
    // Same vertical grid as the ready-made looks.
    var grid0=el('div',{class:'looks looks--salon'});
@@ -924,7 +929,7 @@ function stepModel(){
 }
 function buildLabel(can){return can?ICO.spark+'<span>بساز</span>':(quotaLeft()===0?ICO.send+'<span>فرستادن برای '+artist()+'</span>':'<span>ادامه: نتیجه</span>')}
 function buildHint(ready,can,left){
- if(!ready)return missingReason()+'؛ بعد «بساز» فعال می‌شود.';
+ if(!ready)return missingReason()+'.';
  if(!can)return '';
  return 'با زدن «بساز» عکست برای ساخت فرستاده می‌شود و فقط برای همین مزون می‌ماند.'+(left!=null?' '+fa(left)+' ساخت دیگر در این بخش داری.':'');
 }
@@ -1181,6 +1186,7 @@ function renderDock(){
  var inner=el('div',{class:'dock__inner'});
  var hint='',primary=null;
  if(state.step===1){
+  if(!state.original&&!state.busy){dock.hidden=true;dock.replaceChildren();return}
   hint=state.original?'عکس آماده است':'برای شروع، عکس تمام‌قدت را اضافه کن';
   if(state.busy&&!state.original){hint='در حال بارگذاری عکس…';primary=el('button',{class:'btn btn--primary',type:'button',disabled:true,text:'در حال بارگذاری…'})}
   else primary=el('button',{class:'btn btn--primary',type:'button',onclick:function(){(state.original?go(2):pickNow())},html:(state.original?ICO.check:ICO.camera)+'<span>'+(state.original?'ادامه':'افزودن عکس')+'</span>'});
@@ -1188,7 +1194,7 @@ function renderDock(){
   var ready=hasChoice(),can=canGenerate();
   var out=quotaLeft()===0;
   hint=out?'سهم ساخت این بخش تمام شد':ready?(can?'آماده؛ بزن بساز':'آماده'):missingReason();
-  primary=el('button',{class:'btn btn--primary',type:'button',disabled:!ready,onclick:build,html:can?ICO.spark+'<span>بساز</span>':out?ICO.send+'<span>فرستادن</span>':ICO.arrow+'<span>ادامه</span>'});
+  primary=el('button',{class:'btn btn--primary',type:'button',disabled:!ready,onclick:build,html:can?ICO.spark+'<span>بساز</span>':out?ICO.send+'<span>فرستادن</span>':!ready?'<span>اول لباس را انتخاب کن</span>':ICO.arrow+'<span>ادامه</span>'});
  }else{
   if(state.busy){hint='در حال ساخت…';primary=el('button',{class:'btn btn--primary',type:'button',disabled:true,text:'در حال ساخت…'})}
   else if(state.result){hint='عکس را روی گوشی‌ات بگیر';primary=el('button',{class:'btn btn--primary',type:'button',onclick:openQR,html:ICO.phone+'<span>ارسال برای خودم</span>'})}
@@ -1213,7 +1219,7 @@ function handleFile(file,kind,checked){
    state.advT=setTimeout(function(){if(state.step===1&&state.justUploaded){state.justArrived=true;go(2)}},1600)}
   else{track('look','u');state.reference=d.id;state.refTitle='';state.style=null;state.result=null;state.error='';setTimeout(scrollToBuild,60)}
   renderFlow();renderSteps();renderDock();
- }).catch(function(e){if(kind==='original'&&!state.original){state.preview=null;renderFlow()}toast(e.message,'error')}).then(function(){state.busy=false;renderDock()});
+ }).catch(function(e){if(kind==='original'&&!state.original){state.preview=null;renderFlow()}toast(fa_msg(e.message,'آپلود عکس انجام نشد؛ دوباره امتحان کن.'),'error')}).then(function(){state.busy=false;renderDock()});
 }
 
 /* ---------- photo guidelines: every full-length photo (camera, gallery, or sent from a phone) is checked before it is used ---------- */
@@ -1506,7 +1512,7 @@ function tourSteps(){
   {el:'#flow .seg [data-tab="salon"]',enter:function(){tourView(2,'salon')},title:'۱. لباس‌های همین مزون',text:hasLineWork()?'لباس‌های واقعی «'+state.pub.salon.name+'». روی هر کدام بزن تا همان لباس روی تو ساخته شود.':'لباس‌های واقعی مزون اینجا می‌آید. روی هر کدام بزنی، همان لباس روی تو ساخته می‌شود.'},
   {el:'#flow .looks .style-card',enter:function(){tourView(2,'catalog')},title:'۲. لباس‌های آماده',text:'مدل‌های پرطرفدار با عکس نمونه. با فیلترهای بالا سریع پیدا کن: پفی، ماهی، پوشیده، دانتل…'},
   {el:'#flow .upload--ref',enter:function(){tourView(2,'upload')},title:'۳. عکس لباسی که خودت داری',text:'لباسی در اینستاگرام یا گالری‌ات دیدی؟ عکسش را اینجا بگذار. فقط خود لباس برداشته می‌شود؛ مدل و بدنش نه.'},
-  {el:'#flow .btn--build',enter:function(){tourView(2,'catalog',3)},title:'انتخاب کردی؟ «بساز»',text:'با یک دکمه پرو شروع می‌شود و نتیجه را کنار عکس خودت می‌بینی. بعد با یک دکمه برای مزون می‌فرستی.'},
+  {el:mobile?'#dock .dock__inner':'#flow .btn--build',enter:function(){tourView(2,'catalog',3)},title:'انتخاب کردی؟ «بساز»',text:'با یک دکمه پرو شروع می‌شود و نتیجه را کنار عکس خودت می‌بینی. بعد با یک دکمه برای مزون می‌فرستی.'},
   {el:'#steps .steps__list',title:'همیشه می‌دانی کجایی',text:'عکس تو، انتخاب، نتیجه. روی هر قدم بزنی برمی‌گردی.'},
   {el:'.about-btn',title:'همه‌چیز دربارهٔ مزون',text:'آدرس، شماره، ساعت کاری و صفحه‌های مزون اینجاست.'},
   {el:mobile?'#dock .dock__inner':'.hero__cta .btn',title:'شروع کنیم؟',text:'اول عکس تمام‌قدت را بگذار. بعد از دیدن نتیجه، با «ارسال برای خودم» آن را روی گوشی‌ات بگیر.',last:true}
@@ -1536,7 +1542,7 @@ function startTour(){
    el('p',{class:'tour__text',text:'قبل از اینکه به پرو «'+state.pub.salon.name+'» بیایی، لباس عروس را روی اندام خودت ببین؛ قد و سایز بدنت همان می‌ماند. در یک دقیقه نشانت می‌دهم چطور.'}),
    el('ol',{class:'tour__path'},[
     el('li',{},[el('span',{html:ICO.camera}),el('b',{text:'عکس تو'})]),
-    el('li',{},[el('span',{html:ICO.spark}),el('b',{text:'انتخاب لباس'})]),
+    el('li',{},[el('span',{html:ICO.heart}),el('b',{text:'انتخاب لباس'})]),
     el('li',{},[el('span',{html:ICO.spark}),el('b',{text:'بساز و ببین'})])
    ]),
    el('div',{class:'tour__actions'},[
