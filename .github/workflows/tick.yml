@@ -1,0 +1,17 @@
+name: tick
+# Runs retention cleanup, lead retries and bot settling every 10 minutes (the Worker has no cron slot).
+# Needs the repository secret JOB_TOKEN (same value as the Worker secret JOB_TOKEN).
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /api/internal/tick
+        env:
+          JOB_TOKEN: ${{ secrets.JOB_TOKEN }}
+        run: |
+          if [ -z "$JOB_TOKEN" ]; then echo "JOB_TOKEN secret missing; skipping"; exit 0; fi
+          curl -fsS -m 60 -X POST -H "Authorization: Bearer $JOB_TOKEN" https://ayneh-mezon.site/api/internal/tick

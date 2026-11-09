@@ -11,6 +11,7 @@ import {postPage} from './social.js';
 import {resultPage,resultImage} from './resultlinks.js';
 import {pairPage,pairUpload} from './pairing.js';
 import {landingFor} from './landing.js';
+import {legalHTML} from './legal.js';
 import {panelPage} from './credits.js';
 import {subOf} from './manager.js';
 import {registerHTML} from './register.js';
@@ -47,6 +48,7 @@ async function ensureWebhook(env,origin){try{
 }catch{}}
 export default {
  async fetch(request,env,ctx){try{const u=new URL(request.url);
+  if(u.pathname==='/api/health'){try{await env.DB.prepare('SELECT 1').first();return Response.json({ok:true})}catch(e){console.error('health',e&&e.message);return Response.json({ok:false},{status:503})}}
   if(u.pathname==='/api/internal/webhook'){must(request.method==='POST','متد مجاز نیست',405);must(env.JOB_TOKEN&&request.headers.get('Authorization')==='Bearer '+env.JOB_TOKEN,'دسترسی مجاز نیست',403);return Response.json(await setWebhook(env,env.APP_ORIGIN||u.origin));}
   if(u.pathname==='/api/internal/tick'){must(request.method==='POST','متد مجاز نیست',405);must(env.JOB_TOKEN&&request.headers.get('Authorization')==='Bearer '+env.JOB_TOKEN,'دسترسی مجاز نیست',403);return Response.json(await tick(env,u.origin));}
   if(u.pathname==='/api/telegram/webhook')return await webhook(request,env);
@@ -63,6 +65,7 @@ export default {
    return new Response(appHTML.replace('<head>',()=>tag('MGR')),{headers:htmlHeaders});
   }}
   if(u.pathname==='/register'||u.pathname==='/register/')return new Response(registerHTML,{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}});
+  if(u.pathname==='/privacy'||u.pathname==='/terms')return new Response(legalHTML,{headers:{...htmlHeaders,'Cache-Control':'public,max-age=3600'}});
   if(u.pathname==='/robots.txt'){const o=env.APP_ORIGIN||u.origin;return new Response('User-agent: *\nAllow: /\nAllow: /s/\nDisallow: /api/\nDisallow: /admin\nDisallow: /manager\nDisallow: /register\nDisallow: /r/\n\nSitemap: '+o+'/sitemap.xml\n',{headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'public,max-age=3600'}})}
   if(u.pathname==='/sitemap.xml'){const o=env.APP_ORIGIN||u.origin;return new Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+['/','/s/demo'].map(p=>'<url><loc>'+o+p+'</loc></url>').join('')+'</urlset>',{headers:{'Content-Type':'application/xml; charset=utf-8','Cache-Control':'public,max-age=3600'}})}
   if(u.pathname==='/'){ctx?.waitUntil(ensureWebhook(env,u.origin));return new Response(landingFor(env.APP_ORIGIN||u.origin),{headers:{...htmlHeaders,'Cache-Control':'public,max-age=300'}})}

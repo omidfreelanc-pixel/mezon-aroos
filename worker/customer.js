@@ -1759,7 +1759,7 @@ function openWant(it){
  var msg=el('textarea',{id:'wnote',maxlength:'500',placeholder:'اگر چیزی هست که مزون باید بداند، بنویس'});
  var consent=el('input',{type:'checkbox',id:'wconsent'});
  var consentErr=el('span',{class:'err',text:'برای ارسال، این تأیید لازم است'});
- var consentWrap=el('label',{class:'consent','data-invalid':'false'},[consent,el('span',{text:'قبول دارم عکس من و نتیجهٔ این لباس فقط برای «'+s.name+'» فرستاده شود.'}),consentErr]);
+ var consentWrap=el('label',{class:'consent','data-invalid':'false'},[consent,el('span',{},[document.createTextNode('قبول دارم عکس من و نتیجهٔ این لباس برای «'+s.name+'» فرستاده شود و برای ساخت تصویر به سرویس هوش مصنوعی خارج از کشور برود؛ '),el('a',{href:'/privacy',target:'_blank',rel:'noopener',text:'قوانین و حریم خصوصی'}),document.createTextNode(' را می‌پذیرم.')]),consentErr]);
  var submit=el('button',{class:'btn btn--primary btn--block',type:'submit',html:ICO.heart+'<span>ثبت درخواست</span>'});
  var form=el('form',{novalidate:'true'},[nameWrap,phoneWrap,
   el('label',{class:'field'},[el('span',{class:'lbl',text:'روز و ساعت دلخواه برای بازدید (اختیاری)'}),visit]),

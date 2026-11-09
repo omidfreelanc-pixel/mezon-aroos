@@ -141,7 +141,7 @@ export async function tick(env,origin){if(!env.DB)return {ready:false};const del
  const botDone=await settleBots(env,env.APP_ORIGIN||origin).catch(e=>{console.error('bots',e?.message);return 0});
  const cleaned=await cleanup(env);return {ready:true,delivered,expired,unanswered,digest:digestSent,purged,botDone,...cleaned};}
 
-async function provider(env,path,body){must(env.KIE_API_KEY,'ساخت تصویر برای این مزون هنوز فعال نشده است',503);const res=await fetch('https://api.kie.ai'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+env.KIE_API_KEY,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});const d=await res.json();must(res.ok&&d.code===200,'سرویس تصویر درخواست را نپذیرفت',502);return d.data;}
+async function provider(env,path,body){must(env.KIE_API_KEY,'ساخت تصویر برای این مزون هنوز فعال نشده است',503);const res=await fetch('https://api.kie.ai'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+env.KIE_API_KEY,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(30000)});const d=await res.json();must(res.ok&&d.code===200,'سرویس تصویر درخواست را نپذیرفت',502);return d.data;}
 // Image model per salon: 'pro' (Nano Banana Pro, best quality, default) or 'fast' (Nano Banana 2.1).
 // A definite rejection of the chosen model (e.g. not enabled on the account) falls back to the
 // previous model; network failures are not retried so a paid task is never created twice.
@@ -405,15 +405,15 @@ return new Response(object.body,{headers:base});}
   const id=uid(),now=Date.now();
   const mode=reference?'reference':'catalog';
   await run(db,'INSERT INTO generations(id,salon_id,session_id,idem,state,original_id,reference_id,style,transfer,color,created_at,updated_at,line,opts,base_id,visitor) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',id,salon.id,s.id,b.idem,'creating',b.original_id,b.reference_id||null,reference?null:(Number.isInteger(b.style)?b.style:null),mode,'',now,now,line,JSON.stringify({makeup:b.makeup===true,ratio,bg:bgOf(b.bg)?.id||''}),null,visitor);
-  try{
+  let sent=false;try{
    const images=[await uploadProvider(env,original)];for(const a of angles)images.push(await uploadProvider(env,a));
    const venue=bgOf(b.bg);if(venue)images.push((env.APP_ORIGIN||u.origin)+'/bg/'+venue.id+'.jpg');
    const gopts={makeup:b.makeup===true,angles:angles.length,note,bg:venue?images.length:0};const prompt=linePrompt(line,reference?'reference':'catalog',reference?'':lineStyles(line)[b.style][3],gopts);
-   const job=await createImageTask(env,cfg,{prompt,image_input:images,aspect_ratio:ratio,resolution:'2K',output_format:'jpg'});
+   sent=true;const job=await createImageTask(env,cfg,{prompt,image_input:images,aspect_ratio:ratio,resolution:'2K',output_format:'jpg'});
    await run(db,"UPDATE generations SET state='waiting',task_id=? WHERE id=?",job.taskId,id);return J({id,state:'waiting'});
-  }catch{await run(db,"UPDATE generations SET state='unknown' WHERE id=?",id);throw new Problem(502,'وضعیت ارسال نامشخص است؛ برای جلوگیری از هزینه تکراری، درخواست تازه خودکار ساخته نمی‌شود');}
+  }catch(e){console.error('generate failed',e&&e.message);await run(db,"UPDATE generations SET state=? WHERE id=?",sent?'unknown':'fail',id);throw new Problem(502,'وضعیت ارسال نامشخص است؛ برای جلوگیری از هزینه تکراری، درخواست تازه خودکار ساخته نمی‌شود');}
  }
  if(route.startsWith('generation/')){const id=route.slice(11),g=await one(db,'SELECT * FROM generations WHERE id=? AND salon_id=? AND session_id=?',id,salon.id,s.id);must(g,'درخواست تولید یافت نشد',404);const r=await settle(env,db,salon,s,g);if(r.state==='success'&&g.kind==='single')await sendResultToBot(env,env.APP_ORIGIN||u.origin,salon,s,{...g,result_id:r.result_id}).catch(e=>console.error('bot result',e?.message));return J(r);}
  throw new Problem(404,'مسیر یافت نشد');
 }
-export function errorResponse(e){if(String(e.message).includes('UNIQUE constraint'))return J({error:'این مورد قبلاً ثبت شده است؛ صفحه را تازه کنید'},409);return J({error:e instanceof Problem?e.message:'مشکلی پیش آمد. چند دقیقه بعد دوباره امتحان کنید'},e.status||500);}
+export function errorResponse(e){if(!(e instanceof Problem))console.error('unhandled',e&&e.stack||e);if(String(e.message).includes('UNIQUE constraint'))return J({error:'این مورد قبلاً ثبت شده است؛ صفحه را تازه کنید'},409);return J({error:e instanceof Problem?e.message:'مشکلی پیش آمد. چند دقیقه بعد دوباره امتحان کنید'},e.status||500);}
