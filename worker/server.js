@@ -118,7 +118,7 @@ async function cleanup(env){const now=Date.now();
 // Moves one generation forward: asks the provider and, on success, stores the picture. Used by the
 // page's polling and by the scheduled job (a bride who started from the bot may never open the page).
 async function settle(env,db,salon,s,g){
- if(g.result_id)return {state:'success',result_id:g.result_id,part2:g.kind==='spin'?parse(g.opts).b:undefined};if(!g.task_id)return {state:g.state};
+ if(g.result_id)return {state:'success',result_id:g.result_id,part2:g.kind==='spin'?parse(g.opts).b:undefined};if(!g.task_id||g.state==='fail')return {state:g.state};
  if(g.kind==='spin'){const o=parse(g.opts);
   const fail=async()=>{await run(db,"UPDATE generations SET state='fail',updated_at=? WHERE id=?",Date.now(),g.id);return {state:'fail'}};
   const getOut=async d=>{const link=parse(d.resultJson).resultUrls?.[0];must(link&&new URL(link).protocol==='https:','خروجی سرویس معتبر نیست',502);const res=await fetch(link,{signal:AbortSignal.timeout(25000)});must(res.ok,'دریافت خروجی ممکن نشد',502);must(Number(res.headers.get('content-length')||0)<=24*1024*1024,'خروجی بیش از حد بزرگ است',502);return new Uint8Array(await res.arrayBuffer())};
