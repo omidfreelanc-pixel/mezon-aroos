@@ -1,6 +1,7 @@
 import {DRESS_STYLES,LINE_FILTERS,LINE_PHOTO,LINE_LABEL} from './lines.js';
 import {QR_JS} from './qr.js';
 import {PHOTO_CHECK_JS} from './pairing.js';
+import {SCENE_JS} from './scene.js';
 const lineJSON=(line,list)=>({styles:list.map(x=>[x[0],x[1],x[2]]),filters:LINE_FILTERS[line]});
 const LINES_JSON=JSON.stringify({label:LINE_LABEL,photo:{dress:LINE_PHOTO.dress},dress:lineJSON('dress',DRESS_STYLES)});
 import {baseCSS,markSVG,illos,MZ_D} from './design.js';
@@ -397,6 +398,7 @@ body.is-touring{overflow:hidden}
 .vspin{display:grid;gap:12px;justify-items:center;padding:4px 2px 14px}.vspin__stage{position:relative;width:min(100%,380px);overflow:hidden;border-radius:18px;background:#e9e5df;touch-action:none;cursor:grab;box-shadow:var(--lift)}.vspin__stage canvas{display:block;width:100%;height:auto;transform-origin:center;will-change:transform;pointer-events:none}.vspin__wait{display:grid;gap:12px;justify-items:center;text-align:center}.vspin__wait img{width:min(60%,220px);border-radius:16px;animation:sway 3.2s ease-in-out infinite;box-shadow:var(--float)}
 /* 360 viewer */
 .spin-wrap{width:100%;margin:0;padding:11px}.zoomable--views{width:min(100%,330px);margin:4px auto 0}
+.spin-panel .result-actions .btn{white-space:normal;line-height:1.5;min-height:44px;padding-block:6px}
 @media(max-width:420px){.zoomable--views{width:min(100%,330px,calc((100svh - 340px)*.62))}.result-actions{display:grid;grid-template-columns:1fr 1fr}.result-actions .btn{min-width:0;padding:0 10px}}
 .spin{position:relative;aspect-ratio:4/7;border-radius:999px 999px 13px 13px;overflow:hidden;background:linear-gradient(170deg,#f4f7f6,#d6dfdb);touch-action:pan-y pinch-zoom;user-select:none;-webkit-user-select:none;outline:none}
 .spin:focus-visible{box-shadow:0 0 0 3px var(--accent-ring)}
@@ -501,57 +503,75 @@ img[loading="lazy"].is-in{opacity:1}
 .fine-print{font-size:12px;color:var(--muted);line-height:1.85;margin-top:10px;text-align:center}
 .upload--ref{width:min(100%,220px);margin-top:14px}
 .looks .style-card__art{position:relative}
-/* ---------- «پردهٔ آینه»: the waiting scene. A veil over her own photo lifts as the gown is stitched; real completion plays the climax ---------- */
-@property --p{syntax:"<percentage>";inherits:true;initial-value:-15%}
-@property --sw{syntax:"<percentage>";inherits:true;initial-value:-40%}
+/* ---------- «پردهٔ آینه»: the waiting scene. A silk veil lifts off her own photo, her photo comes into focus from the hem up, a loom's thread weaves across it; real completion plays the climax ---------- */
+/* Only transform and opacity ever animate. The three colours below are replaced, per scene, by colours sampled from the chosen dress. */
 :root{--fw-max:380px}
 .fw{width:min(100%,var(--fw-max),calc((78svh - 22px) * var(--ar,.5714) + 22px));margin-inline:auto}
-.pm{position:relative;display:grid;justify-items:center;margin:18px auto 0;width:100%;isolation:isolate}
-.pm__glow{position:absolute;left:50%;top:44%;width:112%;max-width:520px;aspect-ratio:3/4;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(255,247,226,.95),rgba(255,247,226,0));pointer-events:none;z-index:0;opacity:.5}
-.pm__mirror{position:relative;z-index:1}
-.pm__mirror::before,.pm__mirror::after{background-image:linear-gradient(115deg,transparent calc(var(--sw) - 24%),rgba(255,244,214,.6) calc(var(--sw) - 8%),#fff var(--sw),rgba(255,244,214,.6) calc(var(--sw) + 8%),transparent calc(var(--sw) + 24%)),var(--bg)}
-.pm__mirror::before{--bg:var(--mz-bevel)}.pm__mirror::after{--bg:var(--mz-hair)}
-.pm__glass{position:relative;aspect-ratio:var(--ar,.5714);overflow:hidden;background:#EFE9DD;transition:aspect-ratio .5s var(--ease)}
+.pm{--tint:250,244,232;--thr:201,169,106;--glw:255,247,226;--wp:18px;--wq:22px;position:relative;display:grid;justify-items:center;margin:18px auto 0;width:100%;isolation:isolate}
+.pm__glow{position:absolute;left:50%;top:44%;width:112%;max-width:520px;aspect-ratio:3/4;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(var(--glw),.95),rgba(var(--glw),0));pointer-events:none;z-index:0;opacity:.5}
+.pm__stack{position:relative;z-index:1}
+.pm__stack>.pm__mirror{position:relative;z-index:1;width:100%}
+.pm__glass{position:relative;aspect-ratio:var(--ar,.5714);overflow:hidden;background:#EFE9DD;contain:paint}
 .pm__world{position:absolute;inset:0;transform-origin:50% 58%}
 .pm__im{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 20%;display:block}
+.pm__soft:not([src]){visibility:hidden}
 .pm__res{opacity:0;transition:opacity .8s ease}.pm__res.is-on{opacity:1}
-.pm__shimmer{position:absolute;left:0;right:0;top:0;height:22%;pointer-events:none;mix-blend-mode:screen;opacity:0;background:radial-gradient(60% 50% at 30% 50%,rgba(255,232,236,.55),transparent 70%),radial-gradient(60% 50% at 72% 50%,rgba(232,240,255,.45),transparent 70%),linear-gradient(180deg,transparent,rgba(255,248,240,.8) 50%,transparent)}
-.pm__veil{position:absolute;inset:-4%;background:linear-gradient(100deg,rgba(255,255,255,0) 0,rgba(255,255,255,.62) 14%,rgba(255,255,255,0) 30%,rgba(232,217,176,.20) 48%,rgba(255,255,255,.55) 66%,rgba(255,255,255,0) 86%,rgba(255,255,255,.4) 100%),radial-gradient(110% 70% at 28% 8%,rgba(255,255,255,.7),transparent 62%),rgba(247,243,236,.8);background-size:160% 100%,100% 100%,100% 100%;-webkit-backdrop-filter:blur(var(--bl,8px));backdrop-filter:blur(var(--bl,8px));-webkit-mask-image:linear-gradient(45deg,transparent calc(var(--p) - 14%),#000 calc(var(--p) + 6%));mask-image:linear-gradient(45deg,transparent calc(var(--p) - 14%),#000 calc(var(--p) + 6%));opacity:.97}
-.pm__edge{position:absolute;inset:0;pointer-events:none;background:linear-gradient(45deg,transparent calc(var(--p) - 12%),rgba(255,251,238,0) calc(var(--p) - 9%),rgba(255,248,226,.38) calc(var(--p) - 3.5%),rgba(233,212,154,.3) calc(var(--p) - 2%),transparent calc(var(--p) + .5%));opacity:var(--eo,0)}
-.pm__thread{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 0 2.5px rgba(233,205,130,.9))}
-.pm__thread path{fill:none;stroke-linecap:round;stroke-linejoin:round}
-.pm__thread .u{stroke:#B48A3E;stroke-width:3;opacity:.85}.pm__thread .h{stroke:#FFF3C9;stroke-width:1.3}
-.pm__needle{offset-rotate:0deg;opacity:0}
+.pm__sharp{position:absolute;inset:0;transform:translate3d(0,100%,0)}
+.pm__sharpin{position:absolute;inset:0}
+.pm--noblur .pm__sharp{display:none}
+@supports (filter:blur(1px)){.pm__cssblur{filter:blur(7px);transform:scale(1.06)}}
+.pm__edge{position:absolute;left:0;right:0;top:-1px;height:2px;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(var(--thr),.9) 18%,rgba(255,250,232,.98) 50%,rgba(var(--thr),.9) 82%,transparent);box-shadow:0 0 10px 2px rgba(var(--thr),.5);opacity:0}
+.pm__warp{position:absolute;inset:0;pointer-events:none;opacity:0;background:repeating-linear-gradient(90deg,rgba(var(--thr),0) 0,rgba(var(--thr),.5) 1px,rgba(var(--thr),0) 2.4px,rgba(var(--thr),0) var(--wp)),repeating-linear-gradient(0deg,rgba(var(--thr),0) 0,rgba(var(--thr),.3) 1px,rgba(var(--thr),0) 2.4px,rgba(var(--thr),0) var(--wq))}
+.pm__veil{position:absolute;left:-2%;right:-2%;top:0;height:135%;pointer-events:none;background:linear-gradient(180deg,rgba(var(--tint),.9) 0,rgba(var(--tint),.86) 68%,rgba(var(--tint),0) 100%)}
+.pm__folds{position:absolute;inset:0 0 26% 0;background:radial-gradient(16% 62% at 18% 42%,rgba(255,255,255,.6),transparent),radial-gradient(14% 58% at 47% 36%,rgba(var(--thr),.16),transparent),radial-gradient(18% 66% at 74% 46%,rgba(255,255,255,.55),transparent),radial-gradient(70% 22% at 30% 4%,rgba(255,255,255,.7),transparent)}
+.pm__pat{position:absolute;inset:0 0 24% 0;background-size:88px 88px;opacity:0;-webkit-mask-image:linear-gradient(180deg,#000 62%,transparent);mask-image:linear-gradient(180deg,#000 62%,transparent)}
+.pm__pat.is-on{display:block}.pm__pat:not(.is-on){display:none}
+@supports not ((mask-image:linear-gradient(#000,transparent)) or (-webkit-mask-image:linear-gradient(#000,transparent))){.pm__pat{display:none!important}}
+.pm__sheen{position:absolute;left:0;top:6%;width:50%;height:62%;background:radial-gradient(closest-side,rgba(var(--glw),.85),rgba(var(--glw),0));opacity:.75}
+.pm__weft{position:absolute;left:0;right:0;top:0;height:1px;pointer-events:none;opacity:0;background:linear-gradient(90deg,transparent,rgba(var(--thr),.75) 16%,rgba(255,250,232,.95) 50%,rgba(var(--thr),.75) 84%,transparent);box-shadow:0 0 7px rgba(var(--thr),.8)}
+.pm__needle{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;opacity:0}
+.pm__needle i{position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle,#FFFBEA 0 16%,rgba(var(--thr),.95) 32%,rgba(var(--thr),0) 70%)}
+.pm__needle--b i{left:-6px;top:-6px;width:12px;height:12px}
+.pm__hold{position:absolute;inset:0;pointer-events:none;opacity:0;overflow:hidden;transition:opacity .8s ease}
+.pm__hold i{position:absolute;top:-10%;bottom:-10%;left:0;width:46%;background:linear-gradient(105deg,transparent 15%,rgba(var(--glw),.55) 45%,rgba(255,255,255,.75) 50%,rgba(var(--glw),.55) 55%,transparent 85%);transform:translate3d(-120%,0,0)}
+.pm.is-hold .pm__hold i{animation:pmhold 3.8s ease-in-out infinite}
+@keyframes pmhold{0%{transform:translate3d(-120%,0,0)}60%,100%{transform:translate3d(240%,0,0)}}
 .pm__flash{position:absolute;inset:0;pointer-events:none;background:radial-gradient(80% 60% at 50% 45%,rgba(255,252,240,.95),rgba(255,246,222,0) 70%);opacity:0}
-.pm__hold{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .8s ease;background:linear-gradient(105deg,transparent 30%,rgba(255,248,226,.5) 47%,rgba(255,255,255,.7) 50%,rgba(255,248,226,.5) 53%,transparent 70%);background-size:260% 100%;mix-blend-mode:screen}
-.pm.is-hold .pm__hold{opacity:1;animation:pmhold 3.8s ease-in-out infinite}
-@keyframes pmhold{0%{background-position:100% 0}60%,100%{background-position:-60% 0}}
-.pm__cap{position:relative;z-index:1;margin-top:26px;width:min(100%,340px);display:grid;justify-items:center;gap:14px}
+.pm__glint{position:absolute;top:-10%;bottom:-10%;left:0;width:36%;pointer-events:none;background:linear-gradient(105deg,transparent 20%,rgba(255,250,235,.0) 30%,rgba(255,250,235,.72) 50%,rgba(255,250,235,0) 70%,transparent 80%);transform:translate3d(-120%,0,0) skewX(-12deg)}
+.pm.is-run .pm__edge,.pm.is-run .pm__warp,.pm.is-run .pm__pat,.pm.is-run .pm__flash,.pm.is-run .pm__hold{will-change:opacity}
+.pm.is-run .pm__bar i,.pm.is-run .pm__bar b{will-change:transform}
+.pm.is-run .pm__veil,.pm.is-run .pm__sharp,.pm.is-run .pm__sharpin,.pm.is-run .pm__weft,.pm.is-run .pm__needle,.pm.is-run .pm__sheen,.pm.is-run .pm__dress,.pm.is-run .pm__glint{will-change:transform}
+/* the chosen dress, as a small medallion pinned to the mirror's lower edge */
+.pm__dress{position:relative;z-index:3;margin-top:-28px;display:grid;justify-items:center;gap:6px;opacity:0;transform:translate3d(0,40px,0) scale(.88)}
+.pm__dress[hidden]{display:none}
+.pm__ring{display:block;width:58px;height:58px;border-radius:50%;padding:2.5px;background:conic-gradient(from 210deg,#F4E8C6,#B18C55,#FFF8DE,#9A7740,#F0E0B3,#F4E8C6);box-shadow:0 7px 16px rgba(60,40,10,.2),0 0 0 3px rgba(255,250,236,.9)}
+.pm__ring img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:50% 38%;background:#EFE9DD}
+.pm__dtag{font:700 13px/1.7 var(--display);color:#6F5424;background:rgba(255,250,238,.94);padding:0 12px;border-radius:99px;border:1px solid rgba(201,169,106,.5);white-space:nowrap}
+.pm__cap{position:relative;z-index:1;margin-top:18px;width:min(100%,340px);display:grid;justify-items:center;gap:14px}
 .pm__lines{position:relative;height:36px;width:100%}
-.pm__lines span{position:absolute;inset:0;display:grid;place-items:center;font:600 18px/1.8 var(--display);color:#0F4C4A;opacity:0;white-space:nowrap}
+.pm__lines span{position:absolute;inset:0;display:grid;place-items:center;font:600 18px/1.8 var(--display);color:#0F4C4A;opacity:0;transform:translateY(7px);transition:opacity .5s ease,transform .5s ease;white-space:nowrap}
+.pm__lines span.on{opacity:1;transform:none}
 .pm__lines span:nth-child(4){font-weight:700}
 .pm__lines span.end{font-weight:800;color:#0B3F3D}
 .pm.is-hold .pm__lines span:nth-child(4){background:linear-gradient(100deg,#0F4C4A 35%,#B58B3C 50%,#0F4C4A 65%) 0 0/250% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:pmtxt 3.8s ease-in-out infinite}
 @keyframes pmtxt{0%{background-position:100% 0}70%,100%{background-position:-50% 0}}
 .pm__bar{position:relative;width:190px;height:2px;background:rgba(201,169,106,.3)}
-.pm__bar i{position:absolute;inset-inline-start:0;top:0;height:2px;width:100%;background:linear-gradient(90deg,#C9A96A,#EAD9A8);transform-origin:right center;transform:scaleX(0)}
-.pm__bar b{position:absolute;top:-2px;width:6px;height:6px;margin-inline-start:-3px;border-radius:50%;background:#C9A96A;box-shadow:0 0 0 3px rgba(201,169,106,.18);inset-inline-start:0}
-.pm.is-hold .pm__bar b{animation:pmdot 1.8s ease-in-out infinite}
-@keyframes pmdot{50%{box-shadow:0 0 0 7px rgba(201,169,106,.05)}}
+.pm__bar i{position:absolute;inset-inline-start:0;top:0;height:2px;width:100%;background:linear-gradient(90deg,#C9A96A,#EAD9A8);transform-origin:right center;transform:scaleX(0);transition:transform .6s linear}
+.pm__bar b{position:absolute;top:-2px;width:6px;height:6px;margin-inline-start:-3px;border-radius:50%;background:#C9A96A;box-shadow:0 0 0 3px rgba(201,169,106,.18);inset-inline-start:100%;transition:transform .6s linear}
 .pm__note{font-size:14px;line-height:1.9;color:var(--ink-2);text-align:center;min-height:1.9em;max-width:32ch}
 .pm__rm{display:none;font:700 17px/1.8 var(--display);color:#0F4C4A;text-align:center}
-.pm--calm .pm__veil{opacity:.7;-webkit-mask-image:none;mask-image:none;--bl:3px;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
 .pm__calm{display:grid;justify-items:center;gap:8px;text-align:center;margin-top:22px;width:min(100%,340px)}
 .pm__calm b{font:800 19px/1.7 var(--display);color:#0F4C4A}.pm__calm p{font-size:15px;line-height:1.95;color:var(--ink-2);max-width:32ch}
 .pm__calm .btn{margin-top:6px}
 .pm--inner{position:absolute;inset:0;z-index:2;display:block;margin:0}
-.pm--inner .pm__glass{position:absolute;inset:0;aspect-ratio:auto;transition:none}
+.pm--inner .pm__glass{position:absolute;inset:0;aspect-ratio:auto}
+/* a browser that cannot do the full scene (data-mode="lite") keeps the veil and the focus pull and drops the loom */
+.pm[data-mode="lite"] .pm__weft,.pm[data-mode="lite"] .pm__needle,.pm[data-mode="lite"] .pm__sheen,.pm[data-mode="lite"] .pm__warp,.pm[data-mode="lite"] .pm__pat{display:none}
 @media (prefers-reduced-motion:reduce){
- .pm__shimmer,.pm__thread,.pm__edge,.pm__flash,.pm__hold{display:none}
- .pm__veil{-webkit-mask-image:none;mask-image:none;opacity:.6;--bl:3px}
+ .pm__flash,.pm__glint,.pm__hold,.pm__weft,.pm__needle,.pm__sheen{display:none}
  .pm__lines{display:none}.pm__rm{display:block}
- .pm__bar i{transform:scaleX(.4)}.pm__bar b{inset-inline-start:40%}
- .pm.is-hold .pm__lines span:nth-child(4),.pm.is-hold .pm__bar b{animation:none}
+ .pm.is-hold .pm__lines span:nth-child(4){animation:none}
+ .pm__lines span,.pm__res{transition:none}
 }
 /* ---------- the salon seal under the finished photo (never over it) ---------- */
 .sealfoot{display:grid;justify-items:center;gap:10px;margin:22px auto 0;width:min(100%,var(--fw-max));padding:0 8px 4px;text-align:center}
@@ -582,7 +602,7 @@ img[loading="lazy"].is-in{opacity:1}
 .viewer__tab{min-width:64px;height:44px;padding:0 16px;border-radius:22px;border:1px solid rgba(255,255,255,.35);background:rgba(20,15,10,.55);color:#fff;font-weight:700;font-size:15px}
 .viewer__tab[aria-pressed="true"]{background:#F2E3B6;color:#2c1e0c;border-color:#F2E3B6}
 .viewer__hint{font-size:14px;color:rgba(255,255,255,.86)}
-.zoomx{position:absolute;z-index:6;top:21%;inset-inline-end:7%;width:48px;height:48px;border-radius:50%;border:1px solid rgba(255,255,255,.7);background:rgba(250,251,250,.92);color:var(--ink);display:grid;place-items:center;box-shadow:var(--lift)}
+.zoomx{position:absolute;z-index:6;top:27%;inset-inline-end:9%;width:48px;height:48px;border-radius:50%;border:1px solid rgba(255,255,255,.7);background:rgba(250,251,250,.92);color:var(--ink);display:grid;place-items:center;box-shadow:var(--lift)}
 .zoomx svg{width:22px;height:22px}
 body{font-size:16px}.tiny{font-size:13.5px}
 @media (prefers-reduced-motion:reduce){.viewer__item{will-change:auto}}
@@ -595,6 +615,7 @@ body{font-size:16px}.tiny{font-size:13.5px}
 const clientJS=String.raw`
 /*__QR__*/
 /*__CHECK__*/
+/*__SCENE__*/
 var LINES=__LINES__;
 var MARK=__MARK__;
 var SLUG=window.__SLUG||location.pathname.split('/').filter(Boolean)[1]||'';
@@ -1030,8 +1051,8 @@ function compareBlock(){
  var x=50;
  function set(v,animate){x=Math.max(0,Math.min(100,v));wrap.classList.toggle('is-animating',!!animate);wrap.style.setProperty('--x',x+'%');range.value=String(Math.round(x))}
  set(50);
- var mir=el('div',{class:'mirror compare-wrap'},[wrap]);
- var box=el('div',{class:'zoomable',style:'--ar:'+((state.arOf&&state.arOf[ru])||.6667)},[mir]);
+ var mir=el('div',{class:'mirror compare-wrap nofx',style:'position:relative;z-index:1'},[wrap]);
+ var box=el('div',{class:'zoomable',style:'--ar:'+((state.arOf&&state.arOf[ru])||.6667)},[el('div',{class:'mirror mirror-shd compare-wrap','aria-hidden':'true'},[el('div',{class:'mirror__glass'})]),mir]);
  aImg.addEventListener('load',function(){var a=clampAr(aImg.naturalWidth,aImg.naturalHeight);(state.arOf=state.arOf||{})[ru]=a;box.style.setProperty('--ar',a);aImg.setAttribute('width',aImg.naturalWidth);aImg.setAttribute('height',aImg.naturalHeight)});
  var start=null;
  wrap.addEventListener('pointerdown',function(e){if(e.button>0)return;var r=wrap.getBoundingClientRect();start={px:e.clientX,x:x,w:r.width,left:r.left,moved:false,id:e.pointerId};wrap.classList.add('is-dragging')});
@@ -1141,101 +1162,275 @@ function dressKey(){
 function wantButton(cls){return el('button',{class:cls||'btn btn--primary',type:'button','data-want':'1',onclick:function(){openWant()},html:ICO.heart+'<span>این لباس را می‌خواهم</span>'})}
 function sendButton(){return el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
 /* ---------- «پردهٔ آینه»: the waiting scene, driven by the real job ---------- */
-// A veil lies over her own photo. While the job runs, the lines and the stitching advance with the
-// elapsed time (no invented percentage). If the job takes longer than usual, the scene rests on
-// «آخرین پرداخت…» with a gentle shimmer. When the server says it is done, the climax plays:
-// the veil lifts in a flash of light and the finished photo appears.
-var PM_DUR=9,PM_HOLD=5.8,PM_RES=5.9,PM_END=8.55;
-var PM_LINES=['پارچه انتخاب می‌شود…','دانتل دوخته می‌شود…','لباس روی اندامت می‌نشیند…','آخرین پرداخت…','آینه آماده است'];
-var PM_LT=[[.15,.7,2.0,2.35],[2.3,2.75,3.9,4.25],[4.2,4.65,5.0,5.35],[5.3,5.7,7.0,7.4],[7.7,8.1,8.6,8.95]];
-var PM_SIL=['M152 168L200 228L248 165','M154 166C142 210 142 262 148 305C140 420 112 540 86 650','M246 166C258 210 258 262 252 305C260 420 288 540 314 650','M86 650C130 676 160 692 200 692C245 692 285 676 314 650','M148 306C175 312 225 312 252 306','M200 312C198 420 196 560 194 690','M172 312C154 420 136 540 118 660','M230 312C250 420 272 530 290 646'];
-var pmReady=false,pmLen=[];
-function pmP(x){return (x/PM_DUR*100).toFixed(3)+'%'}
-function pmK(n,a){var s='@keyframes '+n+'{';a.forEach(function(x){s+=pmP(x[0])+'{'+x[1]+'}'});return s+'}'}
-function pmCSS(){
- if(pmReady)return;pmReady=true;
- var NS='http://www.w3.org/2000/svg',sv=document.createElementNS(NS,'svg'),tot=0,L=[];sv.setAttribute('style','position:absolute;width:0;height:0;visibility:hidden');document.body.appendChild(sv);
- PM_SIL.forEach(function(d){var p=document.createElementNS(NS,'path');p.setAttribute('d',d);sv.appendChild(p);var l=p.getTotalLength();L.push(l);tot+=l});sv.remove();pmLen=L;
- var E='animation-timing-function:cubic-bezier(.4,0,.2,1);',EO='animation-timing-function:cubic-bezier(.16,.8,.2,1);',T0=.6,T1=3.5,gap=.07,avail=(T1-T0)-gap*(PM_SIL.length-1),t=T0,cum=0,css='',spans=[];
- PM_SIL.forEach(function(d,i){var dd=avail*L[i]/tot,a=t,b=t+dd;spans.push([a,b,cum,cum+L[i]]);cum+=L[i];t=b+gap;
-  ['u','h'].forEach(function(c){css+=pmK('pmst'+i+c,[[0,'stroke-dashoffset:'+L[i]],[a,'stroke-dashoffset:'+L[i]],[b,'stroke-dashoffset:0'],[PM_DUR,'stroke-dashoffset:0']])})});
- var nk=[[0,'offset-distance:0px;opacity:0'],[T0-.05,'offset-distance:0px;opacity:0'],[T0+.05,'offset-distance:0px;opacity:1']];
- spans.forEach(function(s){nk.push([s[0],'offset-distance:'+s[2].toFixed(1)+'px']);nk.push([s[1],'offset-distance:'+s[3].toFixed(1)+'px'])});
- nk.push([T1+.3,'opacity:1']);nk.push([T1+.9,'opacity:0']);nk.push([PM_DUR,'opacity:0;offset-distance:'+cum.toFixed(1)+'px']);css+=pmK('pmnd',nk);
- css+=pmK('pmvl',[[0,'opacity:.97;--bl:9px'],[.5,'opacity:.9;--bl:8px;'+E],[2.2,'opacity:.55;--bl:3px'],[5.2,'opacity:.5;--bl:2.5px;'+E],[5.5,'opacity:.8;--bl:3.5px'],[7.0,'opacity:.8;--bl:3.5px;'+E],[7.9,'opacity:0;--bl:0px'],[8.5,'opacity:0;--bl:0px;'+E],[8.95,'opacity:.97;--bl:9px'],[9,'opacity:.97;--bl:9px']]);
- css+=pmK('pmpp',[[0,'--p:-15%'],[5.4,'--p:-15%;animation-timing-function:cubic-bezier(.3,.1,.2,1)'],[6.25,'--p:52%;animation-timing-function:ease-in-out'],[6.9,'--p:34%;animation-timing-function:cubic-bezier(.5,0,.2,1)'],[7.9,'--p:140%'],[8.5,'--p:140%;animation-timing-function:cubic-bezier(.5,0,.3,1)'],[8.95,'--p:-15%'],[9,'--p:-15%']]);
- css+=pmK('pmed',[[0,'--eo:0'],[5.5,'--eo:0'],[5.9,'--eo:1'],[6.9,'--eo:.8'],[7.35,'--eo:0'],[9,'--eo:0']]);
- css+=pmK('pmth',[[0,'opacity:1'],[4.9,'opacity:1'],[5.8,'opacity:0'],[9,'opacity:0']]);
- css+=pmK('pmshm',[[0,'opacity:0;top:92%'],[2.2,'opacity:0;top:92%;'+E],[2.6,'opacity:.9;top:84%'],[5.5,'opacity:.9;top:14%'],[6,'opacity:0;top:6%'],[9,'opacity:0;top:6%']]);
- css+=pmK('pmsweep',[[0,'--sw:-40%'],[6.95,'--sw:-40%'],[7.85,'--sw:145%'],[9,'--sw:145%']]);
- css+=pmK('pmfl',[[0,'opacity:0'],[6.95,'opacity:0'],[7.25,'opacity:.3'],[7.9,'opacity:0'],[9,'opacity:0']]);
- css+=pmK('pmwd',[[0,'transform:scale(1)'],[6.9,'transform:scale(1);'+E],[7.35,'transform:scale(1.04)'],[7.4,'transform:scale(1.04);'+EO],[8.4,'transform:scale(1)'],[9,'transform:scale(1)']]);
- css+=pmK('pmglow',[[0,'opacity:.5'],[6.95,'opacity:.6;'+E],[7.6,'opacity:1'],[8.5,'opacity:1;'+E],[9,'opacity:.5']]);
- css+=pmK('pmhl',[[0,'transform:scaleX(0)'],[.3,'transform:scaleX(0);'+E],[2.2,'transform:scaleX(.32)'],[5.2,'transform:scaleX(.74);'+E],[6.3,'transform:scaleX(.8);'+E],[7.2,'transform:scaleX(.93)'],[7.9,'transform:scaleX(1)'],[9,'transform:scaleX(1)']]);
- css+=pmK('pmhd',[[0,'inset-inline-start:0px;opacity:1'],[.3,'inset-inline-start:0px;'+E],[2.2,'inset-inline-start:60.8px'],[5.2,'inset-inline-start:140.6px;'+E],[6.3,'inset-inline-start:152px;'+E],[7.2,'inset-inline-start:176.7px'],[7.9,'inset-inline-start:190px;opacity:1'],[8.4,'opacity:0'],[9,'inset-inline-start:190px;opacity:0']]);
- PM_LT.forEach(function(l,i){css+=pmK('pmln'+i,[[0,'opacity:0;transform:translateY(7px)'],[l[0],'opacity:0;transform:translateY(7px);'+EO],[l[1],'opacity:1;transform:translateY(0)'],[l[2],'opacity:1;transform:translateY(0);'+E],[l[3],'opacity:0;transform:translateY(-6px)'],[PM_DUR,'opacity:0;transform:translateY(-6px)']]);css+='.pm__lines span:nth-child('+(i+1)+'){animation-name:pmln'+i+'}'});
- var C='animation-duration:9s;animation-timing-function:linear;animation-play-state:paused;animation-fill-mode:both;';
- css+='.pm:not(.pm--calm) .pm__world{animation-name:pmwd;'+C+'}.pm:not(.pm--calm) .pm__glass{animation-name:pmpp;'+C+'}.pm:not(.pm--calm) .pm__mirror{animation-name:pmsweep;'+C+'}.pm:not(.pm--calm) .pm__glow{animation-name:pmglow;'+C+'}.pm:not(.pm--calm) .pm__flash{animation-name:pmfl;'+C+'}.pm:not(.pm--calm) .pm__shimmer{animation-name:pmshm;'+C+'}.pm:not(.pm--calm) .pm__veil{animation-name:pmvl;'+C+'}.pm:not(.pm--calm) .pm__edge{animation-name:pmed;'+C+'}.pm:not(.pm--calm) .pm__thread{animation-name:pmth;'+C+'}.pm:not(.pm--calm) .pm__needle{animation-name:pmnd;'+C+'}.pm:not(.pm--calm) .pm__bar i{animation-name:pmhl;'+C+'}.pm:not(.pm--calm) .pm__bar b{animation-name:pmhd;'+C+'}.pm:not(.pm--calm) .pm__lines span{'+C+'}.pm:not(.pm--calm) .pm__thread path{'+C+'stroke-dasharray:var(--l)}';
- PM_SIL.forEach(function(d,i){css+='.pm:not(.pm--calm) .pm__thread path.s'+i+'u{animation-name:pmst'+i+'u;--l:'+L[i].toFixed(1)+'}.pm:not(.pm--calm) .pm__thread path.s'+i+'h{animation-name:pmst'+i+'h;--l:'+L[i].toFixed(1)+'}'});
- css+='@media (prefers-reduced-motion:reduce){.pm,.pm *,.pm *::before,.pm *::after{animation:none!important}}';
- var st=document.createElement('style');st.id='pm-css';st.textContent=css;document.head.appendChild(st);
+// A silk veil lies over her own photo. While the job runs the veil lifts and her photo comes into focus from the hem
+// upward, a loom's golden thread weaves across it, and the dress she chose floats toward the mirror as a small medallion;
+// the colours of the veil, thread and glow are sampled from that very dress. Nothing is drawn in the shape of any gown.
+// If the job takes longer than usual the scene rests on «آخرین پرداخت…». When the server says it is done, the climax plays.
+// Only transform and opacity are animated, from one requestAnimationFrame loop that sleeps when the tab is hidden.
+var PM_LINES=['لباست آماده می‌شود…','تار و پود به هم می‌رسند…','لباس روی اندامت می‌نشیند…','آخرین پرداخت…','آینه آماده است'];
+var PM_END=2.5,PM_P0=.82;
+function pmEnv(){
+ var f={css:false,filter:false,ctxFilter:false,canvas:false,raf:typeof requestAnimationFrame==='function',reduce:false,lowEnd:false};
+ try{f.css=!!(window.CSS&&CSS.supports&&CSS.supports('transform','translate3d(0,0,0)')&&CSS.supports('inset','0'))}catch(e){}
+ try{f.filter=!!(window.CSS&&CSS.supports&&(CSS.supports('filter','blur(1px)')||CSS.supports('-webkit-filter','blur(1px)')))}catch(e){}
+ try{var cv=document.createElement('canvas'),g=cv.getContext&&cv.getContext('2d');f.canvas=!!g;if(g){g.filter='blur(2px)';f.ctxFilter=g.filter==='blur(2px)'}}catch(e){}
+ try{f.reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)}catch(e){}
+ try{f.lowEnd=(navigator.hardwareConcurrency||8)<=2||(navigator.deviceMemory||4)<=1}catch(e){}
+ return {f:f,caps:sceneCaps(f)};
+}
+// The dress she chose, as a picture: a boutique dress or an upload (media id) or a catalogue one.
+function dressUrl(){
+ if(state.reference)return media(state.reference);
+ return state.style!==null&&state.style!==undefined?catalogImg(state.style):'';
+}
+// A seamless 2x2 mirrored tile cut from the middle of the dress picture: the fabric swatch.
+function swatchTile(im){
+ try{
+  var w=im.naturalWidth||im.width,hh=im.naturalHeight||im.height,s=Math.max(8,Math.floor(Math.min(w,hh)*.17)),c=document.createElement('canvas'),S=44;
+  c.width=c.height=S*2;var g=c.getContext('2d');
+  var sx=Math.floor(w*.5-s/2),sy=Math.floor(hh*.52-s/2);
+  [[0,0,1,1],[S,0,-1,1],[0,S,1,-1],[S,S,-1,-1]].forEach(function(q){g.save();g.translate(q[0]+(q[2]<0?S:0),q[1]+(q[3]<0?S:0));g.scale(q[2],q[3]);g.drawImage(im,sx,sy,s,s,0,0,S,S);g.restore()});
+  return c.toDataURL('image/jpeg',.8);
+ }catch(e){return ''}
+}
+// Colours and swatch of the chosen dress; resolves to null when the picture cannot be had (the scene stays ivory and gold).
+var DLOOK={};
+function dressLook(url){
+ if(!url)return Promise.resolve(null);
+ if(DLOOK[url])return DLOOK[url];
+ return DLOOK[url]=new Promise(function(res){
+  var done=false;function fin(v){if(!done){done=true;res(v)}}
+  setTimeout(function(){fin(null)},6000);
+  loadImg(url).then(function(im){
+   var look={pal:neutralPalette(),tile:'',im:im};
+   try{
+    var cw=32,ch=Math.max(8,Math.min(64,Math.round(cw*((im.naturalHeight||1)/(im.naturalWidth||1))))),cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
+    var g=cv.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,cw,ch);
+    look.pal=dressPalette(g.getImageData(0,0,cw,ch).data,cw,ch);
+    look.tile=swatchTile(im);
+   }catch(e){look.pal=neutralPalette()}
+   fin(look);
+  }).catch(function(){fin(null)});
+ });
+}
+// Her own photo, out of focus: a tiny copy that the browser stretches (a canvas filter if it has one).
+var SOFT={};
+function softCopy(img,how){
+ var key=img.currentSrc||img.src;if(SOFT[key]!==undefined)return SOFT[key];
+ var out='';
+ try{
+  var w=img.naturalWidth||0,hh=img.naturalHeight||0;
+  if(w&&hh&&how!=='none'){
+   var tw=how==='ctx'?96:28,th=Math.max(8,Math.round(tw*hh/w)),c=document.createElement('canvas'),g=c.getContext('2d');
+   c.width=tw;c.height=th;g.imageSmoothingEnabled=true;try{g.imageSmoothingQuality='high'}catch(e){}
+   if(how==='ctx'){g.filter='blur(2.4px)';g.drawImage(img,0,0,tw,th)}
+   else{var c2=document.createElement('canvas'),g2=c2.getContext('2d'),mw=Math.max(6,Math.round(tw/2)),mh=Math.max(6,Math.round(th/2));c2.width=mw;c2.height=mh;g2.imageSmoothingEnabled=true;g2.drawImage(img,0,0,mw,mh);g.drawImage(c2,0,0,tw,th)}
+   out=c.toDataURL('image/jpeg',.82);
+  }
+ }catch(e){out=''}
+ if(SOFT[key]===undefined&&Object.keys(SOFT).length>6)SOFT={};
+ return SOFT[key]=out;
+}
+// Applies a palette to one scene: three colour variables, plus a weave density taken from the dress itself.
+function pmTint(root,look){
+ var pal=look&&look.pal?look.pal:neutralPalette();
+ root.style.setProperty('--tint',rgbCss(pal.tint));root.style.setProperty('--thr',rgbCss(pal.thread));root.style.setProperty('--glw',rgbCss(pal.glow));
+ root.style.setProperty('--wp',(14+pal.seed%11)+'px');root.style.setProperty('--wq',(18+pal.seed%13)+'px');
+ root.setAttribute('data-tone',pal.tone);
+ var pat=root.querySelector('.pm__pat');if(pat&&look&&look.tile){pat.style.backgroundImage='url('+look.tile+')';pat.classList.add('is-on')}
 }
 function clampAr(w,h){var r=(w&&h)?w/h:.6667;return Math.max(.46,Math.min(.85,r))}
-// Builds the scene. opts.inner: only the glass (for use inside another frame); opts.calm: static, no timeline.
+// Builds the scene. opts.inner: only the glass (inside another frame); opts.calm: a still pose, no timeline.
 function pmScene(src,opts){
- opts=opts||{};pmCSS();
- var thread='<svg class="pm__thread" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><g>'+PM_SIL.map(function(d,i){return '<path class="u s'+i+'u" d="'+d+'"/><path class="h s'+i+'h" d="'+d+'"/>'}).join('')+'</g><g class="pm__needle" style="offset-path:path(\''+PM_SIL.join(' ')+'\')"><circle r="9" fill="rgba(255,226,150,.35)"/><circle r="3.6" fill="#E6C170"/><circle r="1.7" fill="#FFFBEA"/></g></svg>';
+ opts=opts||{};
+ var env=pmEnv(),caps=env.caps,full=caps.mode==='full'&&!opts.calm,still=caps.mode==='still'||!!opts.calm;
+ var soft=el('img',{class:'pm__im pm__soft',alt:'',decoding:'async'});
  var photo=src?el('img',{class:'pm__im pm__before',src:src,alt:'',decoding:'async'}):el('span',{class:'pm__im',html:ILLO.loader});
  var res=el('img',{class:'pm__im pm__res',alt:'',decoding:'async'});
- var world=el('div',{class:'pm__world'},[photo,res,el('div',{class:'pm__shimmer'}),el('div',{class:'pm__veil'}),el('div',{class:'pm__edge'}),el('div',{class:'pm__hold'}),el('div',{html:thread,style:'display:contents'})]);
- var glass=el('div',{class:'mirror__glass pm__glass'},[world,el('div',{class:'pm__flash'})]);
- var root;
- if(opts.inner){root=el('div',{class:'pm pm--inner','aria-hidden':'true'},[glass]);return {root:root,photo:photo,res:res}}
- var ar=state.arOf&&state.arOf[state.original]||.5714;
- var mirror=el('div',{class:'mirror pm__mirror fw',style:'--ar:'+ar},[glass]);
- var lines=el('div',{class:'pm__lines','aria-hidden':'true'},PM_LINES.map(function(t,i){return el('span',{class:i===4?'end':'',text:t})}));
- var cap=el('div',{class:'pm__cap'},[lines,el('div',{class:'pm__rm','aria-hidden':'true',text:PM_LINES[0]}),el('div',{class:'pm__bar','aria-hidden':'true'},[el('i'),el('b')]),el('p',{class:'pm__note',text:''}),el('span',{class:'sr-only','aria-live':'polite',role:'status'})]);
- root=el('div',{class:'pm'+(opts.calm?' pm--calm':'')},[el('span',{class:'pm__glow','aria-hidden':'true'}),mirror,opts.calm?null:cap]);
- photo.onload=function(){var a=clampAr(photo.naturalWidth,photo.naturalHeight);(state.arOf=state.arOf||{})[state.original]=a;mirror.style.setProperty('--ar',a)};
- return {root:root,photo:photo,res:res,mirror:mirror};
+ var sharpin=el('div',{class:'pm__sharpin'},[photo]);
+ var sharp=el('div',{class:'pm__sharp'},[sharpin,full?el('div',{class:'pm__warp'}):null,el('div',{class:'pm__edge'})]);
+ var folds=el('div',{class:'pm__folds'}),pat=full?el('div',{class:'pm__pat'}):null,sheen=full?el('div',{class:'pm__sheen'}):null;
+ var veil=el('div',{class:'pm__veil'},[folds,pat,sheen]);
+ var weft=full?el('div',{class:'pm__weft'}):null,nd1=full?el('div',{class:'pm__needle'},[el('i')]):null,nd2=full?el('div',{class:'pm__needle pm__needle--b'},[el('i')]):null;
+ var hold=el('div',{class:'pm__hold'},[el('i')]);
+ var world=el('div',{class:'pm__world'},[soft,sharp,res,veil,weft,nd1,nd2,hold]);
+ var flash=el('div',{class:'pm__flash'}),glint=el('div',{class:'pm__glint'});
+ var glass=el('div',{class:'mirror__glass pm__glass'},[world,flash,glint]);
+ var S={root:null,photo:photo,res:res,mirror:null,glass:glass,world:world,soft:soft,sharp:sharp,sharpin:sharpin,veil:veil,weft:weft,n1:nd1,n2:nd2,sheen:sheen,flash:flash,glint:glint,hold:hold,warp:sharp.querySelector('.pm__warp'),edge:sharp.querySelector('.pm__edge'),pat:pat,dress:null,blurOn:false,W:0,H:0,caps:caps,still:still,full:full};
+ // the out-of-focus copy of her photo
+ function makeSoft(){
+  if(!src||!photo.naturalWidth)return;
+  var how=caps.blur,u=softCopy(photo,how);
+  if(u){soft.src=u;S.blurOn=true}
+  else if(how!=='none'&&env.f.filter){soft.src=src;soft.classList.add('pm__cssblur');S.blurOn=true}
+  else{S.blurOn=false;soft.src=src}
+  S.root&&S.root.classList.toggle('pm--noblur',!S.blurOn);
+  if(S.pose)S.pose();
+ }
+ var ar=state.arOf&&state.arOf[state.original]||.5714,root;
+ if(opts.inner){
+  root=el('div',{class:'pm pm--inner','aria-hidden':'true'},[glass]);
+ }else{
+  // the frame's shadow lives on a static twin: a drop-shadow filter on the animating mirror would be redrawn every frame
+  var mirror=el('div',{class:'pm__stack fw',style:'--ar:'+ar},[el('div',{class:'mirror mirror-shd','aria-hidden':'true'},[el('div',{class:'mirror__glass'})]),el('div',{class:'mirror pm__mirror nofx'},[glass])]);S.mirror=mirror;
+  var lines=el('div',{class:'pm__lines','aria-hidden':'true'},PM_LINES.map(function(t,i){return el('span',{class:i===4?'end':'',text:t})}));
+  var cap=el('div',{class:'pm__cap'},[lines,el('div',{class:'pm__rm','aria-hidden':'true',text:PM_LINES[0]}),el('div',{class:'pm__bar','aria-hidden':'true'},[el('i'),el('b')]),el('p',{class:'pm__note',text:''}),el('span',{class:'sr-only','aria-live':'polite',role:'status'})]);
+  var du=dressUrl(),dress=null;
+  if(du){
+   var dimg=el('img',{src:du,alt:'',decoding:'async'}),lab=el('span',{class:'pm__dtag',text:'لباس انتخابی تو'});
+   dress=el('div',{class:'pm__dress'},[el('span',{class:'pm__ring'},[dimg]),lab]);
+   dimg.addEventListener('error',function(){dress.hidden=true});
+   S.dress=dress;
+  }
+  root=el('div',{class:'pm'+(opts.calm?' pm--calm':''),'data-mode':caps.mode},[el('span',{class:'pm__glow','aria-hidden':'true'}),mirror,dress,opts.calm?null:cap]);
+  photo.addEventListener('load',function(){var a=clampAr(photo.naturalWidth,photo.naturalHeight);(state.arOf=state.arOf||{})[state.original]=a;mirror.style.setProperty('--ar',a)});
+ }
+ root.setAttribute('data-mode',caps.mode);
+ S.root=root;
+ if(photo.addEventListener){if(photo.complete&&photo.naturalWidth)makeSoft();else photo.addEventListener('load',makeSoft)}
+ // colours of the chosen dress (ivory and gold until they are known, and for good if the picture cannot be read)
+ pmTint(root,null);
+ var du2=dressUrl();
+ if(du2)dressLook(du2).then(function(look){if(look)pmTint(root,look)}).catch(function(){});
+ return S;
 }
-function pmApply(root,vt){
- if(!root.getAnimations)return;
- var as=root.getAnimations({subtree:true});
- for(var i=0;i<as.length;i++){var n=as[i].animationName;if(n&&n.indexOf('pm')===0)as[i].currentTime=vt*1000}
+// Writes one frame. Only transform and opacity (and class-free), no layout reads: W and H were measured once.
+function pmSet(e,v){if(e&&e.__t!==v){e.__t=v;e.style.transform=v}}
+function pmOp(e,v){v=Math.round(Math.max(0,Math.min(1,v))*100)/100;if(e&&e.__o!==v){e.__o=v;e.style.opacity=v}}
+function smooth(a,b,x){x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x)}
+function pmPose(S,p,t,x){
+ x=x||{};
+ var g=sceneGeom(p),u=g.u,sh=S.blurOn?g.sharp:1,H=S.H||0,W=S.W||0,full=S.full;
+ if(x.hold)u=Math.max(0,u+Math.sin(t*1.1)*.006);
+ pmSet(S.veil,'translate3d(0,'+(-u*100).toFixed(2)+'%,0)');
+ pmSet(S.sharp,'translate3d(0,'+(sh*100).toFixed(2)+'%,0)');pmSet(S.sharpin,'translate3d(0,'+(-sh*100).toFixed(2)+'%,0)');
+ var fade=1-smooth(.84,1,p);
+ pmOp(S.edge,S.blurOn?.95*fade:0);
+ if(full){
+  var by=(S.blurOn?sh:Math.min(1,g.edge))*H,tw=t;
+  pmOp(S.warp,.5*fade*smooth(0.04,.2,p));
+  pmSet(S.weft,'translate3d(0,'+by.toFixed(1)+'px,0)');pmOp(S.weft,.85*fade*smooth(.02,.12,p));
+  var nx=W*(.5+.46*Math.sin(tw*2.1)),nx2=W*(.5+.46*Math.sin(tw*2.1-.55)),ny=by+5*Math.sin(tw*8.5);
+  pmSet(S.n1,'translate3d('+nx.toFixed(1)+'px,'+ny.toFixed(1)+'px,0)');pmOp(S.n1,fade*smooth(.02,.12,p));
+  pmSet(S.n2,'translate3d('+nx2.toFixed(1)+'px,'+(by+5*Math.sin(tw*8.5-1.1)).toFixed(1)+'px,0)');pmOp(S.n2,.55*fade*smooth(.02,.12,p));
+  var sw=W*.5;pmSet(S.sheen,'translate3d('+(((tw*.1)%1.5)*(W+sw)-sw).toFixed(1)+'px,0,0) rotate(18deg)');
+  pmOp(S.pat,x.fin==null?.24:.24*(1-x.fin));
+ }
+ pmOp(S.hold,x.hold?1:0);
+ if(S.dress){
+  var e=x.enter==null?1:x.enter,a=x.absorb||0,bob=Math.sin(t*1.3)*3*(1-a),ty=(1-e)*40+bob-a*H*.42,sc=(.88+.12*e)*(1-.5*a);
+  pmSet(S.dress,'translate3d(0,'+ty.toFixed(1)+'px,0) scale('+sc.toFixed(3)+')');pmOp(S.dress,e*(1-a));
+ }
+ pmOp(S.flash,x.flash||0);
+ if(S.glint)pmSet(S.glint,'translate3d('+((x.glint==null?-1.2:x.glint)*100).toFixed(1)+'%,0,0) skewX(-12deg)');
+ pmSet(S.world,x.pulse?'scale('+x.pulse.toFixed(4)+')':'');
 }
 // One controller per job: it maps real elapsed time to the scene's own clock, and plays the finish when told.
 function pmCtl(o){
- var c={t0:o.t0||Date.now(),tb:(o.tb||42)*1000,mode:'build',vt:0,last:0,root:null,res:null,mirror:null,raf:0,tm:0,line:-1,url:'',resolve:null,hold:false};
- var rm=function(){return window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches};
- c.mount=function(sc){c.root=sc.root;c.res=sc.res;c.mirror=sc.mirror||null;c.line=-1;if(c.url&&c.mode!=='build'&&c.res&&c.vt>=PM_RES)c.res.classList.add('is-on');if(c.url&&c.res)c.res.src=c.url;if(!c.raf&&!c.tm)start();else frame(0)};
+ var c={t0:o.t0||Date.now(),tb:(o.tb||42)*1000,mode:'build',p:0,ct:0,last:0,root:null,res:null,mirror:null,S:null,raf:0,tm:0,line:-1,url:'',resolve:null,hold:false,off:false,t:0,txtAt:0,noteOverride:'',born:performance.now()};
+ var rm=function(){try{return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)}catch(e){return false}};
  function live(){return c.root&&c.root.isConnected}
- function text(){
-  var vt=c.vt,idx=0;for(var i=0;i<PM_LT.length;i++)if(vt>=PM_LT[i][0]+.4)idx=i;
-  if(c.mode==='build'&&vt>=PM_HOLD-.01)idx=3;
-  if(idx!==c.line){c.line=idx;var sr=c.root.querySelector('.sr-only');if(sr)sr.textContent=PM_LINES[idx];var r=c.root.querySelector('.pm__rm');if(r)r.textContent=PM_LINES[idx]}
-  var nt=c.root.querySelector('.pm__note');if(nt&&c.mode==='build'){var s=buildNote();if(nt.textContent!==s)nt.textContent=s}
-  else if(nt&&c.mode!=='build'&&nt.textContent)nt.textContent='';
-  c.root.classList.toggle('is-hold',c.mode==='build'&&vt>=PM_HOLD-.01);
+ function measure(){var S=c.S;if(!S||!S.glass)return;S.W=S.glass.clientWidth;S.H=S.glass.clientHeight}
+ c.mount=function(sc){
+  unobserve();
+  c.S=sc;c.root=sc.root;c.res=sc.res;c.mirror=sc.mirror||null;c.line=-1;sc.pose=function(){if(!c.raf)draw(0)};
+  sc.root.__glow=sc.root.querySelector('.pm__glow');
+  if(c.url&&c.res)c.res.src=c.url;
+  if(c.url&&c.mode!=='build'&&c.mode!=='ff'&&c.res&&c.ct>=.95)c.res.classList.add('is-on');
+  measure();observe();
+  c.q={bar:sc.root.querySelector('.pm__bar i'),dot:sc.root.querySelector('.pm__bar b')};
+  if(!c.raf&&!c.tm)start();else{setRun(!!c.raf);draw(0);bar();text(true)}
+ };
+ var ro=null;
+ function observe(){try{if(window.ResizeObserver&&c.S&&c.S.glass){ro=new ResizeObserver(function(){measure();if(!c.raf)draw(0)});ro.observe(c.S.glass)}}catch(e){ro=null}}
+ function unobserve(){try{if(ro)ro.disconnect()}catch(e){}ro=null}
+ function text(force){
+  var now=performance.now();if(!force&&now-c.txtAt<250)return;c.txtAt=now;bar();
+  var root=c.root,idx;
+  if(c.mode==='build')idx=c.hold?3:(c.p<.16?0:c.p<.4?1:2);
+  else if(c.mode==='ff')idx=3;
+  else idx=c.ct>=.9?4:3;
+  if(idx!==c.line){
+   c.line=idx;
+   var ls=root.querySelectorAll('.pm__lines span');for(var i=0;i<ls.length;i++)ls[i].classList.toggle('on',i===idx);
+   var sr=root.querySelector('.sr-only');if(sr)sr.textContent=PM_LINES[idx];var r=root.querySelector('.pm__rm');if(r)r.textContent=PM_LINES[idx];
+  }
+  var nt=root.querySelector('.pm__note');
+  if(nt){var s=c.noteOverride||(c.mode==='build'?holdNote(Date.now()-c.t0):'');if(nt.textContent!==s)nt.textContent=s}
+  root.classList.toggle('is-hold',c.mode==='build'&&c.hold&&!c.off);
+ }
+ function bar(){
+  var q=c.q;if(!q||!q.bar)return;
+  var f=c.mode==='build'?Math.min(.93,c.p/.8*.93):(c.mode==='ff'||c.ct<.3)?.93:1;
+  pmSet(q.bar,'scaleX('+f.toFixed(3)+')');pmSet(q.dot,'translate3d('+(-f*190).toFixed(1)+'px,0,0)');
+ }
+ function draw(dt){
+  var S=c.S;if(!S)return;
+  var x={hold:c.mode==='build'&&c.hold&&!c.off};
+  x.enter=smooth(0,1.4,c.t);
+  if(c.mode==='climax'||c.mode==='done'){
+   var ct=c.ct;
+   x.flash=.34*smooth(.8,1.15,ct)*(1-smooth(1.15,1.9,ct));
+   x.glow=smooth(.7,1.2,ct)*(1-smooth(1.8,2.5,ct));
+   x.glint=-1.2+smooth(.9,1.95,ct)*3.2;
+   x.absorb=smooth(.15,1.0,ct);
+   
+   x.fin=smooth(.2,1.2,ct);
+  }
+  pmPose(S,c.p,c.t,x);
  }
  function frame(dt){
   if(!live())return false;
-  if(c.mode==='build'){c.vt=PM_HOLD*Math.min(1,(Date.now()-c.t0)/c.tb)}
-  else if(c.mode==='ff'){c.vt=Math.min(PM_HOLD,c.vt+dt*Math.max(1,(PM_HOLD-c.vt)/.9));if(c.vt>=PM_HOLD)c.mode='climax'}
-  else if(c.mode==='climax'){c.vt=Math.min(PM_END,c.vt+dt);if(c.vt>=PM_RES&&c.res&&c.url)c.res.classList.add('is-on');if(c.vt>=PM_END){c.mode='done'}}
-  if(!rm())pmApply(c.root,c.vt);
-  text();
-  if(c.mode==='done'){var r=c.resolve;c.resolve=null;if(r)setTimeout(r,140);return false}
+  c.t+=dt;
+  if(c.mode==='build'){var el_=Date.now()-c.t0;c.p=buildProgress(el_,c.tb);c.hold=el_>=c.tb}
+  else if(c.mode==='ff'){c.p=Math.min(PM_P0,c.p+dt*Math.max(.18,(PM_P0-c.p)/.45));if(c.p>=PM_P0-.0005){c.p=PM_P0;c.mode='climax';c.ct=0;measure()}}
+  else if(c.mode==='climax'){
+   c.ct+=dt;var q=smooth(.1,1.3,c.ct);c.p=PM_P0+(1-PM_P0)*q;
+   if(c.ct>=.95&&c.res&&c.url)c.res.classList.add('is-on');
+   if(c.ct>=PM_END){c.mode='done'}
+  }
+  draw(dt);text(false);
+  if(c.mode==='done'){var r=c.resolve;c.resolve=null;stopLoop();setRun(false);if(r)setTimeout(r,140);return false}
   return true;
  }
- function start(){
-  if(rm()){c.tm=setInterval(function(){if(c.mode==='ff'||c.mode==='climax'){c.vt=PM_END;c.mode='done'}if(!frame(0)){stop()}},900);frame(0);return}
-  c.last=performance.now();
-  var loop=function(now){var dt=Math.min(.1,(now-c.last)/1000);c.last=now;if(frame(dt))c.raf=requestAnimationFrame(loop);else c.raf=0};
-  c.raf=requestAnimationFrame(loop);
+ function setRun(on){if(c.root)c.root.classList.toggle('is-run',!!on)}
+ function loop(now){
+  c.raf=0;
+  if(document.hidden||c.off)return;
+  var dt=Math.min(.1,Math.max(0,(now-c.last)/1000));c.last=now;
+  if(frame(dt))c.raf=requestAnimationFrame(loop);
  }
- function stop(){cancelAnimationFrame(c.raf);clearInterval(c.tm);c.raf=0;c.tm=0}
- c.stop=function(){stop();c.mode='stopped'};
+ function start(){
+  if(rm()||c.S&&c.S.caps.mode==='still'){
+   // no motion: the scene sits in a calm pose and only its words and bar move, every so often
+   c.p=.45;c.t=2;setRun(false);
+   c.tm=setInterval(function(){
+    if(c.mode==='ff'||c.mode==='climax'){c.mode='done';c.p=1;if(c.res&&c.url)c.res.classList.add('is-on')}
+    if(!live()){stopLoop();return}
+    if(c.mode==='done'){draw(0);bar();text(true);stopLoop();var r=c.resolve;c.resolve=null;if(r)setTimeout(r,140);return}
+    if(c.mode==='build'){c.hold=Date.now()-c.t0>=c.tb}
+    draw(0);bar();text(true);
+   },900);
+   draw(0);bar();text(true);return;
+  }
+  setRun(true);
+  c.last=performance.now();
+  if(!document.hidden&&!c.off)c.raf=requestAnimationFrame(loop);
+ }
+ function stopLoop(){if(c.raf)cancelAnimationFrame(c.raf);clearInterval(c.tm);c.raf=0;c.tm=0}
+ function onVis(){
+  if(c.mode==='stopped')return;
+  if(document.hidden){if(c.raf){cancelAnimationFrame(c.raf);c.raf=0}return}
+  if(!c.raf&&!c.tm&&!c.off&&live()&&c.mode!=='done'){c.last=performance.now();c.raf=requestAnimationFrame(loop)}
+ }
+ document.addEventListener('visibilitychange',onVis);
+ function destroy(){stopLoop();unobserve();document.removeEventListener('visibilitychange',onVis);c.resolve=null}
+ // A watchdog for the build clock: if the loop is not running (and was not told to rest) start it again.
+ c.kick=function(){if(c.S&&!c.raf&&!c.tm&&!c.off&&!document.hidden&&live()&&c.mode!=='stopped'&&c.mode!=='done')start()};
+ c.stop=function(){destroy();c.mode='stopped';setRun(false)};
+ // The scene rests in a calm pose (offline, failure): the loop sleeps but nothing is torn down.
+ c.rest=function(note){c.off=true;stopLoop();setRun(false);c.noteOverride=note||'';if(live()){draw(0);bar();text(true);c.root.classList.remove('is-hold')}};
+ c.wake=function(){if(!c.off)return;c.off=false;c.noteOverride='';if(c.mode!=='stopped'&&live()&&!c.raf&&!c.tm)start()};
  // url: the finished photo (or null: only lift the veil).
  c.finish=function(url){
   return new Promise(function(done){
@@ -1243,7 +1438,9 @@ function pmCtl(o){
     if(c.mode==='stopped'||!live()){done();return}
     c.url=url||'';if(url&&c.res)c.res.src=url;
     if(a&&c.mirror){(state.arOf=state.arOf||{})[url]=a;c.mirror.style.setProperty('--ar',a)}
-    c.resolve=done;c.mode='ff';if(rm()){c.vt=PM_END;if(c.res&&url)c.res.classList.add('is-on')}
+    c.resolve=done;c.off=false;c.noteOverride='';c.mode='ff';measure();
+    if(document.hidden){c.mode='done';c.p=1;if(c.res&&url)c.res.classList.add('is-on');c.resolve=null;setTimeout(done,0);return}
+    if(rm()||c.S&&c.S.caps.mode==='still'){c.mode='done';c.p=1;if(c.res&&url)c.res.classList.add('is-on');if(!c.tm)start();return}
     if(!c.raf&&!c.tm)start();
    };
    if(!url){go();return}
@@ -1253,10 +1450,10 @@ function pmCtl(o){
  return c;
 }
 var PMC=null;
-function buildNote(){var t=Date.now()-(state.genT0||Date.now());return t>85000?'کمی بیشتر از همیشه طول کشید؛ هنوز در حال ساخت است. صفحه را نبند.':t>45000?'دارد تمام می‌شود… معمولاً حدود یک دقیقه طول می‌کشد.':'این صفحه را نبند؛ معمولاً حدود یک دقیقه طول می‌کشد.'}
+function buildNote(){return holdNote(Date.now()-(state.genT0||Date.now()))}
 function buildStage(){
  var sc=pmScene(state.original?media(state.original):'');
- if(!PMC||PMC.t0!==state.genT0||PMC.mode==='stopped'){if(PMC)PMC.stop();PMC=pmCtl({t0:state.genT0||Date.now(),tb:42})}
+ if(!PMC||PMC.t0!==state.genT0||PMC.mode==='stopped'){if(PMC)PMC.stop();PMC=pmCtl({t0:state.genT0||Date.now(),tb:GEN_TOTAL_MS/1000})}
  PMC.mount(sc);
  return sc.root;
 }
@@ -1265,6 +1462,7 @@ function retryStage(msg){
  var sc=pmScene(state.original?media(state.original):'',{calm:true});
  var box=el('div',{class:'pm__calm'},[el('b',{text:'این بار کامل نشد'}),h('p',msg||'یک بار دیگر امتحان کنیم؟')]);
  sc.root.append(box);
+ sc.pose=function(){pmPose(sc,.38,0,{enter:1})};sc.pose();
  return sc.root;
 }
 // One name per saved photo: boutique, date and time, and the result's own id.
@@ -1425,7 +1623,8 @@ function stepResult(){
   el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){go(2)},text:'تغییر'})
  ]));
  if(state.pub.sandbox)box.append(notice('info','این صفحه هنوز در مرحلهٔ راه‌اندازی است؛ اگر تصویر ساخته نشد، درخواستت را برای مزون بفرست.'));
- var calmRetry=!!(state.error&&state.original&&!state.result&&!state.busy&&canGenerate()&&!state.noImage);
+ var recheck=!!(state.gen&&!state.result&&!state.busy&&recheckKind(state.errKind));
+ var calmRetry=!!(state.error&&state.original&&!state.result&&!state.busy&&(canGenerate()||recheck)&&!state.noImage);
  if(state.error&&!calmRetry)box.append(notice('danger',state.error));
  if(state.noImage&&!state.result&&!state.busy)box.append(noImageCard(state.noImage==='x'?'':state.noImage));
  if(state.busy&&!state.result){box.append(buildStage());startBuildClock()}
@@ -1441,7 +1640,7 @@ function stepResult(){
   box.append(ratingBlock());
   box.append(meBlock());
  }else if(!state.busy){
-  if(!canGenerate()){
+  if(!canGenerate()&&!recheck){
    box.append(notice('info',!state.pub.generation?'این مزون پیش‌نمایش تصویری را فعال نکرده. عکس و انتخابت را برای '+artist()+' بفرست تا بررسی کند.':(!hasChoice()?missingReason()+'.':'ساخت تصویر از این انتخاب هنوز فعال نیست. عکس و انتخابت را مستقیم برای '+artist()+' بفرست.')));
    box.append(el('div',{class:'flow__nav'},[!hasChoice()&&state.original?el('button',{class:'btn btn--ghost',type:'button',onclick:function(){go(2)},text:'انتخاب'}):null,sendButton()]));
    box.append(sendNote());
@@ -1451,7 +1650,7 @@ function stepResult(){
    if(calmRetry)box.append(retryStage(state.error));
    else box.append(el('div',{class:'stage mirror'},[el('div',{class:'mirror__glass'},[el('span',{class:'stage__empty',html:ILLO.results+'<span style="display:block">نتیجه همین‌جا، در قاب آینه، ظاهر می‌شود</span>'})])]));
    box.append(el('div',{class:'flow__nav'},[
-    el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>'+(state.error?'تلاش دوباره':'عروسم کن')+'</span>'}),
+    el('button',{class:'btn btn--primary','data-act':state.error?'retry':'generate',type:'button',onclick:retry,html:ICO.spark+'<span>'+(state.error?retryLabel(state.errKind):'عروسم کن')+'</span>'}),
     el('button',{class:'btn btn--ghost',type:'button',onclick:openRequest,html:ICO.send+'<span>بدون شبیه‌سازی بفرست</span>'})
    ]));
    box.append(h('p','با زدن «عروسم کن» عکست برای ساخت شبیه‌سازی فرستاده می‌شود و فقط برای همین مزون می‌ماند.','fine-print'));
@@ -1492,8 +1691,9 @@ function renderDock(){
  }else{
   if(state.busy){hint='در حال ساخت…';primary=el('button',{class:'btn btn--primary',type:'button',disabled:true,text:'در حال ساخت…'})}
   else if(state.result){hint='عکس را روی گوشی‌ات بگیر';primary=el('button',{class:'btn btn--primary',type:'button',onclick:function(){openQR()},html:ICO.phone+'<span>ارسال برای خودم</span>'})}
+  else if(state.gen&&!state.result&&recheckKind(state.errKind)){hint='نتیجهٔ همان درخواست را دوباره بررسی کن';primary=el('button',{class:'btn btn--primary',type:'button',onclick:retry,html:ICO.spark+'<span>'+retryLabel(state.errKind)+'</span>'})}
   else if(state.result||!canGenerate()||state.noImage){hint='فرستادن در تلگرام برای مزون';primary=el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
-  else{hint='آمادهٔ ساخت';primary=el('button',{class:'btn btn--primary',type:'button',onclick:generate,html:ICO.spark+'<span>عروسم کن</span>'})}
+  else{hint='آمادهٔ ساخت';primary=el('button',{class:'btn btn--primary',type:'button',onclick:retry,html:ICO.spark+'<span>'+(state.error?retryLabel(state.errKind):'عروسم کن')+'</span>'})}
  }
  inner.append(el('div',{class:'dock__hint',text:hint}),primary);
  dock.replaceChildren(inner);dock.hidden=false;
@@ -1605,7 +1805,7 @@ function generate(){
   }).catch(function(e){toast(e.message,'error')});
   return;
  }
- state.busy=true;state.error='';state.noImage=null;state.result=null;state.genT0=Date.now();renderFlow();renderDock();
+ state.busy=true;state.error='';state.errKind='';state.noImage=null;state.result=null;state.genT0=Date.now();renderFlow();renderDock();
  ensureSession().then(function(){
   state.idem=state.idem||uuid();
   // The page's own note under «عروسم کن» says the photo is sent for the simulation; no extra checkbox.
@@ -1622,9 +1822,17 @@ function generate(){
   if(e.status===402){state.noImage=e.message||'x';state.error='';renderFlow();renderDock();return}
   if(needsVerify(e.message)){state.verified=false;state.error='';renderFlow();renderDock();openOtp(generate);return}
   if(/سهم امتحان/.test(e.message)&&state.quota&&state.quota.left)state.quota.left.dress=0;
-  state.error=friendly(e.message);
+  state.error=friendly(e.message);state.errKind='request';
   renderFlow();renderDock();
  });
+}
+// «Try again»: a failed job makes a new one; a job whose answer we could not get is only asked about again.
+function recheckKind(k){return k==='unknown'||k==='timeout'||k==='lost'}
+function retry(){if(state.gen&&!state.result&&recheckKind(state.errKind))recheck();else generate()}
+function recheck(){
+ if(state.busy||!state.gen)return;
+ state.busy=true;state.error='';state.errKind='';state.genT0=Date.now()-GEN_TOTAL_MS+400;
+ renderFlow();renderDock();poll(state.gen,true);
 }
 function friendly(msg){
  if(/سقف استفاده/.test(msg))return 'سقف استفادهٔ امروز پر شده است؛ فردا دوباره امتحان کن.';
@@ -1634,23 +1842,56 @@ function friendly(msg){
  return msg;
 }
 function pickNow(){if(DESK){kioskCamera();return}var pick=$('#pick');if(pick)pick.click();else toast('اول عکس خودت را اضافه کن')}
-function updateProgress(){if(PMC&&PMC.root&&PMC.root.isConnected&&PMC.mode==='build'&&!PMC.raf&&!PMC.tm)PMC.mount({root:PMC.root,res:PMC.res,mirror:PMC.mirror})}
+function updateProgress(){if(PMC&&PMC.root&&PMC.root.isConnected&&PMC.mode==='build')PMC.kick()}
+// The state machine (genReduce) decides what the scene shows; this function only feeds it what happened.
+var GM=genReduce(null,{type:'leave'}),POLLTOK=0;
+function gm(ev){var n=genReduce(GM,ev);if(n!==GM){GM=n}return GM}
 function poll(id,resumed){
- var attempts=0;
+ var tok=++POLLTOK,attempts=0,timer=0;
+ gm({type:'leave'});gm({type:'start'});
+ function alive(){return tok===POLLTOK}
+ function off(){window.removeEventListener('online',onOn);window.removeEventListener('offline',onOff);document.removeEventListener('visibilitychange',onVis);clearTimeout(timer)}
+ function end(){if(alive())POLLTOK++;off()}
+ function show(){
+  // offline: the scene rests and says why; back online: it wakes and carries on
+  if(!PMC)return;
+  if(GM.phase==='offline')PMC.rest(phaseCopy('offline'));else PMC.wake();
+ }
+ function onOff(){if(!alive())return;gm({type:'neterr',online:false});show()}
+ function onOn(){if(!alive())return;gm({type:'online'});show();clearTimeout(timer);timer=setTimeout(tick,150)}
+ function onVis(){if(!alive()||document.hidden)return;clearTimeout(timer);timer=setTimeout(tick,60)}
+ window.addEventListener('online',onOn);window.addEventListener('offline',onOff);document.addEventListener('visibilitychange',onVis);
+ if(navigator.onLine===false){gm({type:'neterr',online:false});show()}
+ function stopWith(kind){
+  end();if(PMC)PMC.stop();
+  state.busy=false;state.errKind=kind;state.error=phaseCopy(kind);
+  if(kind==='failed'){state.idem=null;state.gen=null;try{sessionStorage.removeItem('ayneh-job-'+SLUG)}catch(e){}}
+  renderFlow();renderDock();
+ }
+ function again(ms){clearTimeout(timer);timer=setTimeout(tick,ms)}
  function tick(){
-  attempts++;
-  updateProgress();
+  if(!alive())return;
+  attempts++;updateProgress();
+  gm({type:'tick',elapsed:Date.now()-(state.genT0||Date.now())});
+  if(GM.phase==='timeout'){stopWith('timeout');return}
+  if(navigator.onLine===false){gm({type:'neterr',online:false});show();again(2500);return}
   return api('generation/'+id).then(function(d){
+   if(!alive())return;
    state.genState=d.state;
+   gm({type:'poll',state:d.state});show();
    if(d.state==='success'){
+    end();
     track('result','',true);
     if(window.__trialLeft)window.__trialLeft();
     state.idem=null;state.session=false;loadSession().catch(function(){});
     try{sessionStorage.removeItem('ayneh-job-'+SLUG)}catch(e){}
     var fin=function(){
-     state.result=d.result_id;state.busy=false;
+     gm({type:'finished'});
+     state.result=d.result_id;state.busy=false;state.error='';state.errKind='';
      state.rating=Number(localStorage.getItem('ayneh-rating-'+d.result_id)||0);
-     renderFlow();renderDock();toast('شبیه‌سازی آماده شد');
+     renderFlow();
+     // the dock and the toast are a separate task: the result screen is built in pieces so no single task runs long
+     setTimeout(function(){renderDock();toast('شبیه‌سازی آماده شد')},0);
     };
     // The climax plays only if the waiting scene is on screen; otherwise show the result at once.
     if(PMC&&PMC.root&&PMC.root.isConnected&&state.step===3)PMC.finish(media(d.result_id)).then(fin);else fin();
@@ -1658,14 +1899,14 @@ function poll(id,resumed){
    }
    if(d.state==='fail'||d.state==='unknown'){
     track('gen_fail',d.state);
-    if(PMC)PMC.stop();state.busy=false;state.error=d.state==='fail'?'این بار ساخته نشد. با عکسی تمام‌قد، روشن و روبه‌رو دوباره امتحان کن؛ معمولاً درست می‌شود.':friendly('وضعیت نامشخص');
-    renderFlow();renderDock();return;
+    stopWith(d.state==='fail'?'failed':'unknown');return;
    }
-   if(attempts>90){if(PMC)PMC.stop();state.busy=false;state.error='هنوز آماده نشده؛ با بازکردن دوبارهٔ صفحه همان درخواست پیگیری می‌شود.';renderFlow();renderDock();return}
-   return sleep(Math.min(4000,1400+attempts*160)).then(tick);
+   again(Math.min(4000,1400+attempts*160));
   }).catch(function(){
-   if(attempts>8){if(PMC)PMC.stop();state.busy=false;state.error='ارتباطت قطع شد. نگران نباش؛ اگر ساخت شروع شده باشد، با باز کردن دوبارهٔ همین صفحه نتیجه را می‌بینی.';renderFlow();renderDock();return}
-   return sleep(2200).then(tick);
+   if(!alive())return;
+   gm({type:'neterr',online:navigator.onLine!==false});show();
+   if(GM.phase==='lost'){stopWith('lost');return}
+   again(GM.phase==='offline'?2500:2200);
   });
  }
  return tick();
@@ -1694,13 +1935,15 @@ function openViews(){
  var controls=el('div',{class:'spin__controls',hidden:true},[el('div',{class:'spin__row'},[dial,angle,play]),thumbs]);
  var zbtn=el('button',{class:'zoomx',type:'button','aria-label':'باز کردن تمام‌صفحه برای بزرگ‌نمایی',html:EXPAND_ICO,hidden:true});
  zbtn.addEventListener('click',function(){auto(false);openViewer(ANG.map(function(nm,i){return {src:src,name:nm,crop:{i:i,n:N}}}),frame,{title:'از همهٔ زاویه‌ها'})});
- panel.append(el('div',{class:'zoomable zoomable--views'},[el('div',{class:'mirror spin-wrap'},[stage]),zbtn]),controls,h('p','برای چرخاندن بکش؛ برای زوم دو انگشتی یا دوبار لمس. نیم‌رخ و پشت لباس تخمینی‌اند و اسکن سه‌بعدی نیست؛ طرح دقیق لباس را با مزون هماهنگ کن.','tiny muted spin__note'));
+ panel.append(el('div',{class:'zoomable zoomable--views'},[el('div',{class:'mirror mirror-shd spin-wrap','aria-hidden':'true'},[el('div',{class:'mirror__glass'})]),el('div',{class:'mirror spin-wrap nofx',style:'position:relative;z-index:1'},[stage]),zbtn]),controls,h('p','برای چرخاندن بکش؛ برای زوم دو انگشتی یا دوبار لمس. نیم‌رخ و پشت لباس تخمینی‌اند و اسکن سه‌بعدی نیست؛ طرح دقیق لباس را با مزون هماهنگ کن.','tiny muted spin__note'));
  var shareRow=el('div',{class:'result-actions'},[
   el('button',{class:'btn btn--primary btn--sm',type:'button',onclick:function(){if(!state.views||!state.views.gens){toast('کمی صبر کن تا زاویه‌ها آماده شوند');return}openQR('','همهٔ زاویه‌ها',state.views.gens.slice(0,3))},html:ICO.phone+'<span>ارسال همهٔ زاویه‌ها برای خودم</span>'}),
   el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){if(!state.views||!state.views.ids){toast('کمی صبر کن تا زاویه‌ها آماده شوند');return}var u=[state.result].concat(state.views.ids);u.forEach(function(id,i){var l=el('a',{href:media(id),download:'lebas-aroos-'+(i+1)+'.jpg'});document.body.append(l);setTimeout(function(){l.click();l.remove()},i*350)})},html:ICO.gallery+'<span>ذخیرهٔ همه</span>'})]);
  panel.append(shareRow);
  openSheet(panel);
- var frame=0,front=a,timer=null,spinTimer=null,tipTimer=null,progTimer=null,src='';
+ var shEl=$('#sheet');function gone(){return !panel.isConnected||!shEl.open}
+ shEl.addEventListener('close',function(){cleanup()},{once:true});
+ var frame=0,front=a,timer=null,spinTimer=null,tipTimer=null,progTimer=null,src='',dead=false;
  function paint(layer,n){layer.style.backgroundImage='url('+src+')';layer.style.backgroundSize=(N*100)+'% 100%';layer.style.backgroundPosition=(n*100/(N-1))+'% 0'}
  function show(n,instant){
   frame=(n%N+N)%N;var back=front===a?b:a;paint(back,frame);
@@ -1708,8 +1951,9 @@ function openViews(){
   angle.textContent=ANG[frame];dial.style.setProperty('--r',(frame*(360/N))+'deg');
   Array.prototype.forEach.call(thumbs.children,function(t,i){t.classList.toggle('is-on',i===frame);t.setAttribute('aria-pressed',i===frame?'true':'false')});
  }
- function auto(on){clearInterval(spinTimer);spinTimer=null;play.textContent=on?'⏸ توقف':'▶ چرخش';if(on&&!reduce)spinTimer=setInterval(function(){if(!panel.isConnected){cleanup();return}show(frame+1)},1100)}
- function cleanup(){vpm.stop();clearInterval(spinTimer);clearInterval(tipTimer);clearInterval(progTimer);cancelAnimationFrame(timer)}
+ function auto(on){clearInterval(spinTimer);spinTimer=null;play.textContent=on?'⏸ توقف':'▶ چرخش';if(on&&!reduce)spinTimer=setInterval(function(){if(gone()){cleanup();return}show(frame+1)},1100)}
+ // Everything this panel started is ended here: timers, the scene's loop and listeners, and the object URL of the composed angles.
+ function cleanup(failed){clearInterval(spinTimer);clearInterval(tipTimer);clearInterval(progTimer);cancelAnimationFrame(timer);dead=true;if(failed&&!stage.classList.contains('is-ready')){vpm.rest()}else vpm.stop();if(gone()&&src){try{URL.revokeObjectURL(src)}catch(e){}src=''}}
  play.addEventListener('click',function(){auto(!spinTimer)});
  var drag=null,Z=1,PX=0,PY=0,pts={},pinch=null;
  function applyZ(){var r=stage.getBoundingClientRect(),mx=r.width*(Z-1)/2,my=r.height*(Z-1)/2;PX=Math.max(-mx,Math.min(mx,PX));PY=Math.max(-my,Math.min(my,PY));var t=Z>1?'translate('+PX+'px,'+PY+'px) scale('+Z+')':'';a.style.transform=t;b.style.transform=t;stage.style.touchAction=Z>1?'none':'pan-y';stage.classList.toggle('is-zoomed',Z>1)}
@@ -1742,7 +1986,7 @@ function openViews(){
   });
  }
  function ready(ids){
-  compose(ids).then(function(u){src=u;go()}).catch(function(){cleanup();tip.textContent='نمایش زاویه‌ها ممکن نشد؛ دوباره امتحان کن.'});
+  compose(ids).then(function(u){if(dead||gone()){try{URL.revokeObjectURL(u)}catch(e){}return}src=u;go()}).catch(function(){cleanup(true);tip.textContent='نمایش زاویه‌ها ممکن نشد؛ دوباره امتحان کن.'});
  }
  function go(){
   thumbs.replaceChildren();for(var i=0;i<N;i++)(function(n){var t=el('button',{class:'spin__thumb mz-mini',type:'button','aria-label':ANG[n]},[el('i')]);paint(t.firstChild,n);t.addEventListener('click',function(){auto(false);show(n)});thumbs.append(t)})(i);
@@ -1755,20 +1999,26 @@ function openViews(){
   });
  }
  var tips=['دارم نیم‌رخ راست را می‌سازم…','پشت لباس و دنباله…','نیم‌رخ چپ…','هماهنگ‌کردن نور و رنگ لباس…','سه زاویه با هم ساخته می‌شوند؛ ۲ تا ۳ دقیقه صبر کن…'],ti=0,started=Date.now();
- tipTimer=setInterval(function(){if(!panel.isConnected){cleanup();return}tip.textContent=tips[ti++%tips.length]},2400);
+ tipTimer=setInterval(function(){if(gone()){cleanup();return}tip.textContent=tips[ti++%tips.length]},2400);
  progTimer=setInterval(function(){bar.style.width=Math.round(3+92*(1-Math.exp(-(Date.now()-started)/70000)))+'%'},400);
  if(state.views&&state.views.gen===state.gen&&state.views.ids){ready(state.views.ids);return}
- if(quotaLeft()===0){cleanup();tip.textContent='سهم امتحان «لباس عروس» برای شما تمام شد؛ زوایای دیگر هم از همین سهم حساب می‌شود.';return}
+ if(quotaLeft()===0){cleanup(true);tip.textContent='سهم امتحان «لباس عروس» برای شما تمام شد؛ زوایای دیگر هم از همین سهم حساب می‌شود.';return}
  api('views',{v:VISITOR,parent:state.gen,idem:state.viewsIdem||(state.viewsIdem=uuid())}).then(function(job){
-  spentQuota();var tries=0,ids=job.ids||[job.id];
-  function check(){if(!panel.isConnected)return;return Promise.all(ids.map(function(i){return api('generation/'+i)})).then(function(ds){
+  spentQuota();var tries=0,netFails=0,ids=job.ids||[job.id];
+  function check(){if(gone()||dead){cleanup();return}
+   if(navigator.onLine===false){tip.textContent='اینترنتت قطع شده؛ به‌محض وصل‌شدن ادامه می‌دهیم.';return sleep(2500).then(check)}
+   return Promise.all(ids.map(function(i){return api('generation/'+i)})).then(function(ds){netFails=0;
    var done=ds.filter(function(d){return d.state==='success'&&d.result_id});
    if(done.length===ids.length){var out=done.map(function(d){return d.result_id});state.views={gen:state.gen,ids:out,gens:ids.slice(0)};state.viewsIdem=null;ready(out);return}
-   if(ds.some(function(d){return d.state==='fail'||d.state==='unknown'})||++tries>90){cleanup();tip.textContent='ساخت زاویه‌ها ممکن نشد؛ کمی بعد دوباره امتحان کن.';state.viewsIdem=null;return}
+   if(ds.some(function(d){return d.state==='fail'||d.state==='unknown'})||++tries>90){cleanup(true);tip.textContent='ساخت زاویه‌ها ممکن نشد؛ کمی بعد دوباره امتحان کن.';state.viewsIdem=null;return}
    return sleep(3000).then(check);
+  },function(){
+   // a dropped connection is not the end: ask again a few times before giving up
+   if(++netFails>8){cleanup(true);tip.textContent='ارتباطت قطع شد؛ دوباره که باز کنی همین درخواست پیگیری می‌شود.';return}
+   return sleep(2500).then(check);
   })}
   return check();
- }).catch(function(e){cleanup();tip.textContent=e.message;if(e.status===402){tip.textContent='';tip.append(noImageCard(e.message))}});
+ }).catch(function(e){cleanup(true);tip.textContent=e.message;if(e.status===402){tip.textContent='';tip.append(noImageCard(e.message))}});
 }
 
 /* ---------- demo before/after, shown before we ask for a photo ---------- */
@@ -2594,4 +2844,4 @@ export const customerHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><h
 <script>__JS__</script>
 </body></html>`
  .replace('__CSS__',()=>baseCSS+customerCSS)
- .replace('__JS__',()=>clientJS.replace('/*__QR__*/',()=>QR_JS).replace('/*__CHECK__*/',()=>PHOTO_CHECK_JS).replace('__LINES__',()=>LINES_JSON).replace('__MARK__',()=>JSON.stringify(markSVG)).replace('__ILLO__',()=>JSON.stringify(illos)).replace('__MZD__',()=>JSON.stringify(MZ_D)));
+ .replace('__JS__',()=>clientJS.replace('/*__QR__*/',()=>QR_JS).replace('/*__CHECK__*/',()=>PHOTO_CHECK_JS).replace('/*__SCENE__*/',()=>SCENE_JS).replace('__LINES__',()=>LINES_JSON).replace('__MARK__',()=>JSON.stringify(markSVG)).replace('__ILLO__',()=>JSON.stringify(illos)).replace('__MZD__',()=>JSON.stringify(MZ_D)));

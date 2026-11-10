@@ -73,6 +73,11 @@ img{display:block;max-width:100%}
 
 /* --- the mirror: antique-mirror frame (ogee crown, double champagne-gold bevel) used for every photo --- */
 .mirror{--mz-pad:11px;position:relative;padding:var(--mz-pad);isolation:isolate;filter:drop-shadow(0 20px 18px rgba(35,23,15,.17)) drop-shadow(0 2px 2px rgba(35,23,15,.12)) drop-shadow(0 0 20px rgba(255,247,226,.7))}
+/* A mirror whose contents animate (the waiting scene, the before/after slider, the angle viewer) must not carry the drop-shadow filter:
+   it would be redrawn on every frame. Its shadow sits on a static twin behind it instead (.mirror-shd). */
+.mirror.nofx{filter:none}
+.mirror-shd{position:absolute;inset:0;pointer-events:none;z-index:0}
+.mirror-shd .mirror__glass{height:100%;aspect-ratio:auto}
 .mirror::before,.mirror::after{content:"";position:absolute;pointer-events:none;background-size:100% 100%;background-repeat:no-repeat;-webkit-mask:var(--mz-shape) 0 0/100% 100% no-repeat;mask:var(--mz-shape) 0 0/100% 100% no-repeat}
 .mirror::before{inset:0;z-index:-1;background-image:var(--mz-bevel)}
 .mirror::after{inset:calc(var(--mz-pad) - 5px);z-index:2;background-image:var(--mz-hair)}
