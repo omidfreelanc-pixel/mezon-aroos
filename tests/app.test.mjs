@@ -1478,3 +1478,8 @@ test('waiting scene, viewer, seal footer and export card are wired; pinch-zoom n
  assert(!/class:'curtain/.test(customerHTML));
  assert.match(customerHTML,/pan-y pinch-zoom/);
 });
+
+test('bot album: photos keep message order, one dress, name is asked when missing',async()=>{
+ const src=await (await import('node:fs/promises')).readFile(new URL('../worker/telegram.js',import.meta.url),'utf8');
+ assert.match(src,/ORDER BY mid LIMIT 4/);assert.match(src,/اسم این لباس چیست/);assert.match(src,/ANG=\['روبه‌رو','پشت','نیم‌رخ راست','نیم‌رخ چپ'\]/);
+});

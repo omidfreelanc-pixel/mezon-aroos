@@ -156,13 +156,18 @@ async function handle(req,env,p){
   if(state.p&&(!state.ts||Date.now()-state.ts>STALE)){await expireState(env,salon,state,ctx);state={}}
   if(state.p===p&&Number.isInteger(state.step)){
    // A captioned photo while the wizard waits for text is portfolio, not an answer.
-   if(photo&&m.caption&&WIZ[state.step]?.type!=='photo'){await addPortfolio(ctx,photo,m.caption,m.media_group_id);return J({ok:true})}
+   if(photo&&m.caption&&WIZ[state.step]?.type!=='photo'){await addPortfolio(ctx,photo,m.caption,m.media_group_id,m.message_id);return J({ok:true})}
    await wizardAnswer(ctx,state,m);return J({ok:true});
+  }
+  if(state.p===p&&state.dress&&!photo&&textIn&&!textIn.startsWith('/')){
+   const nm=text(textIn,150);await run(db,"UPDATE salons SET bot_state='' WHERE id=?",salon.id);
+   if(nm.length<2||/\d{4,}/.test(digits(nm))){await ctx.say('این اسم درست نیست؛ فقط اسم لباس را با حروف بنویس.');await run(db,'UPDATE salons SET bot_state=? WHERE id=?',JSON.stringify({...state,ts:Date.now()}),salon.id);return J({ok:true})}
+   await run(db,'UPDATE portfolio SET title=? WHERE id=? AND salon_id=?',nm,state.dress,salon.id);await ctx.say('✅ اسم لباس شد «'+esc(nm)+'».');return J({ok:true});
   }
   if(state.p===p&&state.team&&!photo){await teamAnswer(ctx,state,textIn);return J({ok:true})}
   const numbers=mobilesIn(textIn);
   if(numbers.length){if(inviteReady(env))await sendInvites(env,db,salon,ctx.chat,numbers,ctx.say);else await shareInvites(ctx,numbers,ctx.staff);return J({ok:true})}
-  if(photo){await addPortfolio(ctx,photo,m.caption||'',m.media_group_id);return J({ok:true})}
+  if(photo){await addPortfolio(ctx,photo,m.caption||'',m.media_group_id,m.message_id);return J({ok:true})}
   await ctx.say('برای اضافه‌کردن نمونه‌کار، عکس بفرستید'+' و برای فرستادن لینک مزون به مشتری، شمارهٔ موبایلش را بنویسید. /help راهنما را نشان می‌دهد.');
   return J({ok:true});
  }catch(e){
@@ -304,7 +309,7 @@ async function staffMessage(ctx,m,textIn){
  if(numbers.length){if(inviteReady(ctx.env))await sendInvites(ctx.env,ctx.db,ctx.salon,ctx.chat,numbers,ctx.say,t);else await shareInvites(ctx,numbers,t);return}
  if(textIn==='/share'){await shareInvites(ctx,[],t);return}
  const photo=photoOf(m);
- if(photo){await addPortfolio(ctx,photo,m.caption||'',m.media_group_id);return}
+ if(photo){await addPortfolio(ctx,photo,m.caption||'',m.media_group_id,m.message_id);return}
  await ctx.say('برای نمونه‌کار، عکس کارت را بفرست و زیرش اسم کار را بنویس.'+' برای فرستادن لینک اختصاصی‌ات به مشتری، شماره‌اش را بنویس.'+'\n/share فرستادن لینک · /link لینک اختصاصی · /list نمونه‌کارها · /help راهنما');
 }
 const teamLine=(t,i)=>fa(i+1)+'. <b>'+esc(t.name)+'</b>'+(t.is_manager?' (خودِ مدیر)':'')+(t.specialty&&!t.is_manager?' — '+esc(t.specialty):'')+' · '+(t.telegram_chat_id||t.bale_chat_id?'✅ وصل':'⏳ هنوز وصل نشده');
@@ -591,25 +596,34 @@ async function sendInvites(env,db,salon,chat,numbers,say,member=null){
 }
 
 
-async function addPortfolio(ctx,photo,caption,group){
+const ANG=['روبه‌رو','پشت','نیم‌رخ راست','نیم‌رخ چپ'];
+async function addPortfolio(ctx,photo,caption,group,mid){
  const t=ctx.role==='staff'?ctx.staff:null;
  must((photo.file_size||0)<=5*1024*1024,'عکس بزرگ‌تر از ۵ مگابایت است؛ عکس را به‌صورت «عکس» بفرستید نه «فایل»، یا کوچک‌ترش کنید');
- group=group?String(group).slice(0,64):null;
- // Photos sent together: the album's caption names every photo in it (it may arrive in any order).
- if(group&&!String(caption||'').trim()){const g=await one(ctx.db,"SELECT title,category,description FROM portfolio WHERE salon_id=? AND media_group=? AND title<>'نمونه‌کار' LIMIT 1",ctx.salon.id,group);if(g)caption=g.title+(g.description?'\n'+g.description:'')}
- const line='dress';
+ group=group?String(group).slice(0,64):null;caption=String(caption||'').trim();
  const media=await putImage(ctx.env,ctx.salon,null,await fileBytes(ctx.env,ctx.p,photo.file_id),'portfolio');
- // Photos of one album are the angles (front, side, back, detail) of ONE dress: up to 4 share a single portfolio card.
- if(group){const ex=await one(ctx.db,"SELECT id,title,json_array_length(images) n FROM portfolio WHERE salon_id=? AND media_group=? AND published=1 ORDER BY created_at LIMIT 1",ctx.salon.id,group);
-  if(ex){const cl=String(caption||'').trim().split('\n').map(x=>x.trim()).filter(Boolean);if(cl.length){ex.title=cl[0].slice(0,150);await run(ctx.db,'UPDATE portfolio SET title=?,category=?,description=? WHERE id=?',ex.title,CATEGORIES.find(c=>caption.includes(c))||'',cl.slice(1).join(' ').slice(0,500),ex.id)}
-   if(ex.n<4){await run(ctx.db,"UPDATE portfolio SET images=json_insert(images,'$[#]',?) WHERE id=? AND json_array_length(images)<4",media,ex.id);await ctx.say('📷 زاویهٔ '+fa(ex.n+1)+' به «'+esc(ex.title)+'» اضافه شد.')}else await ctx.say('هر لباس حداکثر ۴ زاویه دارد؛ این عکس اضافه نشد.');return}}
- const lines=String(caption).trim().split('\n').map(x=>x.trim()).filter(Boolean);
- const title=(lines[0]||'نمونه‌کار').slice(0,150);
- const category=CATEGORIES.find(c=>caption.includes(c))||'';
- const id=uid();
- await run(ctx.db,'INSERT INTO portfolio(id,salon_id,title,category,description,stylist,images,published,try_on,permission,created_at,staff_id,media_group,line) VALUES(?,?,?,?,?,?,?,1,1,1,?,?,?,?)',id,ctx.salon.id,title,category,lines.slice(1).join(' ').slice(0,500),t?t.name:'',JSON.stringify([media]),Date.now(),t?t.id:null,group,line);
- if(group&&lines.length)await run(ctx.db,"UPDATE portfolio SET title=?,category=?,description=? WHERE salon_id=? AND media_group=? AND title='نمونه‌کار'",title,category,lines.slice(1).join(' ').slice(0,500),ctx.salon.id,group);
- await ctx.say('✅ «'+esc(title)+'» '+(t?'با اسم تو ':'')+'در بخش «'+LINE_LABEL[line]+'» روی صفحهٔ مزون نشست.'+(lines.length||group?'':'\nنکته: دفعهٔ بعد زیر عکس اسم لباس را بنویسید (مثلاً «پرنسسی پفی»، «ماهی ساده» یا «دانتل بوهو») تا مشتری بهتر بفهمد.'),{parse_mode:'HTML',reply_markup:portfolioKeys(id,line)});
+ const lines=caption.split('\n').map(x=>x.trim()).filter(Boolean);
+ const title=(lines[0]||'نمونه‌کار').slice(0,150),category=CATEGORIES.find(c=>caption.includes(c))||'',desc=lines.slice(1).join(' ').slice(0,500);
+ // One album = one dress. The id comes from the album, so photos arriving at the same moment still land on one card.
+ const id=group?'tg'+ctx.salon.id.replace(/\W/g,'').slice(0,10)+String(group).replace(/\W/g,''):uid();
+ const made=await run(ctx.db,'INSERT OR IGNORE INTO portfolio(id,salon_id,title,category,description,stylist,images,published,try_on,permission,created_at,staff_id,media_group,line) VALUES(?,?,?,?,?,?,?,1,1,1,?,?,?,?)',id,ctx.salon.id,title,category,desc,t?t.name:'',"[]",Date.now(),t?t.id:null,group,'dress');
+ const fresh=made.meta.changes===1;
+ if(!fresh&&lines.length)await run(ctx.db,'UPDATE portfolio SET title=?,category=?,description=? WHERE id=?',title,category,desc,id);
+ await run(ctx.db,'INSERT OR IGNORE INTO portfolio_imgs(portfolio_id,mid,media_id) VALUES(?,?,?)',id,Number.isInteger(mid)?mid:Date.now()*1000+Math.floor(Math.random()*1000),media);
+ // Rebuild the dress's photo list from the table in message order (first four only).
+ await run(ctx.db,'UPDATE portfolio SET images=(SELECT json_group_array(media_id) FROM (SELECT media_id FROM portfolio_imgs WHERE portfolio_id=? ORDER BY mid LIMIT 4)) WHERE id=?',id,id);
+ const ord=(await all(ctx.db,'SELECT media_id FROM portfolio_imgs WHERE portfolio_id=? ORDER BY mid',id)).map(x=>x.media_id),pos=ord.indexOf(media);
+ const row=await one(ctx.db,'SELECT title FROM portfolio WHERE id=?',id),name=row?.title||title;
+ if(pos>3){await ctx.say('هر لباس حداکثر ۴ عکس دارد؛ این یکی اضافه نشد.');return}
+ const named=name!=='نمونه‌کار';
+ if(!group){
+  await ctx.say('✅ «'+esc(name)+'» '+(t?'با اسم تو ':'')+'روی صفحهٔ مزون نشست (فقط ۱ عکس).\nبرای نتیجهٔ بهتر و «زوایای دیگر»، ۲ تا ۴ عکس را با هم به‌صورت آلبوم بفرست: ۱) روبه‌رو ۲) پشت ۳) نیم‌رخ راست ۴) نیم‌رخ چپ.'+(named?'':'\nاسم لباس را هم زیر عکس بنویس.'));
+  if(!named&&!t)await run(ctx.db,'UPDATE salons SET bot_state=? WHERE id=?',JSON.stringify({p:ctx.p,dress:id,ts:Date.now()}),ctx.salon.id);
+  return;
+ }
+ await ctx.say('📷 «'+esc(name)+'»: عکس '+fa(pos+1)+' ('+ANG[pos]+') ثبت شد.'+(ord.length===1?'\nترتیب آلبوم مهم است: ۱) روبه‌رو ۲) پشت ۳) نیم‌رخ راست ۴) نیم‌رخ چپ.':''));
+ if(fresh&&!named&&!t)await run(ctx.db,'UPDATE salons SET bot_state=? WHERE id=?',JSON.stringify({p:ctx.p,dress:id,ts:Date.now()}),ctx.salon.id);
+ if(fresh&&!named)await ctx.say('اسم این لباس چیست؟ همین‌جا فقط اسمش را بنویس (مثلاً «پرنسسی پفی دانتل»).');
 }
 const portfolioKeys=(id,line)=>({inline_keyboard:[].concat([[{text:'🗑 حذف از صفحه',callback_data:'del:'+id}]])});
 async function sendList(ctx,offset=0){
