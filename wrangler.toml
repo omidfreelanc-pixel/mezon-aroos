@@ -41,8 +41,6 @@ id = "f51380d2dab2445b9be27dc00ab30992"
 LIMITS_OFF = "1"
 # Temporary: force the Pro image model for every salon (remove this line to follow each salon's own setting).
 IMAGE_MODEL = "pro"
-# Temporary quality test: image resolution (1K / 2K / 4K). Remove for the default 2K.
-IMAGE_RES = "1K"
 
 [assets]
 directory = "./public"
