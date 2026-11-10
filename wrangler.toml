@@ -40,7 +40,8 @@ id = "f51380d2dab2445b9be27dc00ab30992"
 [vars]
 LIMITS_OFF = "1"
 # Temporary: force the Pro image model for every salon (remove this line to follow each salon's own setting).
-IMAGE_MODEL = "pro"
+IMAGE_MODEL = "gpt"
+IMAGE_QUALITY = "xhigh"
 
 [assets]
 directory = "./public"
