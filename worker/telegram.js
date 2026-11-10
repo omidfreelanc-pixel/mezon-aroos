@@ -140,7 +140,7 @@ async function handle(req,env,p){
   const actor=await actorByChat(db,p,ctx.chat);
   // Someone who opened the bot from a boutique's customer link is a bride, not staff.
   const bc=await one(db,'SELECT * FROM bot_customers WHERE platform=? AND chat_id=?',p,ctx.chat);
-  if(bc&&(!actor||(Date.now()-bc.created_at<30*60000&&!textIn.startsWith('/')&&!(photoOf(m)&&m.caption)))){await customerMessage(ctx,bc,m);return J({ok:true})}
+  if(bc&&(!actor||(Date.now()-bc.created_at<30*60000&&!textIn.startsWith('/')&&!(photoOf(m)&&(m.caption||m.media_group_id))))){await customerMessage(ctx,bc,m);return J({ok:true})}
   if(!actor){await strangerMessage(ctx);return J({ok:true})}
   const salon=actor.salon;ctx.salon=salon;ctx.staff=actor.staff||null;ctx.role=actor.role;
   if(actor.role==='staff'){await staffMessage(ctx,m,textIn);return J({ok:true})}
