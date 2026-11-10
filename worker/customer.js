@@ -356,6 +356,8 @@ body.is-touring{overflow:hidden}
 .kcam__ring{position:absolute;bottom:84px;width:84px!important;height:84px!important;left:50%;transform:translateX(-50%);width:92px;height:92px;pointer-events:none}
 .kcam__ring svg{width:100%;height:100%;transform:rotate(-90deg)}.kcam__ring circle{fill:rgba(6,20,20,.55);stroke-width:5}
 .kcam__ring .bg{stroke:rgba(255,255,255,.25)}.kcam__ring .fg{stroke:#d9b878;stroke-linecap:round;fill:none;stroke-dasharray:276.5;stroke-dashoffset:276.5}
+.kcam .btn--ghost:hover,.kcam .btn--ghost:focus,.kcam .btn--ghost:active{background:rgba(255,255,255,.16)!important;color:#fff!important}
+.kcam--rear video{transform:none!important}.kcam__btns{flex-wrap:wrap;justify-content:center}
 .kcam__ring.go .fg{animation:kring 10s linear forwards}@keyframes kring{to{stroke-dashoffset:0}}
 .kcam__ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:38px;font-weight:700}
 .kcam .kcam__tip{top:auto;bottom:186px;left:0;right:0;font-size:14px;line-height:1.7;padding:0 22px;opacity:.95;max-height:70px}
@@ -2574,13 +2576,12 @@ function kioskCamera(){
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){var i=$('#pick');if(i)i.click();return}
  var video=el('video',{autoplay:'',playsinline:'',muted:''});video.muted=true;
  var num=el('b',{text:fa(10)}),ring=el('div',{class:'kcam__ring',html:'<svg viewBox="0 0 100 100"><circle class="bg" cx="50" cy="50" r="44"/><circle class="fg" cx="50" cy="50" r="44"/></svg>'});ring.append(num);
- var stream=null,timer=0,done=false,P=(state.pub&&state.pub.salon&&state.pub.salon.profile)||{};
+ var facing='user',stream=null,timer=0,done=false,P=(state.pub&&state.pub.salon&&state.pub.salon.profile)||{};
  var first=(state.cname||'').split(' ')[0];
  var head=el('div',{class:'kcam__head'},[P.logo?el('img',{src:media(P.logo),alt:''}):null,el('div',{},[h('b',first?first+' جان، آماده‌ای؟':'آماده‌ای؟'),h('small',(state.pub&&state.pub.salon.name)||'')])]);
- var arch=el('div',{class:'kcam__arch',html:SIL_SVG},[el('div',{class:'kcam__mark kcam__mark--top',html:'<span>سر</span>'}),el('div',{class:'kcam__mark kcam__mark--bot',html:'<span>کفش</span>'})]);
- var tip=el('p',{class:'kcam__tip',text:'برو عقب‌تر بایست تا از سر تا کفش داخل قاب باشی، دست‌ها کنار بدن و رو به دوربین. ده ثانیه دیگر خودکار عکس می‌گیرم.'});
- var now=el('button',{class:'btn btn--primary btn--lg',type:'button',text:'همین الان عکس بگیر'}),cancel=el('button',{class:'btn btn--ghost',type:'button',text:'بستن'});
- var wrap=el('div',{class:'kov kcam'},[video,el('div',{class:'kcam__shade'}),arch,head,tip,ring,el('div',{class:'kcam__btns'},[now,cancel])]);
+ var tip=el('p',{class:'kcam__tip',text:'تمام‌قد و رو به دوربین بایست؛ بعد «عکس بگیر» را بزن، یا تایمر ۱۰ ثانیه‌ای را روشن کن تا خودش عکس بگیرد.'});
+ var now=el('button',{class:'btn btn--primary btn--lg',type:'button',text:'عکس بگیر'}),tbtn=el('button',{class:'btn btn--ghost',type:'button',text:'تایمر ۱۰ ثانیه‌ای'}),flip=el('button',{class:'btn btn--ghost',type:'button',text:'چرخش دوربین'}),cancel=el('button',{class:'btn btn--ghost',type:'button',text:'بستن'});
+ var wrap=el('div',{class:'kov kcam'},[video,el('div',{class:'kcam__shade'}),head,tip,ring,el('div',{class:'kcam__btns'},[now,tbtn,flip,cancel])]);
  function stop(){clearInterval(timer);done=true;if(stream)stream.getTracks().forEach(function(t){t.stop()});wrap.remove()}
  cancel.addEventListener('click',stop);
  document.body.append(wrap);
@@ -2590,13 +2591,22 @@ function kioskCamera(){
   var sw=Math.min(w,Math.round(hh*0.75)),sx=Math.round((w-sw)/2),c=document.createElement('canvas');c.width=sw;c.height=hh;c.getContext('2d').drawImage(video,sx,0,sw,hh,0,0,sw,hh);
   c.toBlob(function(b){stop();if(b)handleFile(new File([b],'kiosk.jpg',{type:'image/jpeg'}),'original')},'image/jpeg',0.92);
  }
+ function endTimer(){clearInterval(timer);timer=0;ring.classList.remove('go');ring.style.display='none';tbtn.textContent='تایمر ۱۰ ثانیه‌ای'}
  function begin(){
-  if(timer||done)return;var n=10;ring.classList.add('go');
+  if(timer){endTimer();return}
+  if(done)return;var n=10;num.textContent=fa(n);ring.style.display='block';ring.classList.remove('go');void ring.offsetWidth;ring.classList.add('go');tbtn.textContent='لغو تایمر';
   timer=setInterval(function(){n--;num.textContent=fa(Math.max(n,0));if(n<=0)snap()},1000);
  }
+ function open(){
+  if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}
+  wrap.classList.toggle('kcam--rear',facing==='environment');
+  navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1920},height:{ideal:1920}},audio:false}).then(function(s){if(done){s.getTracks().forEach(function(t){t.stop()});return}stream=s;video.srcObject=s;video.play().catch(function(){})}).catch(function(){if(facing==='environment'){facing='user';toast('دوربین پشت پیدا نشد','error');open();return}stop();toast('دوربین باز نشد؛ اجازهٔ دوربین را بده و دوباره امتحان کن','error')});
+ }
+ ring.style.display='none';
  now.addEventListener('click',snap);
- video.addEventListener('playing',begin);
- navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1920}},audio:false}).then(function(s){if(done){s.getTracks().forEach(function(t){t.stop()});return}stream=s;video.srcObject=s;video.play().catch(function(){})}).catch(function(){stop();toast('دوربین باز نشد؛ اجازهٔ دوربین را بده و دوباره امتحان کن','error')});
+ tbtn.addEventListener('click',begin);
+ flip.addEventListener('click',function(){endTimer();facing=facing==='user'?'environment':'user';open()});
+ open();
 }
 
 /* ---------- thumbs up / down, "send it to me" through the bot, and how long the picture stays ---------- */
