@@ -604,6 +604,16 @@ body{font-size:16px}.tiny{font-size:13.5px}
 @media (prefers-reduced-motion:reduce){
  .build__photo,.build__scan,.build__spark,.fx,.build__steps li.is-on span,.selfie--fresh,.selfie--fresh img{animation:none}
 }
+/* one rhythm: the same side gutter for header, steps and cards, and a single 16px gap between sections */
+.wrap{max-width:900px;padding-inline:clamp(16px,3.2vw,28px)}
+.layout--solo{max-width:none!important;margin:0}
+#head.hero{padding:0}
+.hero__cta{margin:0 0 16px}
+.hd{margin:16px 0}
+.layout{padding:16px 0 28px;gap:16px}
+.flowcol{gap:16px}
+.steps__list{padding-inline:clamp(16px,3.2vw,28px)}
+@media(min-width:700px){.hd{min-height:clamp(300px,34vh,400px)}}
 `;
 
 const clientJS=String.raw`
