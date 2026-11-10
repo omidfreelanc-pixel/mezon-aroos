@@ -7,15 +7,15 @@ const LINES_JSON=JSON.stringify({label:LINE_LABEL,photo:{dress:LINE_PHOTO.dress}
 import {baseCSS,markSVG,illos,MZ_D} from './design.js';
 
 const customerCSS=String.raw`
-.hd{position:relative;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:12px;margin:14px 0 6px;padding:26px 18px;border-radius:var(--r-lg);overflow:hidden;border:1px solid rgba(201,165,92,.45);background:radial-gradient(70% 120% at 85% 0,rgba(255,255,255,.95),transparent 62%),radial-gradient(60% 100% at 10% 100%,rgba(232,217,176,.55),transparent 70%),linear-gradient(135deg,#f7f3ec,#e9efec);box-shadow:var(--lift)}
+.hd{position:relative;display:grid;grid-template-columns:1fr;grid-template-rows:auto auto;align-content:center;justify-items:center;gap:22px;margin:12px 0 6px;min-height:clamp(300px,50vh,460px);padding:34px 20px;border-radius:var(--r-lg);overflow:hidden;border:1px solid rgba(201,165,92,.45);background:radial-gradient(70% 120% at 85% 0,rgba(255,255,255,.95),transparent 62%),radial-gradient(60% 100% at 10% 100%,rgba(232,217,176,.55),transparent 70%),linear-gradient(135deg,#f7f3ec,#e9efec);box-shadow:var(--lift)}
 .hd::before{content:"";position:absolute;inset:7px;border-radius:calc(var(--r-lg) - 6px);border:1px solid rgba(201,165,92,.35);pointer-events:none}
 .hd::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 12% 28%,rgba(201,165,92,.5) 0 1.5px,transparent 2.5px),radial-gradient(circle at 36% 80%,rgba(201,165,92,.4) 0 1.5px,transparent 2.5px),radial-gradient(circle at 62% 22%,rgba(201,165,92,.45) 0 1.5px,transparent 2.5px),radial-gradient(circle at 90% 74%,rgba(201,165,92,.5) 0 1.5px,transparent 2.5px)}
 .hd__side{position:relative;z-index:1;display:flex;align-items:center;min-width:0}
 .hd__side--logo{justify-content:center}
 .hd__side--name{justify-content:center;text-align:center}
-.hd__logo{width:92px;height:92px;border-radius:50%;object-fit:cover;border:3px solid #fff;outline:1.5px solid rgba(201,165,92,.7);outline-offset:3px;background:var(--surface);box-shadow:var(--lift)}
-.hd__logo--letter{display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:34px;color:var(--accent-ink)}
-.hd__name{margin:0;width:100%;font-size:28px;line-height:1.5}
+.hd__logo{width:150px;height:150px;border-radius:50%;object-fit:cover;border:3px solid #fff;outline:1.5px solid rgba(201,165,92,.7);outline-offset:3px;background:var(--surface);box-shadow:var(--lift)}
+.hd__logo--letter{display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:56px;color:var(--accent-ink)}
+.hd__name{margin:0;width:100%;font-size:36px;line-height:1.5}
 /* ---------- hero: full-width cover, logo on its edge, the name on one line ---------- */
 .hero{position:relative;padding:14px 0 22px}
 .hero__bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
@@ -733,7 +733,7 @@ function renderHead(){
  var s=state.pub.salon,p=s.profile||{},head=$('#head');
  var logo=p.logo?el('img',{class:'hd__logo',src:media(p.logo),alt:'لوگوی '+s.name}):el('span',{class:'hd__logo hd__logo--letter','aria-hidden':'true',text:(s.name||'آ').trim().charAt(0)});
  var name=el('h1',{class:'hd__name hero__name',text:s.name});
- head.replaceChildren(el('div',{class:'wrap'},[el('div',{class:'pmark',html:MARK+'<span>مزون آینه</span>'}),el('div',{class:'hd'},[el('div',{class:'hd__side hd__side--logo'},[logo]),el('div',{class:'hd__side hd__side--name'},[name])]),
+ head.replaceChildren(el('div',{class:'wrap'},[el('div',{class:'hd'},[el('div',{class:'hd__side hd__side--logo'},[logo]),el('div',{class:'hd__side hd__side--name'},[name])]),
   el('div',{class:'hero__cta'},[el('button',{class:'btn btn--primary btn--lg',type:'button',onclick:function(){go(state.original?2:1)},html:ICO.camera+'<span>شروع با عکس خودم</span>'})])]));
  fitName(name);
 }
