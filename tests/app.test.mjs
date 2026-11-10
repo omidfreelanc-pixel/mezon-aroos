@@ -839,7 +839,7 @@ test('kiosk: result QR link opens only that photo, expires, and finishing wipes 
 test('kiosk page: ?kiosk=1 is the same page, QR library and camera guide are shipped',async()=>{
  const e=fixture(),s=await salon(e);
  const html=await (await app.fetch(new Request(origin+'/s/'+s.slug+'?kiosk=1'),e)).text();
- assert.match(html,/function kioskBoot/);assert.match(html,/var qrcode=/);assert.match(html,/عروسم کن/);
+ assert.match(html,/function kioskBoot/);assert.match(html,/var qrcode=/);assert.match(html,/خودت را در لباس عروس ببین/);
 });
 
 test('a result becomes a shareable post: likes, comments, the bride is told, social consent is kept',async()=>{
@@ -1451,7 +1451,7 @@ test('prompt: face/hair lock, pull-back framing for long dresses, optional body 
 test('customer page: trimmed header, renamed build button, sizes, no venue/makeup/help/about',async()=>{
  const e=fixture(),s=await salon(e);
  const html=await (await app.fetch(new Request(origin+'/s/'+s.slug),e)).text();
- assert.match(html,/عروسم کن/);assert.match(html,/اندازه‌های بدنم/);assert.match(html,/hd__logo/);
+ assert.match(html,/خودت را در لباس عروس ببین/);assert.match(html,/اندازه‌های بدنم/);assert.match(html,/hd__logo/);
  for(const x of [/کجا ایستاده باشی/,/آرایش ملایم/,/class:'help-btn'/,/class:'about-btn'/,/عکسم کجا نگه/,/لباس عروس را انتخاب کن<\/h/])assert.doesNotMatch(html,x);
 });
 

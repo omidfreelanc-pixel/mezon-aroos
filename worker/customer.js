@@ -851,7 +851,7 @@ function stepPhoto(){
   ['dragleave','drop'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove('is-drag')})});
   drop.addEventListener('drop',function(e){var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];handleFile(f,'original')});
   var side=el('div',{class:'shoot__side'},[
-   el('details',{class:'collapse tipsbox',open:window.matchMedia('(min-width:700px)').matches?'':null},[el('summary',{html:ICO.info+'<span>نکات یک عکس خوب</span>'}),el('ul',{class:'tips'},LP().tips.map(function(t){return el('li',{class:'tip'},[el('span',{html:ICO[t[0]]}),el('span',{},[el('b',{text:t[1]}),document.createTextNode(t[2])])])}))]),
+   el('details',{class:'collapse tipsbox',open:''},[el('summary',{html:ICO.info+'<span>نکات یک عکس خوب</span>'}),el('ul',{class:'tips'},LP().tips.map(function(t){return el('li',{class:'tip'},[el('span',{html:ICO[t[0]]}),el('span',{},[el('b',{text:t[1]}),document.createTextNode(t[2])])])}))]),
    el('div',{class:'shoot__btns'},[
     DESK?null:el('button',{class:'btn btn--primary',type:'button',onclick:pickNow,html:ICO.gallery+'<span>انتخاب از گالری</span>'}),
     el('button',{class:DESK?'btn btn--primary':'btn btn--ghost',type:'button',onclick:openCamera,html:ICO.camera+'<span>عکس با دوربین</span>'}),
@@ -884,7 +884,7 @@ var TAB_LABEL={dress:['لباس‌های مزون','لباس‌های آماده
  dress:['لباس عروس را انتخاب کن','از لباس‌های همین مزون، لباس‌های آماده یا عکس لباسی که خودت پیدا کرده‌ای. فقط لباس عوض می‌شود؛ چهره، سایز و فرم بدنت همان می‌ماند.']
 };
 function pickLook(fn){fn();state.result=null;state.error='';renderFlow();renderDock()}
-// Choosing a dress brings the next thing to do into view: «عروسم کن».
+// Choosing a dress brings the next thing to do into view: «خودت را در لباس عروس ببین».
 function chooseLook(fn){pickLook(fn);scrollToBuild()}
 function scrollToBuild(){
  var f=$('#flow');if(!f)return;
@@ -1006,13 +1006,13 @@ function stepModel(){
  box.append(h('p',buildHint(ready,can,left),'fine-print build-hint'));
  return box;
 }
-function buildLabel(can){return can?ICO.spark+'<span>عروسم کن</span>':(quotaLeft()===0?ICO.send+'<span>فرستادن برای '+artist()+'</span>':'<span>ادامه: نتیجه</span>')}
+function buildLabel(can){return can?ICO.spark+'<span>خودت را در لباس عروس ببین</span>':(quotaLeft()===0?ICO.send+'<span>فرستادن برای '+artist()+'</span>':'<span>ادامه: نتیجه</span>')}
 function buildHint(ready,can,left){
  if(!ready)return missingReason()+'.';
  if(!can)return '';
- return 'با زدن «عروسم کن» عکست برای ساخت فرستاده می‌شود و فقط برای همین مزون می‌ماند.'+(left!=null?' '+fa(left)+' ساخت دیگر در این بخش داری.':'');
+ return 'با زدن «خودت را در لباس عروس ببین» عکست برای ساخت فرستاده می‌شود و فقط برای همین مزون می‌ماند.'+(left!=null?' '+fa(left)+' ساخت دیگر در این بخش داری.':'');
 }
-// Step 2 → 3 in one tap: «عروسم کن» goes straight to building, no page in between.
+// Step 2 → 3 in one tap: «خودت را در لباس عروس ببین» goes straight to building, no page in between.
 function build(){
  if(!hasChoice()){toast(missingReason());return}
  if(!canGenerate()){go(3);return}
@@ -1637,10 +1637,10 @@ function stepResult(){
    if(calmRetry)box.append(retryStage(state.error));
    else box.append(el('div',{class:'stage mirror'},[el('div',{class:'mirror__glass'},[el('span',{class:'stage__empty',html:ILLO.results+'<span style="display:block">نتیجه همین‌جا، در قاب آینه، ظاهر می‌شود</span>'})])]));
    box.append(el('div',{class:'flow__nav'},[
-    el('button',{class:'btn btn--primary','data-act':state.error?'retry':'generate',type:'button',onclick:retry,html:ICO.spark+'<span>'+(state.error?retryLabel(state.errKind):'عروسم کن')+'</span>'}),
+    el('button',{class:'btn btn--primary','data-act':state.error?'retry':'generate',type:'button',onclick:retry,html:ICO.spark+'<span>'+(state.error?retryLabel(state.errKind):'خودت را در لباس عروس ببین')+'</span>'}),
     el('button',{class:'btn btn--ghost',type:'button',onclick:openRequest,html:ICO.send+'<span>بدون شبیه‌سازی بفرست</span>'})
    ]));
-   box.append(h('p','با زدن «عروسم کن» عکست برای ساخت شبیه‌سازی فرستاده می‌شود و فقط برای همین مزون می‌ماند.','fine-print'));
+   box.append(h('p','با زدن «خودت را در لباس عروس ببین» عکست برای ساخت شبیه‌سازی فرستاده می‌شود و فقط برای همین مزون می‌ماند.','fine-print'));
   }
  }
  return box;
@@ -1669,18 +1669,18 @@ function renderDock(){
   if(!state.original&&!state.busy){dock.hidden=true;dock.replaceChildren();return}
   hint=state.original?'عکس آماده است':'برای شروع، عکس تمام‌قدت را اضافه کن';
   if(state.busy&&!state.original){hint='در حال بارگذاری عکس…';primary=el('button',{class:'btn btn--primary',type:'button',disabled:true,text:'در حال بارگذاری…'})}
-  else primary=el('button',{class:'btn btn--primary',type:'button',onclick:function(){(state.original?go(2):pickNow())},html:(state.original?ICO.check:ICO.spark)+'<span>'+(state.original?'ادامه':'عروسم کن')+'</span>'});
+  else primary=el('button',{class:'btn btn--primary',type:'button',onclick:function(){(state.original?go(2):pickNow())},html:(state.original?ICO.check:ICO.spark)+'<span>'+(state.original?'ادامه':'خودت را در لباس عروس ببین')+'</span>'});
  }else if(state.step===2){
   var ready=hasChoice(),can=canGenerate();
   var out=quotaLeft()===0;
-  hint=out?'سهم ساخت این بخش تمام شد':ready?(can?'آماده؛ بزن «عروسم کن»':'آماده'):missingReason();
-  primary=el('button',{class:'btn btn--primary',type:'button',disabled:!ready,onclick:build,html:can?ICO.spark+'<span>عروسم کن</span>':out?ICO.send+'<span>فرستادن</span>':!ready?'<span>اول لباس را انتخاب کن</span>':ICO.arrow+'<span>ادامه</span>'});
+  hint=out?'سهم ساخت این بخش تمام شد':ready?(can?'آماده؛ بزن «خودت را در لباس عروس ببین»':'آماده'):missingReason();
+  primary=el('button',{class:'btn btn--primary',type:'button',disabled:!ready,onclick:build,html:can?ICO.spark+'<span>خودت را در لباس عروس ببین</span>':out?ICO.send+'<span>فرستادن</span>':!ready?'<span>اول لباس را انتخاب کن</span>':ICO.arrow+'<span>ادامه</span>'});
  }else{
   if(state.busy){hint='در حال ساخت…';primary=el('button',{class:'btn btn--primary',type:'button',disabled:true,text:'در حال ساخت…'})}
   else if(state.result){hint='عکس را روی گوشی‌ات بگیر';primary=el('button',{class:'btn btn--primary',type:'button',onclick:function(){openQR()},html:ICO.phone+'<span>ارسال برای خودم</span>'})}
   else if(state.gen&&!state.result&&recheckKind(state.errKind)){hint='نتیجهٔ همان درخواست را دوباره بررسی کن';primary=el('button',{class:'btn btn--primary',type:'button',onclick:retry,html:ICO.spark+'<span>'+retryLabel(state.errKind)+'</span>'})}
   else if(state.result||!canGenerate()||state.noImage){hint='فرستادن در تلگرام برای مزون';primary=el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
-  else{hint='آمادهٔ ساخت';primary=el('button',{class:'btn btn--primary',type:'button',onclick:retry,html:ICO.spark+'<span>'+(state.error?retryLabel(state.errKind):'عروسم کن')+'</span>'})}
+  else{hint='آمادهٔ ساخت';primary=el('button',{class:'btn btn--primary',type:'button',onclick:retry,html:ICO.spark+'<span>'+(state.error?retryLabel(state.errKind):'خودت را در لباس عروس ببین')+'</span>'})}
  }
  inner.append(el('div',{class:'dock__hint',text:hint}),primary);
  dock.replaceChildren(inner);dock.hidden=false;
@@ -1795,7 +1795,7 @@ function generate(){
  state.busy=true;state.error='';state.errKind='';state.noImage=null;state.result=null;state.genT0=Date.now();renderFlow();renderDock();
  ensureSession().then(function(){
   state.idem=state.idem||uuid();
-  // The page's own note under «عروسم کن» says the photo is sent for the simulation; no extra checkbox.
+  // The page's own note under «خودت را در لباس عروس ببین» says the photo is sent for the simulation; no extra checkbox.
   return api('generate',{v:VISITOR,image_consent:true,sizes:sizesPayload(),idem:state.idem,ratio:state.ratio||undefined,original_id:state.original,reference_id:state.reference||undefined,style:state.reference?undefined:(state.style===null?undefined:state.style)});
  }).then(function(job){
   track('generate',state.reference?(state.refTitle?'salon':'upload'):'catalog');
@@ -2067,7 +2067,7 @@ function tourSteps(){
   {el:'#flow .seg [data-tab="salon"]',enter:function(){tourView(2,'salon')},title:'۱. لباس‌های همین مزون',text:hasLineWork()?'لباس‌های واقعی «'+state.pub.salon.name+'». روی هر کدام بزن تا همان لباس روی تو ساخته شود.':'لباس‌های واقعی مزون اینجا می‌آید. روی هر کدام بزنی، همان لباس روی تو ساخته می‌شود.'},
   {el:'#flow .looks .style-card',enter:function(){tourView(2,'catalog')},title:'۲. لباس‌های آماده',text:'مدل‌های پرطرفدار با عکس نمونه. با فیلترهای بالا سریع پیدا کن: پفی، ماهی، پوشیده، دانتل…'},
   {el:'#flow .upload--ref',enter:function(){tourView(2,'upload')},title:'۳. عکس لباسی که خودت داری',text:'لباسی در اینستاگرام یا گالری‌ات دیدی؟ عکسش را اینجا بگذار. فقط خود لباس برداشته می‌شود؛ مدل و بدنش نه.'},
-  {el:mobile?'#dock .dock__inner':'#flow .btn--build',enter:function(){tourView(2,'catalog',3)},title:'انتخاب کردی؟ «عروسم کن»',text:'با یک دکمه پرو شروع می‌شود و نتیجه را کنار عکس خودت می‌بینی. بعد با یک دکمه برای مزون می‌فرستی.'},
+  {el:mobile?'#dock .dock__inner':'#flow .btn--build',enter:function(){tourView(2,'catalog',3)},title:'انتخاب کردی؟ «خودت را در لباس عروس ببین»',text:'با یک دکمه پرو شروع می‌شود و نتیجه را کنار عکس خودت می‌بینی. بعد با یک دکمه برای مزون می‌فرستی.'},
   {el:'#steps .steps__list',title:'همیشه می‌دانی کجایی',text:'عکس تو، انتخاب، نتیجه. روی هر قدم بزنی برمی‌گردی.'},
   {el:mobile?'#dock .dock__inner':'.hero__cta .btn',title:'شروع کنیم؟',text:'اول عکس تمام‌قدت را بگذار. بعد از دیدن نتیجه، با «ارسال برای خودم» آن را روی گوشی‌ات بگیر.',last:true}
  ].filter(Boolean);
@@ -2694,7 +2694,7 @@ function openDress(p,imgs,pick,names){
   st.addEventListener('wheel',function(e){e.preventDefault();zset(z*(e.deltaY<0?1.15:0.87))},{passive:false});
  }
  var prev=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'▶',onclick:function(){show(cur-1)},'aria-label':'قبلی'}),nxt=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'◀',onclick:function(){show(cur+1)},'aria-label':'بعدی'});
- var go=pick?el('button',{class:'btn btn--primary',type:'button',text:'این لباس را انتخاب کن و عروسم کن'}):null;if(go)go.addEventListener('click',function(){closeSheet();pick()});
+ var go=pick?el('button',{class:'btn btn--primary',type:'button',text:'این لباس را انتخاب کن و خودت را در آن ببین'}):null;if(go)go.addEventListener('click',function(){closeSheet();pick()});
  var dstage=el('div',{class:'dress-stage',dir:'ltr'},[big]);bind(dstage);
  var dx=el('button',{class:'zoomx',type:'button','aria-label':'باز کردن تمام‌صفحه',html:EXPAND_ICO,style:'bottom:10px;inset-inline-end:10px'});dx.addEventListener('pointerdown',function(e){e.stopPropagation()});dx.addEventListener('click',function(){openViewer(imgs.map(function(id,i){return {src:media(id),name:NM[i]||String(i+1)}}),cur,{title:p.title})});dstage.append(dx);
  var zin=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'＋ زوم',onclick:function(){zset(z*1.5)}}),zout=el('button',{class:'btn btn--ghost btn--sm',type:'button',text:'－ زوم',onclick:function(){zset(z/1.5)}});
