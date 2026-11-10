@@ -18,6 +18,11 @@ const tgEnv=e=>Object.assign(e,{TELEGRAM_BOT_TOKEN:'123:abc',TELEGRAM_WEBHOOK_SE
 const hook=(env,update,secret='hook-secret')=>app.fetch(new Request(origin+'/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':secret},body:JSON.stringify(update)}),env);
 async function linkSalon(env,s,chat=777,wizard=false){const r=await call(env,'/api/s/'+s.slug+'/owner/telegram-link',{},OWNER);assert.equal(r.status,200,JSON.stringify(r));assert.match(r.data.link,/^https:\/\/t\.me\/ayneh_bot\?start=[a-f0-9]{24}$/);await hook(env,{message:{chat:{id:chat,type:'private'},text:'/start '+r.data.code}});if(wizard===false)await hook(env,{message:{chat:{id:chat,type:'private'},text:'/stop'}});return r.data.code;}
 
+test('customer page: 15-minute photo notice, delete-my-photos button, live camera on tablets',async()=>{
+ assert.match(customerHTML,/اعتبار دارد و به‌صورت خودکار پاک می‌شود/);assert.match(customerHTML,/پاک کردن عکس‌ها/);assert.match(customerHTML,/function isTablet\(\)/);
+ const e=fixture(),s=await salon(e);assert.equal((await call(e,'/api/s/salon-a/public')).data.photo_ttl,15,'unsent photos live 15 minutes by default');
+});
+
 test('pages parse; Iranian mobiles normalise',()=>{
  new Function(appHTML.split('<script>')[1].split('</script>')[0]);
  new Function(customerHTML.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/)[1]);

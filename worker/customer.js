@@ -604,6 +604,8 @@ body{font-size:16px}.tiny{font-size:13.5px}
 @media (prefers-reduced-motion:reduce){
  .build__photo,.build__scan,.build__spark,.fx,.build__steps li.is-on span,.selfie--fresh,.selfie--fresh img{animation:none}
 }
+.keepnote{margin:0 0 10px;padding:9px 12px;border-radius:12px;background:var(--accent-soft,rgba(15,110,110,.09));color:var(--accent-ink,#0b5555);font-size:13px;font-weight:600;line-height:1.7}
+.btn--danger-ghost{color:#b3261e;border-color:rgba(179,38,30,.35)}
 /* one rhythm: the same side gutter for header, steps and cards, and a single 16px gap between sections */
 .wrap{max-width:900px;padding-inline:clamp(16px,3.2vw,28px)}
 .layout--solo{max-width:none!important;margin:0}
@@ -843,7 +845,8 @@ function renderFlow(){
 function flowHead(title,sub){
  return el('div',{class:'flow__head'},[h('h2',title,'flow__title'),sub?h('p',sub,'flow__sub'):null]);
 }
-function openCamera(){if(DESK&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){kioskCamera();return}var cam=el('input',{type:'file',accept:'image/*',capture:'user'});cam.style.display='none';cam.addEventListener('change',function(){handleFile(cam.files&&cam.files[0],'original');cam.remove()});document.body.append(cam);cam.click()}
+function isTablet(){try{return !!(navigator.maxTouchPoints>0&&Math.min(screen.width,screen.height)>=600)}catch(e){return false}}
+function openCamera(){if((DESK||isTablet())&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){kioskCamera();return}var cam=el('input',{type:'file',accept:'image/*',capture:'user'});cam.style.display='none';cam.addEventListener('change',function(){handleFile(cam.files&&cam.files[0],'original');cam.remove()});document.body.append(cam);cam.click()}
 function stepPhoto(){
  var box=el('div',{class:'panel flow flow--shoot'});
  if(!state.original&&state.preview){
@@ -861,6 +864,7 @@ function stepPhoto(){
   ['dragleave','drop'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove('is-drag')})});
   drop.addEventListener('drop',function(e){var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];handleFile(f,'original')});
   var side=el('div',{class:'shoot__side'},[
+   h('p',keepNote(),'keepnote'),
    el('details',{class:'collapse tipsbox',open:''},[el('summary',{html:ICO.info+'<span>نکات یک عکس خوب</span>'}),el('ul',{class:'tips'},LP().tips.map(function(t){return el('li',{class:'tip'},[el('span',{html:ICO[t[0]]}),el('span',{},[el('b',{text:t[1]}),document.createTextNode(t[2])])])}))]),
    el('div',{class:'shoot__btns'},[
     DESK?null:el('button',{class:'btn btn--primary',type:'button',onclick:pickNow,html:ICO.gallery+'<span>انتخاب از گالری</span>'}),
@@ -1632,7 +1636,8 @@ function stepResult(){
    el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){openViewer([{src:media(state.result),name:'بعد'},{src:media(state.original),name:'قبل'}],0,{title:'نتیجهٔ تو'})},html:ICO.search?ICO.search+'<span>بزرگ‌نمایی</span>':'<span>＋ بزرگ‌نمایی</span>'}),
    el('button',{class:'btn btn--soft btn--sm',type:'button',onclick:openViews,html:ICO.views+'<span>زوایای دیگر</span>'}),
    el('button',{class:'btn btn--primary btn--sm',type:'button',onclick:function(){openQR()},html:ICO.phone+'<span>ارسال برای خودم</span>'}),
-   el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){state.result=null;state.gen=null;state.idem=null;state.error='';state.busy=false;go(2)},text:'یک لباس دیگر'})
+   el('button',{class:'btn btn--ghost btn--sm',type:'button',onclick:function(){state.result=null;state.gen=null;state.idem=null;state.error='';state.busy=false;go(2)},text:'یک لباس دیگر'}),
+   deleteBtn()
   ]));
   box.append(ratingBlock());
   box.append(meBlock());
@@ -2595,6 +2600,17 @@ function kioskCamera(){
 }
 
 /* ---------- thumbs up / down, "send it to me" through the bot, and how long the picture stays ---------- */
+function deleteBtn(){
+ var armed=false,t=0,b=el('button',{class:'btn btn--ghost btn--sm btn--danger-ghost',type:'button',text:'پاک کردن عکس‌ها'});
+ b.addEventListener('click',function(){
+  if(!armed){armed=true;b.textContent='مطمئنی؟ دوباره بزن';t=setTimeout(function(){armed=false;b.textContent='پاک کردن عکس‌ها'},4000);return}
+  clearTimeout(t);b.disabled=true;b.textContent='در حال پاک کردن…';
+  var done=function(){clearTimeout(state.advT);state.original=null;state.preview=null;state.result=null;state.gen=null;state.idem=null;state.error='';state.busy=false;state.justUploaded=false;try{sessionStorage.removeItem('ayneh-job-'+SLUG)}catch(e){}toast('عکس‌ها پاک شد');go(1);renderAll()};
+  api('erase',{v:VISITOR}).then(done,function(){b.disabled=false;armed=false;b.textContent='پاک کردن عکس‌ها';toast('پاک کردن انجام نشد؛ دوباره امتحان کن','error')});
+ });
+ return b;
+}
+function keepNote(){var m=(state.pub&&state.pub.photo_ttl)||15;return 'این عکس '+(m===60?'یک ساعت':m%60===0?fa(m/60)+' ساعت':fa(m)+' دقیقه')+' اعتبار دارد و به‌صورت خودکار پاک می‌شود.'}
 function ttlLine(){
  var m=state.pub&&state.pub.photo_ttl;if(!m)return '';
  return 'تصاویر شما نهایت تا '+(m===60?'یک ساعت':m%60===0?fa(m/60)+' ساعت':fa(m)+' دقیقه')+' در همین صفحه قابل مشاهده هستند و بعد از آن به صورت خودکار پاک می‌شوند.';

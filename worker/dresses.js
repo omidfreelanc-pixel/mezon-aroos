@@ -72,10 +72,10 @@ export async function setLeadStatus(db,lead,status){
 export async function purgePhotos(env,now=Date.now(),batch=200){
  const db=env.DB;let n=0;
  for(const s of await all(db,'SELECT id,settings FROM salons')){
-  const cfg=parse(s.settings),days=retentionDays(cfg),mins=Number(cfg.retention_minutes),span=Number.isInteger(mins)&&mins>=10&&mins<=1440?mins*60000:days*DAY;
+  const cfg=parse(s.settings),days=retentionDays(cfg),mins=Number(cfg.retention_minutes),span=Number.isInteger(mins)&&mins>=10&&mins<=1440?mins*60000:(cfg.retention_days===undefined?15*60000:days*DAY);
   if(!span||n>=batch)continue; // 0 days and no minutes = keep everything
-  const cut=now-span;
-  const rows=await all(db,"SELECT m.id,m.object_key FROM media m WHERE m.salon_id=? AND m.kind IN('original','reference','simulation','spin') AND m.session_id IS NOT NULL AND m.created_at<? AND NOT EXISTS(SELECT 1 FROM generations sg WHERE sg.result_id=m.id AND sg.social_consent=1) AND NOT EXISTS(SELECT 1 FROM leads l WHERE (l.original_id=m.id OR l.reference_id=m.id OR l.preview_id=m.id) AND (l.closed_at IS NULL OR l.closed_at>=?)) ORDER BY m.created_at LIMIT ?",s.id,cut,cut,batch-n);
+  const cut=now-span,fast=!(Number.isInteger(mins)&&mins>=10&&mins<=1440)&&cfg.retention_days===undefined,leadCut=fast?(days?now-days*DAY:0):cut; // unsent photos: 15 min by default; requests keep the days rule
+  const rows=await all(db,"SELECT m.id,m.object_key FROM media m WHERE m.salon_id=? AND m.kind IN('original','reference','simulation','spin') AND m.session_id IS NOT NULL AND m.created_at<? AND NOT EXISTS(SELECT 1 FROM generations sg WHERE sg.result_id=m.id AND sg.social_consent=1) AND NOT EXISTS(SELECT 1 FROM leads l WHERE (l.original_id=m.id OR l.reference_id=m.id OR l.preview_id=m.id) AND (l.closed_at IS NULL OR l.closed_at>=?)) ORDER BY m.created_at LIMIT ?",s.id,cut,leadCut,batch-n);
   for(const m of rows){
    try{await bucketFor(env).delete(m.object_key)}catch(e){console.error('purge object',e?.message);continue}
    await run(db,'DELETE FROM media WHERE id=?',m.id);n++;
