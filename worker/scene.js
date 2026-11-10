@@ -24,7 +24,7 @@ function mixRGB(a,b,t){return [Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b
 
 // The palette used when the dress image is missing, slow, or cannot be read (tainted canvas): ivory and gold.
 function neutralPalette(){
- return {ok:false,tone:'neutral',dom:[236,226,206],acc:[201,169,106],tint:[250,244,232],thread:[201,169,106],glow:[255,247,226],luma:.9,sat:.1,seed:0};
+ return {ok:false,tone:'neutral',dom:[236,226,206],acc:[201,169,106],luma:.9,sat:0};
 }
 
 // Names a dominant colour: white, ivory, champagne, blush, deep (dark) or just colour. (chroma, not HSL saturation:
@@ -39,7 +39,7 @@ function toneOf(r,g,b){
  return 'color';
 }
 
-// d: RGBA bytes of a small (about 32px) copy of the dress image. Returns the colours that tint the scene.
+// d: RGBA bytes of a small (about 32px) copy of the dress image. Returns the dress's dominant and accent colours (sceneAccent turns them into a faint tint).
 // The picture's background (a uniform border) is ignored; a white dress on white keeps its own colour.
 function dressPalette(d,w,h){
  if(!d||!(w>0)||!(h>0)||d.length<w*h*4)return neutralPalette();
@@ -85,17 +85,21 @@ function dressPalette(d,w,h){
  }
  var GOLD=[201,169,106];
  if(!acc)acc=mixRGB(dom,GOLD,.5);
- var tone=toneOf(dom[0],dom[1],dom[2]),sat0=dh[1];
- // veil: the dress colour, pushed away from grey and lifted towards white (darker dresses lift more) so it stays airy
- function boost(c){var m=(c[0]+c[1]+c[2])/3;return [0,1,2].map(function(k){return Math.max(0,Math.min(255,Math.round(m+(c[k]-m)*1.35)))})}
- var luma0=(dom[0]*.299+dom[1]*.587+dom[2]*.114)/255,WHITE=[255,255,255];
- var tint=mixRGB(boost(dom),WHITE,Math.max(.48,Math.min(.8,.48+(1-luma0)*.3)));
- var aluma=(acc[0]*.299+acc[1]*.587+acc[2]*.114)/255,thread=mixRGB(boost(acc),GOLD,(aluma>.72||aluma<.3)?.7:.45);
- var glow=mixRGB(tint,WHITE,.35);
- var seed=((dom[0]>>3)*31+(dom[1]>>3)*17+(dom[2]>>3)*7)%251;
- return {ok:true,tone:tone,dom:dom,acc:acc,tint:tint,thread:thread,glow:glow,luma:(dom[0]*.299+dom[1]*.587+dom[2]*.114)/255,sat:sat0,seed:seed};
+ return {ok:true,tone:toneOf(dom[0],dom[1],dom[2]),dom:dom,acc:acc,luma:(dom[0]*.299+dom[1]*.587+dom[2]*.114)/255,sat:dh[1]};
 }
 function rgbCss(c){return c[0]+','+c[1]+','+c[2]}
+
+// The dress's only influence on the scene: a faint tint, 12% at most, in the glow behind the mirror and in the progress dot.
+// The more colourful of the dress's two colours is lifted to a mid lightness first, so a dark dress tints without dimming; an ivory
+// or white dress (hardly any colour) barely tints at all. Never used as a surface colour.
+var ACCENT_MAX=.12;
+function sceneAccent(pal){
+ var GLOW=[255,247,226],GOLD=[201,169,106];
+ if(!pal||!pal.ok)return {t:0,glow:GLOW,dot:GOLD,hue:null};
+ var a=rgbToHsl(pal.dom[0],pal.dom[1],pal.dom[2]),b=rgbToHsl(pal.acc[0],pal.acc[1],pal.acc[2]),c=b[1]>a[1]*1.25?b:a;
+ var t=ACCENT_MAX*Math.max(0,Math.min(1,(c[1]-.05)/.3)),v=hslToRgb(c[0],Math.max(.45,c[1]),.55);
+ return {t:t,glow:mixRGB(GLOW,v,t),dot:mixRGB(GOLD,v,t),hue:Math.round(c[0])};
+}
 
 // Where the veil's lower edge and the sharp (in-focus) part of her photo are, for a progress p in 0..1.
 // The veil is 135% as tall as the photo and lifts by u of its own height; the sharp part starts a little above
@@ -114,14 +118,14 @@ function holdNote(elapsedMs){
  return elapsedMs>85000?'کمی بیشتر از همیشه طول کشید؛ هنوز در حال ساخت است. صفحه را نبند.':elapsedMs>45000?'دارد تمام می‌شود… معمولاً حدود یک دقیقه طول می‌کشد.':'این صفحه را نبند؛ معمولاً حدود یک دقیقه طول می‌کشد.';
 }
 
-// What this browser can do -> how rich the scene is. feat: {css, filter, ctxFilter, raf, reduce, lowEnd}
-//   mode  'full' (loom, pattern, sheen), 'lite' (veil + focus pull only), 'still' (no motion at all)
+// What this browser can do -> how rich the scene is. feat: {css, filter, ctxFilter, canvas, raf, reduce, lowEnd}
+//   mode  'full' (veil, focus pull, moving light), 'lite' (veil + focus pull only), 'still' (no motion at all)
 //   blur  how the out-of-focus copy of her photo is made: 'ctx' (canvas filter), 'down' (down/up-scaling), 'css' (static blur), 'none'
 function sceneCaps(f){
  f=f||{};
  var mode=(!f.css||!f.raf||f.reduce)?'still':f.lowEnd?'lite':'full';
  var blur=f.ctxFilter?'ctx':f.canvas!==false?'down':f.filter?'css':'none';
- return {mode:mode,blur:blur,loom:mode==='full',pattern:mode==='full',medallion:true};
+ return {mode:mode,blur:blur,light:mode==='full'};
 }
 
 // The state machine of one generation. A pure reducer: (state, event) -> state (the same object when the event does nothing).

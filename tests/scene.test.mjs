@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {SCENE_JS} from '../worker/scene.js';import {customerHTML} from '../worker/customer.js';
 
 // The page ships SCENE_JS verbatim; here the very same text is evaluated in Node (a Worker may not eval, a test may).
-const S=new Function(SCENE_JS+'\nreturn {rgbToHsl,hslToRgb,mixRGB,neutralPalette,toneOf,dressPalette,rgbCss,sceneGeom,buildProgress,holdNote,sceneCaps,genReduce,phaseCopy,retryLabel,GEN_TOTAL_MS,GEN_GIVEUP_MS,GEN_MAX_NETFAILS}')();
+const S=new Function(SCENE_JS+'\nreturn {rgbToHsl,hslToRgb,mixRGB,neutralPalette,sceneAccent,ACCENT_MAX,toneOf,dressPalette,rgbCss,sceneGeom,buildProgress,holdNote,sceneCaps,genReduce,phaseCopy,retryLabel,GEN_TOTAL_MS,GEN_GIVEUP_MS,GEN_MAX_NETFAILS}')();
 const clientJS=customerHTML.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/)[1];
 
 // A small RGBA picture: background colour bg, and a "dress" rectangle in the middle drawn by fn(x,y) -> [r,g,b].
@@ -27,20 +27,24 @@ test('dress palette: tones of ivory, champagne, blush, white and a colour are to
  assert.equal(P([20,20,24]).tone,'deep');
 });
 
-test('dress palette: different dresses give clearly different tints, thread and glow',()=>{
+test('dress accent: dresses differ only by a faint tint (12% at most) of the glow and the progress dot',()=>{
+ const GLOW=[255,247,226],GOLD=[201,169,106];
  const set={ivory:P([242,234,215]),champagne:P([225,199,154]),blush:P([239,187,197]),emerald:P([24,113,85]),navy:P([30,40,110])};
- const names=Object.keys(set);
- for(let i=0;i<names.length;i++)for(let j=i+1;j<names.length;j++){
-  assert(dist(set[names[i]].tint,set[names[j]].tint)>=14,names[i]+' vs '+names[j]+' tint '+set[names[i]].tint+' / '+set[names[j]].tint);
+ const acc={};
+ for(const k of Object.keys(set)){
+  const p=set[k];assert(p.ok,k);
+  const a=acc[k]=S.sceneAccent(p);
+  assert(a.t>=0&&a.t<=.12+1e-9,k+' t='+a.t);
+  // no channel may move by more than 12% of the distance to any colour, i.e. at most 12% of 255
+  for(let c=0;c<3;c++){assert(Math.abs(a.glow[c]-GLOW[c])<=.12*255+1,k+' glow');assert(Math.abs(a.dot[c]-GOLD[c])<=.12*255+1,k+' dot')}
+  assert(a.glow.every(v=>v>=200),k+' glow stays light: '+a.glow);
  }
- for(const k of names){
-  const p=set[k];
-  assert(p.ok,k);
-  assert(p.tint.every(v=>v>=140&&v<=255),k+' veil stays airy: '+p.tint);
-  assert(p.thread.every(v=>v>=60&&v<=255)&&p.glow.every(v=>v>=150),k);
- }
- assert(set.blush.tint[0]>set.blush.tint[2]-1&&set.blush.tint[0]>set.emerald.tint[0],'blush veil is pink, emerald is not');
- assert(set.emerald.tint[1]>set.emerald.tint[0],'emerald veil leans green');
+ assert.equal(S.ACCENT_MAX,.12);
+ assert(dist(acc.emerald.glow,acc.blush.glow)>=6,'a green and a pink dress give visibly different glows');
+ assert(acc.emerald.glow[1]>acc.emerald.glow[0],'emerald leans green');
+ assert(acc.ivory.t<=acc.emerald.t,'an ivory dress tints less than a colourful one');
+ assert.deepEqual(S.sceneAccent(S.neutralPalette()).glow,GLOW,'unknown dress: ivory and gold');
+ assert.equal(S.sceneAccent(null).t,0);
 });
 
 test('dress palette: the picture background is ignored, shading does not hide the colour',()=>{
@@ -59,7 +63,7 @@ test('dress palette: unreadable input falls back to the neutral ivory and gold p
  assert.deepEqual(S.dressPalette(pic(W,H,WHITE,[1,2,3]),0,0),n);
  assert.deepEqual(S.dressPalette(pic(W,H,WHITE,[1,2,3],0),W,H),n,'a fully transparent picture is neutral');
  assert.equal(n.ok,false);assert.equal(n.tone,'neutral');
- assert(n.tint.every(v=>v>=230),'neutral veil is ivory');
+ assert.equal(S.sceneAccent(n).t,0,'neutral: no tint');
 });
 
 test('palette helpers: hsl round trip, mix and css',()=>{
@@ -99,11 +103,11 @@ test('hold notes: calm at first, then reassuring, then honest about taking longe
 
 test('capabilities: older or reduced browsers get a simpler scene, never a broken one',()=>{
  const full={css:true,raf:true,filter:true,ctxFilter:true,canvas:true,reduce:false,lowEnd:false};
- assert.deepEqual(S.sceneCaps(full),{mode:'full',blur:'ctx',loom:true,pattern:true,medallion:true});
+ assert.deepEqual(S.sceneCaps(full),{mode:'full',blur:'ctx',light:true});
  assert.equal(S.sceneCaps({...full,ctxFilter:false}).blur,'down','no canvas filter: scaled-down copy');
  assert.equal(S.sceneCaps({...full,ctxFilter:false,canvas:false}).blur,'css','no canvas at all: static css blur');
  assert.equal(S.sceneCaps({...full,ctxFilter:false,canvas:false,filter:false}).blur,'none');
- assert.equal(S.sceneCaps({...full,lowEnd:true}).mode,'lite');assert.equal(S.sceneCaps({...full,lowEnd:true}).loom,false);
+ assert.equal(S.sceneCaps({...full,lowEnd:true}).mode,'lite');assert.equal(S.sceneCaps({...full,lowEnd:true}).light,false);
  for(const off of [{css:false},{raf:false},{reduce:true}])assert.equal(S.sceneCaps({...full,...off}).mode,'still',JSON.stringify(off));
  assert.equal(S.sceneCaps().mode,'still','unknown environment: still');
 });
@@ -195,9 +199,9 @@ test('failure copy is calm and says nothing about money, credit or quota that ma
 
 // ---------- what ships to the browser ----------
 test('the page ships no fixed gown outline: nothing in the scene implies a body shape',()=>{
- for(const gone of ['PM_SIL','M152 168','pm__thread','pmst0u','offset-path','offset-distance','getAnimations','دانتل دوخته'])assert(!customerHTML.includes(gone),gone);
- assert(customerHTML.includes('لباس انتخابی تو'),'the real chosen dress is shown');
- for(const need of ['function dressPalette','function sceneGeom','function genReduce','function pmEnv','function dressLook','function swatchTile','function softCopy','PM_LINES','آخرین پرداخت…','function retryStage'])assert(customerHTML.includes(need),need);
+ for(const gone of ['PM_SIL','M152 168','pm__thread','pmst0u','offset-path','offset-distance','getAnimations','دانتل دوخته','pm__pat','pm__weft','pm__needle','pm__dress','pm__ring','swatchTile','لباس انتخابی تو','pm__edge','pm__warp'])assert(!customerHTML.includes(gone),gone);
+ for(const p of ['لباس انتخاب شد…','روی اندام تو تنظیم می‌شود…','نور و سایه جا می‌افتد…','آینه آماده است'])assert(customerHTML.includes(p),p);
+ for(const need of ['function dressPalette','function sceneGeom','function genReduce','function pmEnv','function dressLook','function pmPose','function softCopy','PM_LINES','آخرین پرداخت…','function retryStage'])assert(customerHTML.includes(need),need);
  new Function(clientJS);
 });
 
@@ -237,4 +241,17 @@ test('retry makes a new job after a failure (new idempotency key) and only re-as
 test('the zoom button sits clear of the frame corner, the labels and the grip',()=>{
  assert(/\.zoomx\{position:absolute;z-index:6;top:27%;inset-inline-end:9%;/.test(customerHTML));
  assert(/\.mirror\.nofx\{filter:none\}/.test(customerHTML),'the animating mirror does not carry the drop-shadow filter');
+});
+
+test('the scene is photographic: a sheer ivory veil of at most 55%, no pattern, no flat colour wash, dress colour only through two variables',()=>{
+ const css=customerHTML.match(/<style>([\s\S]*?)<\/style>/)[1];
+ const scene=css.slice(css.indexOf('«پردهٔ آینه»'),css.indexOf('the salon seal'));
+ const veil=scene.match(/\.pm__veil\{[^}]*\}/)[0];
+ const alphas=[...veil.matchAll(/rgba\(252,248,239,([\d.]+)\)/g)].map(m=>+m[1]);
+ assert(alphas.length>=3&&Math.max(...alphas)<=.55&&Math.min(...alphas)===0,'veil alphas '+alphas+': translucent gradient fading out');
+ assert(!/var\(--tint\)|--thr|--wp|background-size:88px|repeating-linear-gradient/.test(scene),'no tinted veil, thread or repeating pattern');
+ assert(/--glw:/.test(scene)&&/--dot:/.test(scene));
+ assert(/\.pm__sharp\{[^}]*mask-image/.test(scene),'the focus pull uses a feathered mask');
+ assert(/\.pm__bevel\{[^}]*overflow:clip/.test(scene),'the bevel light cannot widen the page');
+ assert(!/inset-inline-start:100%/.test(scene),'progress dot starts on the right of the hairline (rtl)');
 });

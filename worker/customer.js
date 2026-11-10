@@ -503,50 +503,44 @@ img[loading="lazy"].is-in{opacity:1}
 .fine-print{font-size:12px;color:var(--muted);line-height:1.85;margin-top:10px;text-align:center}
 .upload--ref{width:min(100%,220px);margin-top:14px}
 .looks .style-card__art{position:relative}
-/* ---------- «پردهٔ آینه»: the waiting scene. A silk veil lifts off her own photo, her photo comes into focus from the hem up, a loom's thread weaves across it; real completion plays the climax ---------- */
-/* Only transform and opacity ever animate. The three colours below are replaced, per scene, by colours sampled from the chosen dress. */
+/* ---------- «پردهٔ آینه»: the waiting scene. Her own photo behind a sheer ivory silk veil that lifts, a focus pull from the hem to the head, light moving over the glass and around the gilded bevel ---------- */
+/* Only transform and opacity ever animate. Nothing here has the shape of a gown; the dress adds a faint tint (12% at most) to the glow and to the progress dot. */
 :root{--fw-max:380px}
 .fw{width:min(100%,var(--fw-max),calc((78svh - 22px) * var(--ar,.5714) + 22px));margin-inline:auto}
-.pm{--tint:250,244,232;--thr:201,169,106;--glw:255,247,226;--wp:18px;--wq:22px;position:relative;display:grid;justify-items:center;margin:18px auto 0;width:100%;isolation:isolate}
+.pm{--glw:255,247,226;--dot:201,169,106;position:relative;display:grid;justify-items:center;margin:18px auto 0;width:100%;isolation:isolate}
 .pm__glow{position:absolute;left:50%;top:44%;width:112%;max-width:520px;aspect-ratio:3/4;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(var(--glw),.95),rgba(var(--glw),0));pointer-events:none;z-index:0;opacity:.5}
 .pm__stack{position:relative;z-index:1}
 .pm__stack>.pm__mirror{position:relative;z-index:1;width:100%}
 .pm__glass{position:relative;aspect-ratio:var(--ar,.5714);overflow:hidden;background:#EFE9DD;contain:paint}
 .pm__world{position:absolute;inset:0;transform-origin:50% 58%}
 .pm__im{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 20%;display:block}
-.pm__soft:not([src]){visibility:hidden}
-.pm__res{opacity:0;transition:opacity .8s ease}.pm__res.is-on{opacity:1}
-.pm__sharp{position:absolute;inset:0;transform:translate3d(0,100%,0)}
+.pm__soft:not([src]),.pm__rsoft:not([src]){visibility:hidden}
+.pm__res,.pm__rsoft{opacity:0}
+.pm__res{transform-origin:50% 50%}
+/* the sharp copy of her photo is uncovered from the hem upward through a feathered mask: the focus pull */
+.pm__sharp{position:absolute;inset:0;transform:translate3d(0,100%,0);-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 24%);mask-image:linear-gradient(180deg,transparent 0,#000 24%)}
 .pm__sharpin{position:absolute;inset:0}
 .pm--noblur .pm__sharp{display:none}
-@supports (filter:blur(1px)){.pm__cssblur{filter:blur(7px);transform:scale(1.06)}}
-.pm__edge{position:absolute;left:0;right:0;top:-1px;height:2px;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(var(--thr),.9) 18%,rgba(255,250,232,.98) 50%,rgba(var(--thr),.9) 82%,transparent);box-shadow:0 0 10px 2px rgba(var(--thr),.5);opacity:0}
-.pm__warp{position:absolute;inset:0;pointer-events:none;opacity:0;background:repeating-linear-gradient(90deg,rgba(var(--thr),0) 0,rgba(var(--thr),.5) 1px,rgba(var(--thr),0) 2.4px,rgba(var(--thr),0) var(--wp)),repeating-linear-gradient(0deg,rgba(var(--thr),0) 0,rgba(var(--thr),.3) 1px,rgba(var(--thr),0) 2.4px,rgba(var(--thr),0) var(--wq))}
-.pm__veil{position:absolute;left:-2%;right:-2%;top:0;height:135%;pointer-events:none;background:linear-gradient(180deg,rgba(var(--tint),.9) 0,rgba(var(--tint),.86) 68%,rgba(var(--tint),0) 100%)}
-.pm__folds{position:absolute;inset:0 0 26% 0;background:radial-gradient(16% 62% at 18% 42%,rgba(255,255,255,.6),transparent),radial-gradient(14% 58% at 47% 36%,rgba(var(--thr),.16),transparent),radial-gradient(18% 66% at 74% 46%,rgba(255,255,255,.55),transparent),radial-gradient(70% 22% at 30% 4%,rgba(255,255,255,.7),transparent)}
-.pm__pat{position:absolute;inset:0 0 24% 0;background-size:88px 88px;opacity:0;-webkit-mask-image:linear-gradient(180deg,#000 62%,transparent);mask-image:linear-gradient(180deg,#000 62%,transparent)}
-.pm__pat.is-on{display:block}.pm__pat:not(.is-on){display:none}
-@supports not ((mask-image:linear-gradient(#000,transparent)) or (-webkit-mask-image:linear-gradient(#000,transparent))){.pm__pat{display:none!important}}
-.pm__sheen{position:absolute;left:0;top:6%;width:50%;height:62%;background:radial-gradient(closest-side,rgba(var(--glw),.85),rgba(var(--glw),0));opacity:.75}
-.pm__weft{position:absolute;left:0;right:0;top:0;height:1px;pointer-events:none;opacity:0;background:linear-gradient(90deg,transparent,rgba(var(--thr),.75) 16%,rgba(255,250,232,.95) 50%,rgba(var(--thr),.75) 84%,transparent);box-shadow:0 0 7px rgba(var(--thr),.8)}
-.pm__needle{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;opacity:0}
-.pm__needle i{position:absolute;left:-10px;top:-10px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle,#FFFBEA 0 16%,rgba(var(--thr),.95) 32%,rgba(var(--thr),0) 70%)}
-.pm__needle--b i{left:-6px;top:-6px;width:12px;height:12px}
+@supports not ((mask-image:linear-gradient(#000,transparent)) or (-webkit-mask-image:linear-gradient(#000,transparent))){.pm__sharp{-webkit-mask-image:none;mask-image:none}}
+@supports (filter:blur(1px)){.pm__cssblur{filter:blur(6px) saturate(.6);transform:scale(1.06)}}
+/* the sheer ivory silk: a soft translucent gradient (never a flat wash), densest at the top, dissolving at the hem */
+.pm__veil{position:absolute;left:-2%;right:-2%;top:0;height:135%;pointer-events:none;background:linear-gradient(180deg,rgba(252,248,239,.55) 0,rgba(252,248,239,.5) 46%,rgba(252,248,239,.26) 76%,rgba(252,248,239,0) 100%)}
+.pm__folds{position:absolute;inset:0 0 22% 0;background:radial-gradient(22% 70% at 20% 40%,rgba(255,255,255,.34),transparent),radial-gradient(18% 64% at 52% 34%,rgba(255,255,255,.16),transparent),radial-gradient(24% 72% at 80% 46%,rgba(255,255,255,.3),transparent),radial-gradient(80% 20% at 34% 2%,rgba(255,255,255,.4),transparent)}
+/* light moving across real glass: wide, soft, very faint */
+.pm__spec{position:absolute;top:-10%;bottom:-10%;left:0;width:54%;pointer-events:none;opacity:.12;background:linear-gradient(104deg,transparent 12%,rgba(255,252,242,.35) 38%,rgba(255,255,255,.9) 50%,rgba(255,252,242,.35) 62%,transparent 88%);transform:translate3d(-130%,0,0) skewX(-14deg)}
+/* the gilded bevel: light travelling around the frame's edge (below the glass, so only the bevel shows it) */
+.pm__bevel{position:absolute;inset:0;z-index:-1;pointer-events:none;overflow:hidden;overflow:clip;contain:paint}
+.pm__bv1{position:absolute;left:50%;top:50%;width:190%;aspect-ratio:1;margin:-95% 0 0 -95%;background:conic-gradient(from 0deg,transparent 0,transparent 62%,rgba(255,246,214,.18) 72%,rgba(255,250,232,.82) 80%,rgba(255,246,214,.18) 88%,transparent 96%)}
+.pm__bv2{position:absolute;inset:0;background:rgba(255,250,236,.8);opacity:0}
+@supports not ((mask-image:linear-gradient(#000,transparent)) or (-webkit-mask-image:linear-gradient(#000,transparent))){.pm__bevel{display:none}}
 .pm__hold{position:absolute;inset:0;pointer-events:none;opacity:0;overflow:hidden;transition:opacity .8s ease}
-.pm__hold i{position:absolute;top:-10%;bottom:-10%;left:0;width:46%;background:linear-gradient(105deg,transparent 15%,rgba(var(--glw),.55) 45%,rgba(255,255,255,.75) 50%,rgba(var(--glw),.55) 55%,transparent 85%);transform:translate3d(-120%,0,0)}
+.pm__hold i{position:absolute;top:-10%;bottom:-10%;left:0;width:46%;background:linear-gradient(105deg,transparent 15%,rgba(var(--glw),.4) 45%,rgba(255,255,255,.55) 50%,rgba(var(--glw),.4) 55%,transparent 85%);transform:translate3d(-120%,0,0)}
 .pm.is-hold .pm__hold i{animation:pmhold 3.8s ease-in-out infinite}
 @keyframes pmhold{0%{transform:translate3d(-120%,0,0)}60%,100%{transform:translate3d(240%,0,0)}}
 .pm__flash{position:absolute;inset:0;pointer-events:none;background:radial-gradient(80% 60% at 50% 45%,rgba(255,252,240,.95),rgba(255,246,222,0) 70%);opacity:0}
-.pm__glint{position:absolute;top:-10%;bottom:-10%;left:0;width:36%;pointer-events:none;background:linear-gradient(105deg,transparent 20%,rgba(255,250,235,.0) 30%,rgba(255,250,235,.72) 50%,rgba(255,250,235,0) 70%,transparent 80%);transform:translate3d(-120%,0,0) skewX(-12deg)}
-.pm.is-run .pm__edge,.pm.is-run .pm__warp,.pm.is-run .pm__pat,.pm.is-run .pm__flash,.pm.is-run .pm__hold{will-change:opacity}
+.pm.is-run .pm__flash,.pm.is-run .pm__hold,.pm.is-run .pm__res,.pm.is-run .pm__rsoft,.pm.is-run .pm__bv2{will-change:opacity}
 .pm.is-run .pm__bar i,.pm.is-run .pm__bar b{will-change:transform}
-.pm.is-run .pm__veil,.pm.is-run .pm__sharp,.pm.is-run .pm__sharpin,.pm.is-run .pm__weft,.pm.is-run .pm__needle,.pm.is-run .pm__sheen,.pm.is-run .pm__dress,.pm.is-run .pm__glint{will-change:transform}
-/* the chosen dress, as a small medallion pinned to the mirror's lower edge */
-.pm__dress{position:relative;z-index:3;margin-top:-28px;display:grid;justify-items:center;gap:6px;opacity:0;transform:translate3d(0,40px,0) scale(.88)}
-.pm__dress[hidden]{display:none}
-.pm__ring{display:block;width:58px;height:58px;border-radius:50%;padding:2.5px;background:conic-gradient(from 210deg,#F4E8C6,#B18C55,#FFF8DE,#9A7740,#F0E0B3,#F4E8C6);box-shadow:0 7px 16px rgba(60,40,10,.2),0 0 0 3px rgba(255,250,236,.9)}
-.pm__ring img{display:block;width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:50% 38%;background:#EFE9DD}
-.pm__dtag{font:700 13px/1.7 var(--display);color:#6F5424;background:rgba(255,250,238,.94);padding:0 12px;border-radius:99px;border:1px solid rgba(201,169,106,.5);white-space:nowrap}
+.pm.is-run .pm__veil,.pm.is-run .pm__sharp,.pm.is-run .pm__sharpin,.pm.is-run .pm__spec,.pm.is-run .pm__bv1,.pm.is-run .pm__world{will-change:transform}
 .pm__cap{position:relative;z-index:1;margin-top:18px;width:min(100%,340px);display:grid;justify-items:center;gap:14px}
 .pm__lines{position:relative;height:36px;width:100%}
 .pm__lines span{position:absolute;inset:0;display:grid;place-items:center;font:600 18px/1.8 var(--display);color:#0F4C4A;opacity:0;transform:translateY(7px);transition:opacity .5s ease,transform .5s ease;white-space:nowrap}
@@ -555,9 +549,9 @@ img[loading="lazy"].is-in{opacity:1}
 .pm__lines span.end{font-weight:800;color:#0B3F3D}
 .pm.is-hold .pm__lines span:nth-child(4){background:linear-gradient(100deg,#0F4C4A 35%,#B58B3C 50%,#0F4C4A 65%) 0 0/250% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:pmtxt 3.8s ease-in-out infinite}
 @keyframes pmtxt{0%{background-position:100% 0}70%,100%{background-position:-50% 0}}
-.pm__bar{position:relative;width:190px;height:2px;background:rgba(201,169,106,.3)}
-.pm__bar i{position:absolute;inset-inline-start:0;top:0;height:2px;width:100%;background:linear-gradient(90deg,#C9A96A,#EAD9A8);transform-origin:right center;transform:scaleX(0);transition:transform .6s linear}
-.pm__bar b{position:absolute;top:-2px;width:6px;height:6px;margin-inline-start:-3px;border-radius:50%;background:#C9A96A;box-shadow:0 0 0 3px rgba(201,169,106,.18);inset-inline-start:100%;transition:transform .6s linear}
+.pm__bar{position:relative;width:190px;height:1px;background:rgba(201,169,106,.34)}
+.pm__bar i{position:absolute;inset-inline-start:0;top:0;height:1px;width:100%;background:linear-gradient(90deg,#C9A96A,#EAD9A8);transform-origin:right center;transform:scaleX(0);transition:transform .6s linear}
+.pm__bar b{position:absolute;top:-2.5px;width:6px;height:6px;margin-inline-start:-3px;border-radius:50%;background:rgb(var(--dot));box-shadow:0 0 0 3px rgba(var(--dot),.18);inset-inline-start:0;transition:transform .6s linear}
 .pm__note{font-size:14px;line-height:1.9;color:var(--ink-2);text-align:center;min-height:1.9em;max-width:32ch}
 .pm__rm{display:none;font:700 17px/1.8 var(--display);color:#0F4C4A;text-align:center}
 .pm__calm{display:grid;justify-items:center;gap:8px;text-align:center;margin-top:22px;width:min(100%,340px)}
@@ -565,13 +559,13 @@ img[loading="lazy"].is-in{opacity:1}
 .pm__calm .btn{margin-top:6px}
 .pm--inner{position:absolute;inset:0;z-index:2;display:block;margin:0}
 .pm--inner .pm__glass{position:absolute;inset:0;aspect-ratio:auto}
-/* a browser that cannot do the full scene (data-mode="lite") keeps the veil and the focus pull and drops the loom */
-.pm[data-mode="lite"] .pm__weft,.pm[data-mode="lite"] .pm__needle,.pm[data-mode="lite"] .pm__sheen,.pm[data-mode="lite"] .pm__warp,.pm[data-mode="lite"] .pm__pat{display:none}
+/* a browser that cannot do the full scene (data-mode="lite") keeps the veil and the focus pull and drops the moving light */
+.pm[data-mode="lite"] .pm__spec,.pm[data-mode="lite"] .pm__bevel{display:none}
 @media (prefers-reduced-motion:reduce){
- .pm__flash,.pm__glint,.pm__hold,.pm__weft,.pm__needle,.pm__sheen{display:none}
+ .pm__flash,.pm__spec,.pm__hold,.pm__bevel{display:none}
  .pm__lines{display:none}.pm__rm{display:block}
  .pm.is-hold .pm__lines span:nth-child(4){animation:none}
- .pm__lines span,.pm__res{transition:none}
+ .pm__lines span{transition:none}
 }
 /* ---------- the salon seal under the finished photo (never over it) ---------- */
 .sealfoot{display:grid;justify-items:center;gap:10px;margin:22px auto 0;width:min(100%,var(--fw-max));padding:0 8px 4px;text-align:center}
@@ -1162,17 +1156,19 @@ function dressKey(){
 function wantButton(cls){return el('button',{class:cls||'btn btn--primary',type:'button','data-want':'1',onclick:function(){openWant()},html:ICO.heart+'<span>این لباس را می‌خواهم</span>'})}
 function sendButton(){return el('button',{class:'btn btn--primary',type:'button',onclick:openRequest,html:ICO.send+'<span>فرستادن برای '+artist()+'</span>'})}
 /* ---------- «پردهٔ آینه»: the waiting scene, driven by the real job ---------- */
-// A silk veil lies over her own photo. While the job runs the veil lifts and her photo comes into focus from the hem
-// upward, a loom's golden thread weaves across it, and the dress she chose floats toward the mirror as a small medallion;
-// the colours of the veil, thread and glow are sampled from that very dress. Nothing is drawn in the shape of any gown.
-// If the job takes longer than usual the scene rests on «آخرین پرداخت…». When the server says it is done, the climax plays.
+// Her own photo stays visible the whole time, behind a sheer ivory silk veil that lifts while her photo comes into focus from the hem
+// upward. Light moves slowly over the glass and around the gilded bevel. Nothing is drawn in the shape of any gown and no pattern is
+// laid over the picture: the chosen dress only adds a faint tint (12% at most) to the glow and to the progress dot.
+// If the job takes longer than usual the scene rests on «آخرین پرداخت…». When the server says it is done, a glimpse of the real
+// result flickers through the veil, the bevel flashes, the veil lifts and the result develops.
 // Only transform and opacity are animated, from one requestAnimationFrame loop that sleeps when the tab is hidden.
-var PM_LINES=['لباست آماده می‌شود…','تار و پود به هم می‌رسند…','لباس روی اندامت می‌نشیند…','آخرین پرداخت…','آینه آماده است'];
-var PM_END=2.5,PM_P0=.82;
+var PM_LINES=['لباس انتخاب شد…','روی اندام تو تنظیم می‌شود…','نور و سایه جا می‌افتد…','آخرین پرداخت…','آینه آماده است'];
+var PM_END=2.7,PM_P0=.82;
 function pmEnv(){
- var f={css:false,filter:false,ctxFilter:false,canvas:false,raf:typeof requestAnimationFrame==='function',reduce:false,lowEnd:false};
+ var f={css:false,filter:false,ctxFilter:false,canvas:false,mask:true,raf:typeof requestAnimationFrame==='function',reduce:false,lowEnd:false};
  try{f.css=!!(window.CSS&&CSS.supports&&CSS.supports('transform','translate3d(0,0,0)')&&CSS.supports('inset','0'))}catch(e){}
  try{f.filter=!!(window.CSS&&CSS.supports&&(CSS.supports('filter','blur(1px)')||CSS.supports('-webkit-filter','blur(1px)')))}catch(e){}
+ try{f.mask=!!(window.CSS&&CSS.supports&&(CSS.supports('mask-image','linear-gradient(#000,transparent)')||CSS.supports('-webkit-mask-image','linear-gradient(#000,transparent)')))}catch(e){}
  try{var cv=document.createElement('canvas'),g=cv.getContext&&cv.getContext('2d');f.canvas=!!g;if(g){g.filter='blur(2px)';f.ctxFilter=g.filter==='blur(2px)'}}catch(e){}
  try{f.reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)}catch(e){}
  try{f.lowEnd=(navigator.hardwareConcurrency||8)<=2||(navigator.deviceMemory||4)<=1}catch(e){}
@@ -1183,17 +1179,7 @@ function dressUrl(){
  if(state.reference)return media(state.reference);
  return state.style!==null&&state.style!==undefined?catalogImg(state.style):'';
 }
-// A seamless 2x2 mirrored tile cut from the middle of the dress picture: the fabric swatch.
-function swatchTile(im){
- try{
-  var w=im.naturalWidth||im.width,hh=im.naturalHeight||im.height,s=Math.max(8,Math.floor(Math.min(w,hh)*.17)),c=document.createElement('canvas'),S=44;
-  c.width=c.height=S*2;var g=c.getContext('2d');
-  var sx=Math.floor(w*.5-s/2),sy=Math.floor(hh*.52-s/2);
-  [[0,0,1,1],[S,0,-1,1],[0,S,1,-1],[S,S,-1,-1]].forEach(function(q){g.save();g.translate(q[0]+(q[2]<0?S:0),q[1]+(q[3]<0?S:0));g.scale(q[2],q[3]);g.drawImage(im,sx,sy,s,s,0,0,S,S);g.restore()});
-  return c.toDataURL('image/jpeg',.8);
- }catch(e){return ''}
-}
-// Colours and swatch of the chosen dress; resolves to null when the picture cannot be had (the scene stays ivory and gold).
+// Colours of the chosen dress; resolves to null when the picture cannot be had (the scene stays ivory and gold).
 var DLOOK={};
 function dressLook(url){
  if(!url)return Promise.resolve(null);
@@ -1202,42 +1188,44 @@ function dressLook(url){
   var done=false;function fin(v){if(!done){done=true;res(v)}}
   setTimeout(function(){fin(null)},6000);
   loadImg(url).then(function(im){
-   var look={pal:neutralPalette(),tile:'',im:im};
+   var look={pal:neutralPalette()};
    try{
     var cw=32,ch=Math.max(8,Math.min(64,Math.round(cw*((im.naturalHeight||1)/(im.naturalWidth||1))))),cv=document.createElement('canvas');cv.width=cw;cv.height=ch;
     var g=cv.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,cw,ch);
     look.pal=dressPalette(g.getImageData(0,0,cw,ch).data,cw,ch);
-    look.tile=swatchTile(im);
    }catch(e){look.pal=neutralPalette()}
    fin(look);
   }).catch(function(){fin(null)});
  });
 }
-// Her own photo, out of focus: a tiny copy that the browser stretches (a canvas filter if it has one).
+// A photo out of focus: a small copy that the browser stretches, a little desaturated (a canvas filter if it has one).
+// Cached by address; returns '' when the picture cannot be read (a tainted canvas).
 var SOFT={};
 function softCopy(img,how){
- var key=img.currentSrc||img.src;if(SOFT[key]!==undefined)return SOFT[key];
+ var key=(img.currentSrc||img.src)+'|'+how;if(SOFT[key]!==undefined)return SOFT[key];
  var out='';
  try{
   var w=img.naturalWidth||0,hh=img.naturalHeight||0;
   if(w&&hh&&how!=='none'){
-   var tw=how==='ctx'?96:28,th=Math.max(8,Math.round(tw*hh/w)),c=document.createElement('canvas'),g=c.getContext('2d');
+   var tw=how==='ctx'?230:56,th=Math.max(8,Math.round(tw*hh/w)),c=document.createElement('canvas'),g=c.getContext('2d');
    c.width=tw;c.height=th;g.imageSmoothingEnabled=true;try{g.imageSmoothingQuality='high'}catch(e){}
-   if(how==='ctx'){g.filter='blur(2.4px)';g.drawImage(img,0,0,tw,th)}
-   else{var c2=document.createElement('canvas'),g2=c2.getContext('2d'),mw=Math.max(6,Math.round(tw/2)),mh=Math.max(6,Math.round(th/2));c2.width=mw;c2.height=mh;g2.imageSmoothingEnabled=true;g2.drawImage(img,0,0,mw,mh);g.drawImage(c2,0,0,tw,th)}
-   out=c.toDataURL('image/jpeg',.82);
+   if(how==='ctx'){g.filter='blur(1.2px) saturate(.6)';g.drawImage(img,0,0,tw,th)}
+   else{
+    var c2=document.createElement('canvas'),g2=c2.getContext('2d'),mw=Math.max(6,Math.round(tw*.6)),mh=Math.max(6,Math.round(th*.6));c2.width=mw;c2.height=mh;g2.imageSmoothingEnabled=true;g2.drawImage(img,0,0,mw,mh);g.drawImage(c2,0,0,tw,th);
+    var id=g.getImageData(0,0,tw,th),d=id.data;for(var i=0;i<d.length;i+=4){var m=d[i]*.3+d[i+1]*.59+d[i+2]*.11;d[i]=m+(d[i]-m)*.6;d[i+1]=m+(d[i+1]-m)*.6;d[i+2]=m+(d[i+2]-m)*.6}
+    g.putImageData(id,0,0);
+   }
+   out=c.toDataURL('image/jpeg',.86);
   }
  }catch(e){out=''}
- if(SOFT[key]===undefined&&Object.keys(SOFT).length>6)SOFT={};
+ if(Object.keys(SOFT).length>8)SOFT={};
  return SOFT[key]=out;
 }
-// Applies a palette to one scene: three colour variables, plus a weave density taken from the dress itself.
+// Applies a dress's colours to one scene: two colour variables (glow and progress dot), each tinted 12% at most.
 function pmTint(root,look){
- var pal=look&&look.pal?look.pal:neutralPalette();
- root.style.setProperty('--tint',rgbCss(pal.tint));root.style.setProperty('--thr',rgbCss(pal.thread));root.style.setProperty('--glw',rgbCss(pal.glow));
- root.style.setProperty('--wp',(14+pal.seed%11)+'px');root.style.setProperty('--wq',(18+pal.seed%13)+'px');
+ var pal=look&&look.pal?look.pal:neutralPalette(),a=sceneAccent(pal);
+ root.style.setProperty('--glw',rgbCss(a.glow));root.style.setProperty('--dot',rgbCss(a.dot));
  root.setAttribute('data-tone',pal.tone);
- var pat=root.querySelector('.pm__pat');if(pat&&look&&look.tile){pat.style.backgroundImage='url('+look.tile+')';pat.classList.add('is-on')}
 }
 function clampAr(w,h){var r=(w&&h)?w/h:.6667;return Math.max(.46,Math.min(.85,r))}
 // Builds the scene. opts.inner: only the glass (inside another frame); opts.calm: a still pose, no timeline.
@@ -1246,17 +1234,16 @@ function pmScene(src,opts){
  var env=pmEnv(),caps=env.caps,full=caps.mode==='full'&&!opts.calm,still=caps.mode==='still'||!!opts.calm;
  var soft=el('img',{class:'pm__im pm__soft',alt:'',decoding:'async'});
  var photo=src?el('img',{class:'pm__im pm__before',src:src,alt:'',decoding:'async'}):el('span',{class:'pm__im',html:ILLO.loader});
- var res=el('img',{class:'pm__im pm__res',alt:'',decoding:'async'});
+ var rsoft=el('img',{class:'pm__im pm__rsoft',alt:'',decoding:'async'}),res=el('img',{class:'pm__im pm__res',alt:'',decoding:'async'});
  var sharpin=el('div',{class:'pm__sharpin'},[photo]);
- var sharp=el('div',{class:'pm__sharp'},[sharpin,full?el('div',{class:'pm__warp'}):null,el('div',{class:'pm__edge'})]);
- var folds=el('div',{class:'pm__folds'}),pat=full?el('div',{class:'pm__pat'}):null,sheen=full?el('div',{class:'pm__sheen'}):null;
- var veil=el('div',{class:'pm__veil'},[folds,pat,sheen]);
- var weft=full?el('div',{class:'pm__weft'}):null,nd1=full?el('div',{class:'pm__needle'},[el('i')]):null,nd2=full?el('div',{class:'pm__needle pm__needle--b'},[el('i')]):null;
- var hold=el('div',{class:'pm__hold'},[el('i')]);
- var world=el('div',{class:'pm__world'},[soft,sharp,res,veil,weft,nd1,nd2,hold]);
- var flash=el('div',{class:'pm__flash'}),glint=el('div',{class:'pm__glint'});
- var glass=el('div',{class:'mirror__glass pm__glass'},[world,flash,glint]);
- var S={root:null,photo:photo,res:res,mirror:null,glass:glass,world:world,soft:soft,sharp:sharp,sharpin:sharpin,veil:veil,weft:weft,n1:nd1,n2:nd2,sheen:sheen,flash:flash,glint:glint,hold:hold,warp:sharp.querySelector('.pm__warp'),edge:sharp.querySelector('.pm__edge'),pat:pat,dress:null,blurOn:false,W:0,H:0,caps:caps,still:still,full:full};
+ var sharp=el('div',{class:'pm__sharp'},[sharpin]);
+ var veil=el('div',{class:'pm__veil'},[el('div',{class:'pm__folds'})]);
+ var spec=full?el('div',{class:'pm__spec'}):null,hold=el('div',{class:'pm__hold'},[el('i')]);
+ var world=el('div',{class:'pm__world'},[soft,sharp,rsoft,res,veil,hold]);
+ var flash=el('div',{class:'pm__flash'});
+ var glass=el('div',{class:'mirror__glass pm__glass'},[world,spec,flash]);
+ var bv1=full?el('i',{class:'pm__bv1'}):null,bv2=full?el('i',{class:'pm__bv2'}):null,bevel=full?el('div',{class:'pm__bevel','aria-hidden':'true'},[bv1,bv2]):null;
+ var S={root:null,photo:photo,res:res,rsoft:rsoft,mirror:null,glass:glass,world:world,soft:soft,sharp:sharp,sharpin:sharpin,veil:veil,spec:spec,bv1:bv1,bv2:bv2,flash:flash,hold:hold,blurOn:false,W:0,H:0,caps:caps,still:still,full:full};
  // the out-of-focus copy of her photo
  function makeSoft(){
   if(!src||!photo.naturalWidth)return;
@@ -1267,22 +1254,22 @@ function pmScene(src,opts){
   S.root&&S.root.classList.toggle('pm--noblur',!S.blurOn);
   if(S.pose)S.pose();
  }
+ // the result, out of focus first (it develops from blur to sharp): built when the result is known
+ S.setResult=function(url){
+  if(!url)return;
+  res.src=url;
+  var go=function(){var u=softCopy(res,caps.blur==='none'?'none':caps.blur);if(u)rsoft.src=u;else if(env.f.filter){rsoft.src=url;rsoft.classList.add('pm__cssblur')}};
+  if(res.complete&&res.naturalWidth)go();else res.addEventListener('load',go);
+ };
  var ar=state.arOf&&state.arOf[state.original]||.5714,root;
  if(opts.inner){
   root=el('div',{class:'pm pm--inner','aria-hidden':'true'},[glass]);
  }else{
   // the frame's shadow lives on a static twin: a drop-shadow filter on the animating mirror would be redrawn every frame
-  var mirror=el('div',{class:'pm__stack fw',style:'--ar:'+ar},[el('div',{class:'mirror mirror-shd','aria-hidden':'true'},[el('div',{class:'mirror__glass'})]),el('div',{class:'mirror pm__mirror nofx'},[glass])]);S.mirror=mirror;
+  var mirror=el('div',{class:'pm__stack fw',style:'--ar:'+ar},[el('div',{class:'mirror mirror-shd','aria-hidden':'true'},[el('div',{class:'mirror__glass'})]),el('div',{class:'mirror pm__mirror nofx'},[glass,bevel])]);S.mirror=mirror;
   var lines=el('div',{class:'pm__lines','aria-hidden':'true'},PM_LINES.map(function(t,i){return el('span',{class:i===4?'end':'',text:t})}));
   var cap=el('div',{class:'pm__cap'},[lines,el('div',{class:'pm__rm','aria-hidden':'true',text:PM_LINES[0]}),el('div',{class:'pm__bar','aria-hidden':'true'},[el('i'),el('b')]),el('p',{class:'pm__note',text:''}),el('span',{class:'sr-only','aria-live':'polite',role:'status'})]);
-  var du=dressUrl(),dress=null;
-  if(du){
-   var dimg=el('img',{src:du,alt:'',decoding:'async'}),lab=el('span',{class:'pm__dtag',text:'لباس انتخابی تو'});
-   dress=el('div',{class:'pm__dress'},[el('span',{class:'pm__ring'},[dimg]),lab]);
-   dimg.addEventListener('error',function(){dress.hidden=true});
-   S.dress=dress;
-  }
-  root=el('div',{class:'pm'+(opts.calm?' pm--calm':''),'data-mode':caps.mode},[el('span',{class:'pm__glow','aria-hidden':'true'}),mirror,dress,opts.calm?null:cap]);
+  root=el('div',{class:'pm'+(opts.calm?' pm--calm':''),'data-mode':caps.mode},[el('span',{class:'pm__glow','aria-hidden':'true'}),mirror,opts.calm?null:cap]);
   photo.addEventListener('load',function(){var a=clampAr(photo.naturalWidth,photo.naturalHeight);(state.arOf=state.arOf||{})[state.original]=a;mirror.style.setProperty('--ar',a)});
  }
  root.setAttribute('data-mode',caps.mode);
@@ -1298,32 +1285,33 @@ function pmScene(src,opts){
 function pmSet(e,v){if(e&&e.__t!==v){e.__t=v;e.style.transform=v}}
 function pmOp(e,v){v=Math.round(Math.max(0,Math.min(1,v))*100)/100;if(e&&e.__o!==v){e.__o=v;e.style.opacity=v}}
 function smooth(a,b,x){x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x)}
+// a pulse: up from a to b, down from b to c
+function tri(a,b,c,x){return x<=a||x>=c?0:x<b?(x-a)/(b-a):(c-x)/(c-b)}
+// x: hold (shimmer), enter, glimpse (0..1 opacity of the real result through the veil), flash, spark (bevel flash), dev (0..1 the result develops), fin
 function pmPose(S,p,t,x){
  x=x||{};
  var g=sceneGeom(p),u=g.u,sh=S.blurOn?g.sharp:1,H=S.H||0,W=S.W||0,full=S.full;
  if(x.hold)u=Math.max(0,u+Math.sin(t*1.1)*.006);
- pmSet(S.veil,'translate3d(0,'+(-u*100).toFixed(2)+'%,0)');
+ pmSet(S.veil,'translate3d(0,'+(-u*100).toFixed(2)+'%,0)');pmOp(S.veil,1-.4*smooth(0,1,p));
  pmSet(S.sharp,'translate3d(0,'+(sh*100).toFixed(2)+'%,0)');pmSet(S.sharpin,'translate3d(0,'+(-sh*100).toFixed(2)+'%,0)');
- var fade=1-smooth(.84,1,p);
- pmOp(S.edge,S.blurOn?.95*fade:0);
- if(full){
-  var by=(S.blurOn?sh:Math.min(1,g.edge))*H,tw=t;
-  pmOp(S.warp,.5*fade*smooth(0.04,.2,p));
-  pmSet(S.weft,'translate3d(0,'+by.toFixed(1)+'px,0)');pmOp(S.weft,.85*fade*smooth(.02,.12,p));
-  var nx=W*(.5+.46*Math.sin(tw*2.1)),nx2=W*(.5+.46*Math.sin(tw*2.1-.55)),ny=by+5*Math.sin(tw*8.5);
-  pmSet(S.n1,'translate3d('+nx.toFixed(1)+'px,'+ny.toFixed(1)+'px,0)');pmOp(S.n1,fade*smooth(.02,.12,p));
-  pmSet(S.n2,'translate3d('+nx2.toFixed(1)+'px,'+(by+5*Math.sin(tw*8.5-1.1)).toFixed(1)+'px,0)');pmOp(S.n2,.55*fade*smooth(.02,.12,p));
-  var sw=W*.5;pmSet(S.sheen,'translate3d('+(((tw*.1)%1.5)*(W+sw)-sw).toFixed(1)+'px,0,0) rotate(18deg)');
-  pmOp(S.pat,x.fin==null?.24:.24*(1-x.fin));
- }
  pmOp(S.hold,x.hold?1:0);
- if(S.dress){
-  var e=x.enter==null?1:x.enter,a=x.absorb||0,bob=Math.sin(t*1.3)*3*(1-a),ty=(1-e)*40+bob-a*H*.42,sc=(.88+.12*e)*(1-.5*a);
-  pmSet(S.dress,'translate3d(0,'+ty.toFixed(1)+'px,0) scale('+sc.toFixed(3)+')');pmOp(S.dress,e*(1-a));
+ // light on the glass, and around the bevel (each pass takes about seven seconds)
+ if(full){
+  var s=x.specPos==null?((t*.14)%1)*1.7-.35:x.specPos;
+  pmSet(S.spec,'translate3d('+(-130+440*s).toFixed(1)+'%,0,0) skewX(-14deg)');
+  pmOp(S.spec,.12+.4*(x.sweep||0));
+  pmSet(S.bv1,'rotate('+(((t*52+(x.spin||0)*540)%360)).toFixed(1)+'deg)');
+  pmOp(S.bv1,.9);pmOp(S.bv2,.9*(x.spark||0));
  }
+ // her photo breathes a little (1 to 1.015) and settles when the result has developed
+ var br=(1-Math.cos(t*.9))*.0075*(1-(x.dev||0)),sc=1+br;
+ pmSet(S.world,'scale('+sc.toFixed(4)+')');
+ // the real result, seen for an instant through the veil, then developing from blur to sharp
+ var dev=x.dev||0;
+ pmOp(S.rsoft,smooth(0,.5,dev));
+ pmOp(S.res,Math.max(x.glimpse||0,smooth(.35,1,dev)));
+ pmSet(S.res,dev>0&&dev<1?'scale('+(1+.02*(1-smooth(.35,1,dev))).toFixed(4)+')':'');
  pmOp(S.flash,x.flash||0);
- if(S.glint)pmSet(S.glint,'translate3d('+((x.glint==null?-1.2:x.glint)*100).toFixed(1)+'%,0,0) skewX(-12deg)');
- pmSet(S.world,x.pulse?'scale('+x.pulse.toFixed(4)+')':'');
 }
 // One controller per job: it maps real elapsed time to the scene's own clock, and plays the finish when told.
 function pmCtl(o){
@@ -1335,8 +1323,7 @@ function pmCtl(o){
   unobserve();
   c.S=sc;c.root=sc.root;c.res=sc.res;c.mirror=sc.mirror||null;c.line=-1;sc.pose=function(){if(!c.raf)draw(0)};
   sc.root.__glow=sc.root.querySelector('.pm__glow');
-  if(c.url&&c.res)c.res.src=c.url;
-  if(c.url&&c.mode!=='build'&&c.mode!=='ff'&&c.res&&c.ct>=.95)c.res.classList.add('is-on');
+  if(c.url)sc.setResult(c.url);
   measure();observe();
   c.q={bar:sc.root.querySelector('.pm__bar i'),dot:sc.root.querySelector('.pm__bar b')};
   if(!c.raf&&!c.tm)start();else{setRun(!!c.raf);draw(0);bar();text(true)}
@@ -1367,15 +1354,16 @@ function pmCtl(o){
  function draw(dt){
   var S=c.S;if(!S)return;
   var x={hold:c.mode==='build'&&c.hold&&!c.off};
-  x.enter=smooth(0,1.4,c.t);
   if(c.mode==='climax'||c.mode==='done'){
-   var ct=c.ct;
-   x.flash=.34*smooth(.8,1.15,ct)*(1-smooth(1.15,1.9,ct));
-   x.glow=smooth(.7,1.2,ct)*(1-smooth(1.8,2.5,ct));
-   x.glint=-1.2+smooth(.9,1.95,ct)*3.2;
-   x.absorb=smooth(.15,1.0,ct);
-   
-   x.fin=smooth(.2,1.2,ct);
+   var ct=c.mode==='done'?9:c.ct,ready=!!(c.url&&S.res&&S.res.complete&&S.res.naturalWidth);
+   // a quick glimpse of the real result through the veil, only if it is already here
+   if(ready)x.glimpse=.55*tri(.10,.17,.30,ct)+.4*tri(.42,.48,.66,ct);
+   x.flash=.3*smooth(.85,1.2,ct)*(1-smooth(1.2,1.9,ct));
+   x.spark=smooth(.8,1.05,ct)*(1-smooth(1.05,1.8,ct));
+   x.spin=smooth(.8,1.7,ct);
+   x.sweep=smooth(.85,1.3,ct)*(1-smooth(1.7,2.3,ct));
+   x.specPos=-.35+smooth(.85,2.2,ct)*1.7;
+   x.dev=c.url?smooth(1.1,2.4,ct):1;
   }
   pmPose(S,c.p,c.t,x);
  }
@@ -1385,8 +1373,7 @@ function pmCtl(o){
   if(c.mode==='build'){var el_=Date.now()-c.t0;c.p=buildProgress(el_,c.tb);c.hold=el_>=c.tb}
   else if(c.mode==='ff'){c.p=Math.min(PM_P0,c.p+dt*Math.max(.18,(PM_P0-c.p)/.45));if(c.p>=PM_P0-.0005){c.p=PM_P0;c.mode='climax';c.ct=0;measure()}}
   else if(c.mode==='climax'){
-   c.ct+=dt;var q=smooth(.1,1.3,c.ct);c.p=PM_P0+(1-PM_P0)*q;
-   if(c.ct>=.95&&c.res&&c.url)c.res.classList.add('is-on');
+   c.ct+=dt;var q=smooth(.95,2.0,c.ct);c.p=PM_P0+(1-PM_P0)*q;
    if(c.ct>=PM_END){c.mode='done'}
   }
   draw(dt);text(false);
@@ -1405,7 +1392,7 @@ function pmCtl(o){
    // no motion: the scene sits in a calm pose and only its words and bar move, every so often
    c.p=.45;c.t=2;setRun(false);
    c.tm=setInterval(function(){
-    if(c.mode==='ff'||c.mode==='climax'){c.mode='done';c.p=1;if(c.res&&c.url)c.res.classList.add('is-on')}
+    if(c.mode==='ff'||c.mode==='climax'){c.mode='done';c.p=1}
     if(!live()){stopLoop();return}
     if(c.mode==='done'){draw(0);bar();text(true);stopLoop();var r=c.resolve;c.resolve=null;if(r)setTimeout(r,140);return}
     if(c.mode==='build'){c.hold=Date.now()-c.t0>=c.tb}
@@ -1436,11 +1423,11 @@ function pmCtl(o){
   return new Promise(function(done){
    var go=function(a){
     if(c.mode==='stopped'||!live()){done();return}
-    c.url=url||'';if(url&&c.res)c.res.src=url;
+    c.url=url||'';if(url&&c.S)c.S.setResult(url);
     if(a&&c.mirror){(state.arOf=state.arOf||{})[url]=a;c.mirror.style.setProperty('--ar',a)}
     c.resolve=done;c.off=false;c.noteOverride='';c.mode='ff';measure();
-    if(document.hidden){c.mode='done';c.p=1;if(c.res&&url)c.res.classList.add('is-on');c.resolve=null;setTimeout(done,0);return}
-    if(rm()||c.S&&c.S.caps.mode==='still'){c.mode='done';c.p=1;if(c.res&&url)c.res.classList.add('is-on');if(!c.tm)start();return}
+    if(document.hidden){c.mode='done';c.p=1;c.resolve=null;setTimeout(done,0);return}
+    if(rm()||c.S&&c.S.caps.mode==='still'){c.mode='done';c.p=1;if(!c.tm)start();return}
     if(!c.raf&&!c.tm)start();
    };
    if(!url){go();return}

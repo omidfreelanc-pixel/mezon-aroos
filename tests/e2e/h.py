@@ -24,6 +24,7 @@ def install(page, job, dress_files=None):
         page.route('**/api/s/demo/media/'+k, (lambda f: (lambda r,_q=None: r.fulfill(path=f, content_type='image/jpeg')))(f))
 def upload_bride(page):
     page.goto(BASE); page.wait_for_selector('#pick',state='attached')
+    page.evaluate("()=>{checkPhoto=function(){return {hard:[],soft:[]}}}")  # the photo check is not under test here (the sample is small)
     page.set_input_files('#pick','tests/e2e/out/bride.jpg')
     page.wait_for_function('state.original')
 def choose_catalog(page, i=2):
