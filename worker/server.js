@@ -450,7 +450,7 @@ return new Response(object.body,{headers:base});}
    for(let i=0;i<ANGLE_ORDER.length;i++){
     const name=ANGLE_ORDER[i],gid=i===0?id:uid();
     if(i>0)await run(db,"INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,created_at,updated_at,visitor) VALUES(?,?,?,?,'views','creating',?,?,?,?)",gid,salon.id,s.id,crypto.randomUUID(),base.original_id,now,now,visitor);
-    const task=await createImageTask(env,cfg,{prompt:ANGLE_PROMPTS[name]+notes,image_input:[img,...face,...extra],aspect_ratio:ratio,resolution:'2K',output_format:'jpg'});
+    const task=await createImageTask(env,cfg,{prompt:ANGLE_PROMPTS[name]+notes,image_input:[img,...face,...extra],aspect_ratio:ratio,resolution:env.IMAGE_RES||'2K',output_format:'jpg'});
     await run(db,"UPDATE generations SET state='waiting',task_id=?,model=?,opts=? WHERE id=?",task.taskId,String(task.model||''),JSON.stringify({angle:name,group:id}),gid);
     if(i>0)ids.push(gid);
    }
@@ -468,7 +468,7 @@ return new Response(object.body,{headers:base});}
   await spendTrialImage(db,trial,gate.weight);
   await run(db,"INSERT INTO generations(id,salon_id,session_id,idem,kind,state,original_id,created_at,updated_at,visitor) VALUES(?,?,?,?,'spin','creating',?,?,?,?)",id,salon.id,s.id,b.idem,base.original_id,now,now,visitor);
   if(!free)await afterCharge(env,db,salon,s,visitor,'dress',env.APP_ORIGIN||u.origin,!!trial);
-  try{const img=await uploadProvider(env,m);const ang=base.reference_id?(await dressAngles(db,salon,'dress',base.reference_id)).media.slice(1):[];const extra=[];for(const x of ang)extra.push(await uploadProvider(env,x));const task=await createImageTask(env,cfg,{prompt:BACK_PROMPT,image_input:[img,...extra],aspect_ratio:RATIOS.includes(parse(base.opts).ratio)?parse(base.opts).ratio:'3:4',resolution:'2K',output_format:'jpg'});await run(db,"UPDATE generations SET state='waiting',task_id=?,opts=? WHERE id=?",task.taskId,JSON.stringify({stage:'back',front:base.result_id}),id);return J({id,state:'waiting'});}catch{await run(db,"UPDATE generations SET state='unknown' WHERE id=?",id);throw new Problem(502,'ساخت تصویر با خطا روبه‌رو شد؛ لطفاً دوباره امتحان کنید');}
+  try{const img=await uploadProvider(env,m);const ang=base.reference_id?(await dressAngles(db,salon,'dress',base.reference_id)).media.slice(1):[];const extra=[];for(const x of ang)extra.push(await uploadProvider(env,x));const task=await createImageTask(env,cfg,{prompt:BACK_PROMPT,image_input:[img,...extra],aspect_ratio:RATIOS.includes(parse(base.opts).ratio)?parse(base.opts).ratio:'3:4',resolution:env.IMAGE_RES||'2K',output_format:'jpg'});await run(db,"UPDATE generations SET state='waiting',task_id=?,opts=? WHERE id=?",task.taskId,JSON.stringify({stage:'back',front:base.result_id}),id);return J({id,state:'waiting'});}catch{await run(db,"UPDATE generations SET state='unknown' WHERE id=?",id);throw new Problem(502,'ساخت تصویر با خطا روبه‌رو شد؛ لطفاً دوباره امتحان کنید');}
  }
  if(route==='generate'&&req.method==='POST'){if(!await unlimited(db,s,env)){await limited(db,'gen-ip:'+salon.id+':'+clientIp(req),15,'امروز چند تصویر از این شبکه ساخته شده؛ فردا دوباره امتحان کنید');await limited(db,'gen-salon:'+salon.id,400,'سقف ساخت تصویر امروز این مزون پر شده است؛ فردا دوباره امتحان کنید');}
   const b=await req.json();const line=LINE_KEYS.includes(b.line)?b.line:'dress';
@@ -495,7 +495,7 @@ return new Response(object.body,{headers:base});}
   let sent=false;try{
    const images=[await uploadProvider(env,original)];for(const a of angles)images.push(await uploadProvider(env,a));
    const gopts={angles:angles.length,note,sizes:cleanSizes(b.sizes)};const prompt=linePrompt(line,reference?'reference':'catalog',reference?'':lineStyles(line)[b.style][3],gopts);
-   sent=true;const job=await createImageTask(env,cfg,{prompt,image_input:images,aspect_ratio:ratio,resolution:'2K',output_format:'jpg'});
+   sent=true;const job=await createImageTask(env,cfg,{prompt,image_input:images,aspect_ratio:ratio,resolution:env.IMAGE_RES||'2K',output_format:'jpg'});
    await run(db,"UPDATE generations SET state='waiting',task_id=?,model=? WHERE id=?",job.taskId,String(job.model||''),id);return J({id,state:'waiting'});
   }catch(e){console.error('generate failed',e&&e.message);await run(db,"UPDATE generations SET state=? WHERE id=?",sent?'unknown':'fail',id);throw new Problem(502,'وضعیت ارسال نامشخص است؛ برای جلوگیری از هزینه تکراری، درخواست تازه خودکار ساخته نمی‌شود');}
  }
