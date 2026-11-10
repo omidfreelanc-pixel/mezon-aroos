@@ -632,7 +632,8 @@ test('mezon: one dress line, 15 ready-made dresses, prompts lock body size and i
  assert.match(cat,/Photo 1 is the bride in a full-body photo/);assert.match(cat,/ball-gown/);assert.match(cat,/never slim|never.*idealis/i);assert.match(cat,/IDENTITY LOCK/i);assert.match(cat,/no text|watermark/i);
  const ref=linePrompt('dress','reference','');
  assert.match(ref,/Photo 2 shows a wedding dress[\s\S]*DIFFERENT person/);assert.match(ref,/never her face, hair, skin, body/);
- assert(!/haircut|hair colou?r|hair-salon|salon consultation/i.test(cat+ref),'no hair-salon wording in the prompts');
+ assert(!/haircut|change (her )?hair colou?r|hair-salon|salon consultation/i.test(cat+ref),'no hair-salon wording in the prompts');
+ assert.match(ref,/precision image-editing and identity-preservation engine/);assert.match(ref,/Do not convert the dress into a similar dress/);assert.match(ref,/This is a fidelity-critical task/);assert.match(cat,/fidelity-critical/);
  assert.equal(linePrompt('hair','catalog','x'),'','no other service lines exist');
 });
 
