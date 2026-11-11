@@ -63,9 +63,9 @@ test('plain /start: welcome with the four-button menu, video queued once per 24 
   await say(tgHook,env,5002,'/start');assert.equal(queue(env).length,2);
   // an unknown code falls back to the welcome as before? (a 24-hex code that matches nothing keeps the old "expired" answer)
   await say(tgHook,env,5003,'/start '+'a'.repeat(24));assert(/منقضی/.test(bots.last('sendMessage').text));
-  // a linked manager still gets the manager help, not the welcome
+  // a linked manager now gets the platform welcome too, with the panel button first (see next test)
   const id=await makeSalon(env);env.DB.sql.prepare('UPDATE salons SET telegram_chat_id=? WHERE id=?').run('5009',id);
-  bots.calls.length=0;await say(tgHook,env,5009,'/start');assert(/راهنمای مدیر مزون/.test(bots.last('sendMessage').text));
+  bots.calls.length=0;await say(tgHook,env,5009,'/start');assert.equal(bots.last('sendMessage').text,ob.WELCOME_TEXT);
  }finally{bots.restore()}
 });
 
@@ -235,5 +235,60 @@ test('end-to-end transcript (set SHOW_TRANSCRIPT=1 to print)',async()=>{
   env.DB.sql.prepare("UPDATE promo_queue SET due_at=0").run();await ob.processDue(env,{origin:'https://ayneh-mezon.site'});show(bots);
   if(process.env.SHOW_TRANSCRIPT)console.log('\n'+T.join('\n')+'\n');
   assert(T.length>10);assert.equal(linked(env,id),'1');
+ }finally{bots.restore()}
+});
+
+test('linked chat: plain /start shows the welcome with the panel button instead of login; the panel button opens the manager help; /start <code> unchanged',async()=>{
+ const env=fixture(),bots=mockBots();
+ try{
+  const id=await makeSalon(env);env.DB.sql.prepare('UPDATE salons SET telegram_chat_id=? WHERE id=?').run('6001',id);
+  await say(tgHook,env,6001,'/start');
+  const w=bots.last('sendMessage'),rows=w.reply_markup.inline_keyboard.flat();
+  assert.equal(w.text,ob.WELCOME_TEXT);assert.equal(rows.length,4);
+  assert.equal(rows[0].callback_data,'ob:panel');assert.equal(rows[0].text,ob.BTN.panel);assert(!rows.some(b=>b.callback_data==='ob:login'));
+  assert.deepEqual(rows.slice(1).map(b=>b.url||b.callback_data),[origin+'/register','ob:guide',origin+'/s/demo']);
+  assert.equal(queue(env).length,1);assert.equal(queue(env)[0].kind,'introf');
+  bots.calls.length=0;await press(tgHook,env,6001,'ob:panel');
+  assert(/راهنمای مدیر مزون/.test(bots.last('sendMessage').text));
+  // the video is NOT skipped for a linked chat
+  env.DB.sql.prepare('UPDATE promo_queue SET due_at=0').run();assert.equal(await ob.processDue(env,{origin}),1);assert.equal(bots.of('sendVideo').length,1);
+  // unlinked chat still gets the login button; a bad code is unchanged
+  bots.calls.length=0;await say(tgHook,env,6002,'/start');assert.equal(bots.last('sendMessage').reply_markup.inline_keyboard[0][0].callback_data,'ob:login');
+  await say(tgHook,env,6002,'/start '+'b'.repeat(24));assert(/منقضی/.test(bots.last('sendMessage').text));
+  // ob:panel from a chat with no panel is refused politely
+  await press(tgHook,env,6002,'ob:panel');assert(/وصل نیست/.test(bots.last('answerCallbackQuery').text));
+ }finally{bots.restore()}
+});
+
+test('/welcome and /platform force the welcome + a fresh video even inside the 24 h window; owner chat bypasses dedupe on plain /start and gets overdue videos on its next message',async()=>{
+ const env=fixture(),bots=mockBots();
+ try{
+  await say(tgHook,env,7001,'/start');assert.equal(queue(env).length,1);
+  await say(tgHook,env,7001,'/start');assert.equal(queue(env).length,1,'plain /start is still deduped for a normal chat');
+  await say(tgHook,env,7001,'/welcome');assert.equal(bots.last('sendMessage').text,ob.WELCOME_TEXT);
+  let q=queue(env);assert.equal(q.length,1,'pending row replaced, not doubled');assert.equal(q[0].kind,'introf');
+  await say(tgHook,env,7001,'/platform');assert.equal(queue(env).length,1);
+  await say(tgHook,env,7001,'/welcome@ayneh_bot');assert.equal(bots.last('sendMessage').text,ob.WELCOME_TEXT);
+  // owner chat
+  env.DB.sql.prepare("INSERT INTO owner_chats(platform,chat_id,created_at) VALUES('telegram','8001',?)").run(Date.now());
+  bots.calls.length=0;await say(tgHook,env,8001,'/start');
+  const w=bots.last('sendMessage');assert.equal(w.text,ob.WELCOME_TEXT);assert.equal(w.reply_markup.inline_keyboard[0][0].callback_data,'ob:panel');
+  assert.equal(queue(env).filter(r=>r.chat_id==='8001').length,1);
+  env.DB.sql.prepare("UPDATE promo_queue SET status='sent' WHERE chat_id='8001'").run();
+  await say(tgHook,env,8001,'/start');assert.equal(queue(env).filter(r=>r.chat_id==='8001').length,2,'owner bypasses the 24 h dedupe');
+  // next owner message delivers the overdue video without waiting for the throttle
+  env.DB.sql.prepare("UPDATE promo_queue SET due_at=0 WHERE chat_id='8001'").run();bots.calls.length=0;
+  await say(tgHook,env,8001,'سلام');assert.equal(bots.of('sendVideo').length,1);
+  // owner panel button shows the owner help; /help works for the unlinked owner chat
+  bots.calls.length=0;await press(tgHook,env,8001,'ob:panel');assert(/گزارش‌های مزون آینه/.test(bots.last('sendMessage').text));
+  await say(tgHook,env,8001,'/help');assert(/گزارش‌های مزون آینه/.test(bots.last('sendMessage').text));
+ }finally{bots.restore()}
+});
+
+test('setWebhook registers /start /welcome /help',async()=>{
+ const env=fixture(),bots=mockBots();
+ try{
+  const {setWebhook,BOT_COMMANDS}=await import('../worker/telegram.js');await setWebhook(env,origin);
+  assert.deepEqual(bots.last('setMyCommands').commands.map(c=>c.command),['start','welcome','help']);assert.equal(BOT_COMMANDS.length,3);
  }finally{bots.restore()}
 });

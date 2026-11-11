@@ -22,7 +22,7 @@ import {setLeadStatus} from './dresses.js';
 import {notifyOwner,linkOwner,isOwnerChat,sendDigest,setupStatus} from './alerts.js';
 import {newSession} from './server.js';
 import {setConsent} from './social.js';
-import {sendWelcome,onbCallback,onboardingMessage,clearOnb} from './onboarding.js';
+import {sendWelcome,onbCallback,onboardingMessage,clearOnb,processDue} from './onboarding.js';
 const STALE=20*60000; // an unfinished wizard or team question is dropped after 20 idle minutes
 
 const one=(db,sql,...a)=>db.prepare(sql).bind(...a).first();
@@ -136,9 +136,14 @@ async function handle(req,env,p){
   const m=u.message;if(!m||m.chat?.type!=='private')return J({ok:true});
   ctx.chat=String(m.chat.id);ctx.name=String(m.from?.first_name||'').replace(/\s+/g,' ').trim().slice(0,40);ctx.say=(t,extra={})=>call(env,p,'sendMessage',{chat_id:ctx.chat,text:t,...extra});
   const textIn=(m.text||'').trim();
-  if(textIn.startsWith('/start')){await onStart(ctx,textIn.split(/\s+/)[1]||'');return J({ok:true})}
+  const owner=await isOwnerChat(db,p,ctx.chat).catch(()=>false);ctx.owner=owner;
+  // The owner re-tests often: any message from the owner chat delivers overdue videos right away (never throws).
+  if(owner)await processDue(env,{origin,limit:5});
+  if(/^\/start(@\w+)?(\s|$)/.test(textIn)){await onStart(ctx,textIn.split(/\s+/)[1]||'');return J({ok:true})}
+  if(/^\/(welcome|platform)(@\w+)?$/i.test(textIn)){await clearOnb(db,p,ctx.chat);await sendWelcome(ctx,{panel:await hasPanel(ctx),force:true});return J({ok:true})}
   if(await onboardingMessage(ctx,m,textIn))return J({ok:true});
-  if(textIn==='/report'&&await isOwnerChat(db,p,ctx.chat)){await sendDigest(env,[{platform:p,chat_id:ctx.chat}]);return J({ok:true})}
+  if(/^\/help(@\w+)?$/.test(textIn)&&owner&&!await actorByChat(db,p,ctx.chat)){await sendManagerHelp(ctx);return J({ok:true})}
+  if(textIn==='/report'&&owner){await sendDigest(env,[{platform:p,chat_id:ctx.chat}]);return J({ok:true})}
   const actor=await actorByChat(db,p,ctx.chat);
   // Someone who opened the bot from a boutique's customer link is a bride, not staff.
   const bc=await one(db,'SELECT * FROM bot_customers WHERE platform=? AND chat_id=?',p,ctx.chat);
@@ -219,12 +224,18 @@ async function onStart(ctx,arg){
  if(/^f_[a-f0-9]{24}$/.test(arg)){await follow(ctx,arg.slice(2));return}
  if(/^c_[a-z0-9-]{1,62}$/.test(arg)){await customerStart(ctx,arg.slice(2));return}
  if(/^o_[a-f0-9]{24}$/.test(arg)){if(await linkOwner(db,p,ctx.chat,arg.slice(2)))await ctx.say(ownerHelp,{parse_mode:'HTML'});else await ctx.say('این لینک گزارش منقضی یا قبلاً استفاده شده است. از صفحهٔ ادمین لینک تازه بسازید.');return}
- const a=await actorByChat(db,p,ctx.chat);
- if(a?.role==='staff'){await ctx.say(staffHelp(a.staff,a.salon,ctx.origin,inviteReady(env)),{parse_mode:'HTML'});return}
- const s=a?.salon;
- if(s){await ctx.say(help(s.name,inviteReady(env),P),{parse_mode:'HTML'});return}
  await clearOnb(db,p,ctx.chat);
- await sendWelcome(ctx);
+ // Plain /start always shows the platform welcome; linked chats and the owner get an extra panel button.
+ await sendWelcome(ctx,{panel:await hasPanel(ctx),force:false});
+}
+const hasPanel=async ctx=>!!(await actorByChat(ctx.db,ctx.p,ctx.chat))||(ctx.owner??await isOwnerChat(ctx.db,ctx.p,ctx.chat).catch(()=>false));
+// The manager / team / owner help for this chat. Returns false when the chat has none.
+export async function sendManagerHelp(ctx){
+ const {env,db,p}=ctx,P=PLATFORMS[p],a=await actorByChat(db,p,ctx.chat);
+ if(a?.role==='staff'){await ctx.say(staffHelp(a.staff,a.salon,ctx.origin,inviteReady(env)),{parse_mode:'HTML'});return true}
+ if(a?.salon){await ctx.say(help(a.salon.name,inviteReady(env),P),{parse_mode:'HTML'});return true}
+ if(await isOwnerChat(db,p,ctx.chat)){await ctx.say(ownerHelp,{parse_mode:'HTML'});return true}
+ return false;
 }
 
 /* ---------- setup wizard: the salon fills its own page, one question at a time ---------- */
@@ -741,6 +752,7 @@ export async function remind(env,origin,now=Date.now()){
  return n;
 }
 
+export const BOT_COMMANDS=[{command:'start',description:'شروع و معرفی پلتفرم آینه'},{command:'welcome',description:'نمایش دوبارهٔ معرفی و منو'},{command:'help',description:'راهنما'}];
 export async function setWebhook(env,origin){
  const out={ok:true,bots:{}};
  if(platformReady(env,'telegram')){
@@ -753,6 +765,7 @@ export async function setWebhook(env,origin){
   await call(env,'bale','setWebhook',{url:origin+'/api/bale/webhook/'+baleSecret(env)});
   out.bots.bale=(await call(env,'bale','getMe',{})).username;out.bot=out.bot||out.bots.bale;
  }
+ for(const b of Object.keys(out.bots))await call(env,b,'setMyCommands',{commands:BOT_COMMANDS}).catch(e=>console.error('setMyCommands',e?.message));
  must(Object.keys(out.bots).length,'هیچ رباتی تنظیم نشده است',503);
  return out;
 }

@@ -9,7 +9,7 @@ import {Problem,digits,limited} from './domain.js';
 import {pwHash} from './manager.js';
 import {same} from './auth.js';
 import {setting,setSetting} from './alerts.js';
-import {call,PLATFORMS,platformReady,actorByChat,linkSalonChat} from './telegram.js';
+import {call,PLATFORMS,platformReady,actorByChat,linkSalonChat,sendManagerHelp} from './telegram.js';
 
 const one=(db,sql,...a)=>db.prepare(sql).bind(...a).first();
 const run=(db,sql,...a)=>db.prepare(sql).bind(...a).run();
@@ -54,10 +54,10 @@ export const DELETE_WARN='پیام رمز شما به‌طور خودکار پا
 export const MENU_HINT='از منوی زیر ادامه دهید.';
 
 /* ---------- keyboards (one button per row; one small symbol per label) ---------- */
-export const BTN={login:'ورود مدیر مزون ◂',register:'ثبت‌نام مزون‌دار جدید ↗',guide:'راهنمای خرید محصول ◂',demo:'مشاهده سایت و دمو محصول ↗',site:'ورود به سایت ↗',demoOnly:'مشاهده دمو ↗',back:'بازگشت ◂',cancel:'انصراف',share:'تأیید شمارهٔ من'};
+export const BTN={login:'ورود مدیر مزون ◂',panel:'پنل مدیریت مزون من ◂',register:'ثبت‌نام مزون‌دار جدید ↗',guide:'راهنمای خرید محصول ◂',demo:'مشاهده سایت و دمو محصول ↗',site:'ورود به سایت ↗',demoOnly:'مشاهده دمو ↗',back:'بازگشت ◂',cancel:'انصراف',share:'تأیید شمارهٔ من'};
 const url=(origin,path='')=>String(origin||'').replace(/\/+$/,'')+path;
-export const mainKeyboard=origin=>({inline_keyboard:[
- [{text:BTN.login,callback_data:'ob:login'}],
+export const mainKeyboard=(origin,panel=false)=>({inline_keyboard:[
+ [panel?{text:BTN.panel,callback_data:'ob:panel'}:{text:BTN.login,callback_data:'ob:login'}],
  [{text:BTN.register,url:url(origin,'/register')}],
  [{text:BTN.guide,callback_data:'ob:guide'}],
  [{text:BTN.demo,url:url(origin,'/s/demo')}]]});
@@ -98,9 +98,12 @@ export async function noteFailure(ctx){
 }
 
 /* ---------- screens ---------- */
-export async function sendWelcome(ctx){
- await sendSafe(ctx,WELCOME_TEXT,{parse_mode:'HTML',reply_markup:mainKeyboard(ctx.origin)});
- try{await scheduleIntro(ctx.db,ctx.p,ctx.chat)}catch(e){console.error('schedule intro',e?.message)}
+// panel: chat is a linked salon/team chat or the owner chat (menu gets the manager-panel button).
+// force: /welcome, skips the 24 h video dedupe. The owner chat always skips it, so it can re-test.
+export async function sendWelcome(ctx,{panel=false,force=false}={}){
+ await sendSafe(ctx,WELCOME_TEXT,{parse_mode:'HTML',reply_markup:mainKeyboard(ctx.origin,panel)});
+ // Rows for panel chats use kind 'introf': processDue does not skip them as "already a salon chat".
+ try{await scheduleIntro(ctx.db,ctx.p,ctx.chat,Date.now(),{kind:panel||force?'introf':'intro',force:force||!!ctx.owner})}catch(e){console.error('schedule intro',e?.message)}
 }
 async function screen(ctx,q,text,kb){
  // Edit the menu message in place; if that is refused, send a fresh one.
@@ -115,12 +118,14 @@ export async function onbCallback(ctx,q){
  try{
   if(!chat)return;
   if(data==='ob:guide')await screen(ctx,q,GUIDE_TEXT,guideKeyboard(ctx.origin));
-  else if(data==='ob:home')await screen(ctx,q,WELCOME_TEXT,mainKeyboard(ctx.origin));
+  else if(data==='ob:home')await screen(ctx,q,WELCOME_TEXT,mainKeyboard(ctx.origin,await hasPanelChat(ctx)));
+  else if(data==='ob:panel'){if(!await sendManagerHelp(ctx))note='این گفتگو به مزونی وصل نیست'}
   else if(data==='ob:cancel'){await clearOnb(db,p,chat);await sendSafe(ctx,LOGIN_CANCELLED+'\n'+MENU_HINT,{reply_markup:mainKeyboard(ctx.origin)});note=LOGIN_CANCELLED}
   else if(data==='ob:login')note=await startLogin(ctx);
  }catch(e){console.error('onboarding callback',e?.message)}
  await api(ctx,'answerCallbackQuery',{callback_query_id:q.id,...(note?{text:note}:{})}).catch(()=>{});
 }
+const hasPanelChat=async ctx=>!!(await actorByChat(ctx.db,ctx.p,ctx.chat))||!!(await one(ctx.db,'SELECT 1 AS x FROM owner_chats WHERE platform=? AND chat_id=?',ctx.p,ctx.chat));
 async function startLogin(ctx){
  const {db,p,chat}=ctx,a=await actorByChat(db,p,chat);
  if(a){await sendSafe(ctx,ALREADY_LINKED(a.salon?.name||''));return ''}
@@ -212,8 +217,13 @@ async function checkPassword(ctx,m,st){
 
 /* ---------- intro video queue ---------- */
 // One row per (platform, chat) per 24 hours; the insert is a single atomic statement, so two welcomes can not queue two videos.
-export async function scheduleIntro(db,p,chat,now=Date.now()){
- const r=await run(db,"INSERT INTO promo_queue(id,platform,chat_id,kind,due_at,status,attempts,created_at,updated_at) SELECT ?,?,?,'intro',?,'pending',0,?,? WHERE NOT EXISTS(SELECT 1 FROM promo_queue WHERE platform=? AND chat_id=? AND kind='intro' AND created_at>?)",crypto.randomUUID(),p,String(chat),now+VIDEO_DELAY,now,now,p,String(chat),now-86400000);
+export async function scheduleIntro(db,p,chat,now=Date.now(),{kind='intro',force=false}={}){
+ if(force){ // replace whatever is still waiting for this chat, then queue a fresh one
+  await run(db,"DELETE FROM promo_queue WHERE platform=? AND chat_id=? AND status='pending'",p,String(chat));
+  const r=await run(db,"INSERT INTO promo_queue(id,platform,chat_id,kind,due_at,status,attempts,created_at,updated_at) VALUES(?,?,?,?,?,'pending',0,?,?)",crypto.randomUUID(),p,String(chat),kind,now+VIDEO_DELAY,now,now);
+  return r.meta.changes>0;
+ }
+ const r=await run(db,"INSERT INTO promo_queue(id,platform,chat_id,kind,due_at,status,attempts,created_at,updated_at) SELECT ?,?,?,?,?,'pending',0,?,? WHERE NOT EXISTS(SELECT 1 FROM promo_queue WHERE platform=? AND chat_id=? AND kind IN('intro','introf') AND created_at>?)",crypto.randomUUID(),p,String(chat),kind,now+VIDEO_DELAY,now,now,p,String(chat),now-86400000);
  return r.meta.changes>0;
 }
 const GONE=/blocked|deactivated|chat not found|kicked|forbidden|not a member|user not found|bot can't initiate/i;
@@ -241,7 +251,7 @@ export async function processDue(env,{origin='',limit=5}={}){
     const P=PLATFORMS[r.platform];
     if(!P||!platformReady(env,r.platform)){await finish('skipped','platform not configured');continue}
     // A chat that signed in as a manager in the meantime does not need the sales video.
-    if(await one(db,'SELECT 1 AS x FROM salons WHERE '+P.col+'=? UNION SELECT 1 FROM team WHERE '+P.col+'=? AND active=1',r.chat_id,r.chat_id)){await finish('skipped','already a salon chat');continue}
+    if(r.kind==='intro'&&await one(db,'SELECT 1 AS x FROM salons WHERE '+P.col+'=? UNION SELECT 1 FROM team WHERE '+P.col+'=? AND active=1',r.chat_id,r.chat_id)){await finish('skipped','already a salon chat');continue}
     try{await sendIntro(env,r.platform,r.chat_id,origin);await finish('sent');sent++}
     catch(e){
      const msg=String(e?.message||e);
