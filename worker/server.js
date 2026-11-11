@@ -1,4 +1,5 @@
 import {Problem,must,phone,text,safeLink,uid,token,hash,digits,limited} from './domain.js';
+import {processDue,onbCleanup} from './onboarding.js';
 import {identity,issueCookie,clearCookie,same,passwordLoginEnabled} from './auth.js';
 import {bucketFor,putImage,putVideo,maxUpload} from './storage.js';
 import {precheck,PHOTO_RULES} from './precheck.js';
@@ -180,12 +181,14 @@ async function settleBots(env,origin){
  return n;
 }
 export async function tick(env,origin){if(!env.DB)return {ready:false};const delivered=await deliverPending(env,origin);
+ const promo=await processDue(env,{origin:env.APP_ORIGIN||origin,limit:20}).catch(e=>{console.error('promo',e?.message);return 0});
+ await onbCleanup(env.DB).catch(()=>{});
  const expired=await expireStates(env).catch(e=>{console.error('expire',e?.message);return 0});
  const unanswered=await alertUnanswered(env).catch(e=>{console.error('unanswered',e?.message);return 0});
  const digestSent=await maybeDigest(env).catch(e=>{console.error('digest',e?.message);return false});
  const purged=await purgePhotos(env).catch(e=>{console.error('purge',e?.message);return 0});
  const botDone=await settleBots(env,env.APP_ORIGIN||origin).catch(e=>{console.error('bots',e?.message);return 0});
- const cleaned=await cleanup(env);return {ready:true,delivered,expired,unanswered,digest:digestSent,purged,botDone,...cleaned};}
+ const cleaned=await cleanup(env);return {ready:true,delivered,promo,expired,unanswered,digest:digestSent,purged,botDone,...cleaned};}
 
 async function provider(env,path,body){must(env.KIE_API_KEY,'ساخت تصویر برای این مزون هنوز فعال نشده است',503);const res=await fetch('https://api.kie.ai'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+env.KIE_API_KEY,'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(30000)});const d=await res.json();must(res.ok&&d.code===200,'سرویس تصویر درخواست را نپذیرفت',502);return d.data;}
 // Image model per salon: 'pro' (Nano Banana Pro, best quality, default) or 'fast' (Nano Banana 2.1).

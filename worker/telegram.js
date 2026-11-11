@@ -22,6 +22,7 @@ import {setLeadStatus} from './dresses.js';
 import {notifyOwner,linkOwner,isOwnerChat,sendDigest,setupStatus} from './alerts.js';
 import {newSession} from './server.js';
 import {setConsent} from './social.js';
+import {sendWelcome,onbCallback,onboardingMessage,clearOnb} from './onboarding.js';
 const STALE=20*60000; // an unfinished wizard or team question is dropped after 20 idle minutes
 
 const one=(db,sql,...a)=>db.prepare(sql).bind(...a).first();
@@ -91,7 +92,7 @@ const help=(name,sms,P)=>'<b>راهنمای مدیر مزون'+(name?' — '+esc
 const ownerHelp='<b>گزارش‌های مزون آینه</b>\n\nاز این به بعد هشدارها همین‌جا می‌آید: مزون یا مزون‌داری که ربات را وصل کرد یا نکرد، صفحه‌ای که کامل یا نیمه‌کاره ماند، درخواستی که ۲۴ ساعت بی‌جواب ماند یا گیر کرد، و خطاهای ربات. هر شب ساعت ۲۱ هم خلاصهٔ روز می‌آید.\n\n/report خلاصهٔ همین الان';
 async function salonByChat(db,p,chat){return one(db,'SELECT * FROM salons WHERE '+PLATFORMS[p].col+'=?',String(chat))}
 // Who is writing: the salon's manager chat, or a team member's chat (manager wins if both).
-async function actorByChat(db,p,chat){
+export async function actorByChat(db,p,chat){
  const salon=await salonByChat(db,p,chat);if(salon)return {salon,role:'manager',staff:await one(db,'SELECT * FROM team WHERE salon_id=? AND is_manager=1 AND active=1',salon.id)};
  const staff=await one(db,'SELECT * FROM team WHERE '+PLATFORMS[p].col+'=? AND active=1',String(chat));
  if(!staff)return null;
@@ -136,6 +137,7 @@ async function handle(req,env,p){
   ctx.chat=String(m.chat.id);ctx.name=String(m.from?.first_name||'').replace(/\s+/g,' ').trim().slice(0,40);ctx.say=(t,extra={})=>call(env,p,'sendMessage',{chat_id:ctx.chat,text:t,...extra});
   const textIn=(m.text||'').trim();
   if(textIn.startsWith('/start')){await onStart(ctx,textIn.split(/\s+/)[1]||'');return J({ok:true})}
+  if(await onboardingMessage(ctx,m,textIn))return J({ok:true});
   if(textIn==='/report'&&await isOwnerChat(db,p,ctx.chat)){await sendDigest(env,[{platform:p,chat_id:ctx.chat}]);return J({ok:true})}
   const actor=await actorByChat(db,p,ctx.chat);
   // Someone who opened the bot from a boutique's customer link is a bride, not staff.
@@ -188,24 +190,30 @@ async function strangerMessage(ctx){
 }
 const photoOf=m=>m.photo?.length?m.photo[m.photo.length-1]:(m.document&&/^image\/(jpeg|png|webp)$/.test(m.document.mime_type||'')?m.document:null);
 
+// Ties this chat to the salon: one chat serves one salon, so linking moves it. Shared by the one-time
+// /start <code> link and the manager's phone+password sign-in (onboarding.js).
+export async function linkSalonChat(ctx,salon,{wizard=true,via=''}={}){
+ const {env,db,p}=ctx,P=PLATFORMS[p];
+ await run(db,'UPDATE salons SET '+P.col+'=NULL WHERE '+P.col+'=? AND id<>?',ctx.chat,salon.id);
+ await run(db,'UPDATE salons SET '+P.col+'=?,telegram_code_hash=NULL,telegram_code_expires=NULL WHERE id=?',ctx.chat,salon.id);
+ ctx.salon={...salon,[P.col]:ctx.chat};
+ const prof=parse(salon.profile),missing=['logo','cover','address','phone'].filter(k=>!prof[k]).length;
+ await ctx.say('✅ این گفتگو به «'+esc(salon.name)+'» وصل شد. از این به بعد درخواست مشتری‌ها همین‌جا می‌آید.',{parse_mode:'HTML'});
+ await notifyOwner(env,{salon,kind:'setup',level:'good',text:(via?via+': ':'')+'ربات را در '+P.label+' وصل کرد.'});
+ // Requests that waited for the manager go out now.
+ await run(db,"UPDATE leads SET waiting=0,status='retry',attempts=0 WHERE salon_id=? AND staff_id IS NULL AND waiting=1",salon.id);
+ for(const l of await all(db,"SELECT * FROM leads WHERE salon_id=? AND staff_id IS NULL AND status='retry' ORDER BY created_at LIMIT 20",salon.id))await deliverLead(env,l);
+ if(wizard&&missing>=2)await wizardStart(ctx,0,true);
+ else await ctx.say(help('',inviteReady(env),P),{parse_mode:'HTML'});
+}
+
 async function onStart(ctx,arg){
  const {env,db,p}=ctx,P=PLATFORMS[p];
  if(/^[a-f0-9]{24}$/.test(arg)){
   const salon=await one(db,'SELECT * FROM salons WHERE telegram_code_hash=? AND telegram_code_expires>?',await hash(arg),Date.now());
   if(!salon){const t=await one(db,'SELECT * FROM team WHERE invite_hash=? AND invite_expires>? AND active=1',await hash(arg),Date.now());if(t){await linkStaff(ctx,t);return}}
   if(!salon){await ctx.say('این لینک اتصال منقضی یا قبلاً استفاده شده است. لینک تازه را از تیم مزون آینه بگیرید.');return}
-  // A chat serves one salon; linking moves it.
-  await run(db,'UPDATE salons SET '+P.col+'=NULL WHERE '+P.col+'=? AND id<>?',ctx.chat,salon.id);
-  await run(db,'UPDATE salons SET '+P.col+'=?,telegram_code_hash=NULL,telegram_code_expires=NULL WHERE id=?',ctx.chat,salon.id);
-  ctx.salon={...salon,[P.col]:ctx.chat};
-  const prof=parse(salon.profile),missing=['logo','cover','address','phone'].filter(k=>!prof[k]).length;
-  await ctx.say('✅ این گفتگو به «'+esc(salon.name)+'» وصل شد. از این به بعد درخواست مشتری‌ها همین‌جا می‌آید.',{parse_mode:'HTML'});
-  await notifyOwner(env,{salon,kind:'setup',level:'good',text:'ربات را در '+P.label+' وصل کرد.'});
-  // Requests that waited for the manager go out now.
-  await run(db,"UPDATE leads SET waiting=0,status='retry',attempts=0 WHERE salon_id=? AND staff_id IS NULL AND waiting=1",salon.id);
-  for(const l of await all(db,"SELECT * FROM leads WHERE salon_id=? AND staff_id IS NULL AND status='retry' ORDER BY created_at LIMIT 20",salon.id))await deliverLead(env,l);
-  if(missing>=2)await wizardStart(ctx,0,true);
-  else await ctx.say(help('',inviteReady(env),P),{parse_mode:'HTML'});
+  await linkSalonChat(ctx,salon);
   return;
  }
  if(/^f_[a-f0-9]{24}$/.test(arg)){await follow(ctx,arg.slice(2));return}
@@ -214,7 +222,9 @@ async function onStart(ctx,arg){
  const a=await actorByChat(db,p,ctx.chat);
  if(a?.role==='staff'){await ctx.say(staffHelp(a.staff,a.salon,ctx.origin,inviteReady(env)),{parse_mode:'HTML'});return}
  const s=a?.salon;
- await ctx.say(s?help(s.name,inviteReady(env),P):'سلام! این ربات مخصوص مزون‌های عضو مزون آینه است. اگر از صفحهٔ یک مزون آمده‌اید، دکمهٔ «خبرم کن» را همان‌جا بزنید.',{parse_mode:'HTML'});
+ if(s){await ctx.say(help(s.name,inviteReady(env),P),{parse_mode:'HTML'});return}
+ await clearOnb(db,p,ctx.chat);
+ await sendWelcome(ctx);
 }
 
 /* ---------- setup wizard: the salon fills its own page, one question at a time ---------- */
@@ -505,6 +515,7 @@ export function leadKeyboard(lead,p,members=[]){
  return {inline_keyboard:rows};
 }
 async function onCallback(ctx,q){
+ if(String(q.data||'').startsWith('ob:')){await onbCallback(ctx,q);return}
  if(String(q.data||'').startsWith('sc:')){await consentCallback(ctx,q,String(q.data));return}
  const {env,db,p}=ctx,chat=String(q.message?.chat?.id||''),actor=await actorByChat(db,p,chat),salon=actor?.salon||null;ctx.chat=chat;ctx.salon=salon;ctx.staff=actor?.staff||null;
  const manager=actor?.role==='manager';ctx.role=actor?.role;
