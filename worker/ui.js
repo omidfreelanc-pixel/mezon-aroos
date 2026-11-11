@@ -1,7 +1,7 @@
 // Owner console (/ and /admin). Salons have no panel: they use the Telegram bot.
 // Only the project owner signs in here to create salons, fill in their details and hand
 // each salon its one-time Telegram link.
-import {baseCSS,markSVG,illos} from './design.js';
+import {baseCSS,markSVG,illos,brandImg} from './design.js';
 import {QR_JS} from './qr.js';
 
 const css=String.raw`
@@ -90,7 +90,7 @@ h3.sub{font-size:15px;margin:16px 0 4px}
 
 .appbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;max-width:1080px;margin:0 auto}
 .appbar__brand{display:inline-flex;align-items:center;gap:9px;color:var(--ink);font-family:var(--display);font-weight:800;font-size:22px}
-.appbar__brand svg{width:22px;height:28px}
+.appbar__brand img{display:block;flex:none}
 main#app{max-width:1080px;margin:0 auto;padding:6px 20px 80px;min-height:70vh}
 .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:10px 0 22px}
 .page-head h1{font-family:var(--display);font-weight:800;font-size:clamp(26px,6vw,34px)}
@@ -700,7 +700,7 @@ function salonPage(){return api('/api/s/'+slug+'/owner').then(function(d){
 $('#logout').addEventListener('click',function(){(MGR?api('/api/s/'+MGR+'/manager/logout',{}):api('/api/logout',{})).then(function(){location.href='/'})});
 `;
 
-export const appHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#e8edeb"><meta name="robots" content="noindex"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin><title>مزون آینه | مدیریت مزون‌ها</title><style>__CSS__</style></head><body>
+export const appHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#e8edeb"><meta name="robots" content="noindex"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin><title>مزون آینه | مدیریت مزون‌ها</title><style>__CSS__</style></head><body>
 <a class="skip" href="#app">پرش به محتوای اصلی</a>
 <header class="appbar"><a href="/admin" class="appbar__brand">__MARKHTML__<span>مزون آینه</span></a><button class="btn btn--ghost btn--sm" id="logout" type="button" hidden>خروج</button></header>
 <main id="app"><div class="loading">در حال باز کردن…</div></main>
@@ -709,5 +709,5 @@ export const appHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><
 <script>__JS__</script>
 </body></html>`
  .replace('__CSS__',()=>baseCSS+css)
- .replace('__MARKHTML__',()=>markSVG)
+ .replace('__MARKHTML__',()=>brandImg(34))
  .replace('__JS__',()=>clientJS.replace('/*__QR__*/',()=>QR_JS).replace('__MARK__',()=>JSON.stringify(markSVG)).replace('__ILLO__',()=>JSON.stringify(illos)));

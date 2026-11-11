@@ -1489,3 +1489,11 @@ test('bot album: photos keep message order, one dress, name is asked when missin
  const src=await (await import('node:fs/promises')).readFile(new URL('../worker/telegram.js',import.meta.url),'utf8');
  assert.match(src,/ORDER BY mid LIMIT 4/);assert.match(src,/اسم این لباس چیست/);assert.match(src,/ANG=\['روبه‌رو','پشت','نیم‌رخ راست','نیم‌رخ چپ'\]/);
 });
+
+test('brand logo: pages link png/ico icons, the manifest icons exist and headers use the sized logo image',async()=>{const e=fixture();
+ const {readFileSync,existsSync}=await import('node:fs');const m=JSON.parse(readFileSync('public/manifest.webmanifest','utf8'));
+ for(const i of m.icons)assert.ok(existsSync('public'+i.src),i.src);
+ for(const f of ['favicon.ico','favicon-32.png','apple-touch-icon.png','og.jpg','brand/logo.png','brand/logo-36.png','brand/logo-72.png','brand/logo-108.png','brand/bot-avatar-640.png'])assert.ok(existsSync('public/'+f),f);
+ for(const p of ['/','/register','/privacy','/admin']){const h=await (await app.fetch(new Request(origin+p),e)).text();
+  assert.match(h,/rel="icon" href="\/favicon\.ico"/,p);assert.match(h,/rel="apple-touch-icon"/,p);assert.match(h,/<img class="brandmark"[^>]*alt="مزون آینه"[^>]*>/,p)}
+});

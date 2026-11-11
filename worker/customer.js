@@ -14,6 +14,8 @@ const customerCSS=String.raw`
 .hd__side--logo{justify-content:center}
 .hd__side--name{justify-content:center;text-align:center}
 .hd__logo{width:150px;height:150px;border-radius:50%;object-fit:cover;border:3px solid #fff;outline:1.5px solid rgba(201,165,92,.7);outline-offset:3px;background:var(--surface);box-shadow:var(--lift)}
+.hd__logo--mark{display:grid;place-items:center;background:#F7F3EC;overflow:hidden}.hd__logo--mark img{display:block;width:78px;height:96px}
+.foot__by{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:#8D6A2E;font-weight:600;font-size:12.5px}.foot__by img{display:block;width:15px;height:18px;flex:none}
 .hd__logo--letter{display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:56px;color:var(--accent-ink)}
 .hd__name{margin:0;width:100%;font-size:36px;line-height:1.5}
 /* ---------- hero: full-width cover, logo on its edge, the name on one line ---------- */
@@ -577,7 +579,7 @@ img[loading="lazy"].is-in{opacity:1}
 .sealfoot__logo--mono{width:calc(28px * var(--lar,1));background:linear-gradient(135deg,#B8924A,#E2CD94 45%,#A47C35);-webkit-mask:var(--lg) center/contain no-repeat;mask:var(--lg) center/contain no-repeat}
 .sealfoot__name{font:800 19px/1.6 var(--display);color:var(--ink);min-width:0;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow-wrap:anywhere;letter-spacing:.2px}
 .sealfoot__city{font-size:14px;color:var(--ink-2)}
-.sealfoot__by{font-size:12.5px;color:#8D6A2E;letter-spacing:.3px}
+.sealfoot__by{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#8D6A2E;letter-spacing:.3px}
 .pmark{display:flex;align-items:center;gap:6px;padding:10px 4px 0;font-size:12.5px;font-weight:700;color:var(--muted)}.pmark svg{width:12px;height:15px}
 /* ---------- full-screen viewer: pinch, double-tap, drag, wheel ---------- */
 .viewer{border:0;padding:0;margin:0;width:100vw;max-width:none;height:100dvh;max-height:none;background:#16110c;color:#fff;overflow:hidden}
@@ -745,11 +747,12 @@ function showFatal(msg){
 function heroTag(){return 'لباس عروس را روی اندام خودت ببین؛ سایز و فرم بدنت همان می‌ماند.'}
 function renderHead(){
  var s=state.pub.salon,p=s.profile||{},head=$('#head');
- var logo=p.logo?el('img',{class:'hd__logo',src:media(p.logo),alt:'لوگوی '+s.name}):el('span',{class:'hd__logo hd__logo--letter','aria-hidden':'true',text:(s.name||'آ').trim().charAt(0)});
+ var logo=p.logo?el('img',{class:'hd__logo',src:media(p.logo),alt:'لوگوی '+s.name}):el('span',{class:'hd__logo hd__logo--mark'},[el('img',{src:'/brand/logo-108.png',srcset:'/brand/logo-108.png 1x,/brand/logo-216.png 2x',width:78,height:96,alt:'مزون آینه',decoding:'async'})]);
  var name=el('h1',{class:'hd__name hero__name',text:s.name});
  head.replaceChildren(el('div',{class:'wrap'},[el('div',{class:'hd'},[el('div',{class:'hd__side hd__side--logo'},[logo]),el('div',{class:'hd__side hd__side--name'},[name])]),
   el('div',{class:'hero__cta'},[el('button',{class:'btn btn--primary btn--lg',type:'button',onclick:function(){go(state.original?2:1)},html:ICO.camera+'<span>شروع با عکس خودم</span>'})])]));
  fitName(name);
+ var ft=$('#foot');if(ft&&p.logo)ft.replaceChildren(el('a',{class:'foot__by',href:'/'},[el('span',{text:'با مزون آینه'}),el('img',{src:'/brand/logo-36.png',srcset:'/brand/logo-36.png 1x,/brand/logo-72.png 2x,/brand/logo-108.png 3x',width:15,height:18,alt:'',decoding:'async'})]));
 }
 // The salon name always sits on one line: the font shrinks to fit; only very long names wrap.
 function fitName(n){
@@ -1506,7 +1509,7 @@ function sealFoot(){
  var foot=el('footer',{class:'sealfoot','aria-label':'مزون '+s.name},[el('div',{class:'sealfoot__rule','aria-hidden':'true'}),row]);
  row.append(name);
  if(p.city)foot.append(el('div',{class:'sealfoot__city',text:p.city}));
- foot.append(el('div',{class:'sealfoot__by',text:'با مزون آینه'}));
+ foot.append(el('div',{class:'sealfoot__by'},[el('span',{text:'با مزون آینه'}),el('img',{src:'/brand/logo-36.png',srcset:'/brand/logo-36.png 1x,/brand/logo-72.png 2x',width:16,height:20,alt:'',decoding:'async'})]));
  if(p.logo)logoInfo(p.logo).then(function(i){
   if(!i||!foot.isConnected&&false)return;
   var im=el('img',{class:'sealfoot__logo',alt:'',decoding:'async',width:Math.round(28*Math.min(4,i.ar)),height:28,src:i.mono&&i.canvas?i.canvas.toDataURL('image/png'):media(p.logo)});
@@ -1540,7 +1543,7 @@ function brandedBlob(id){
  var s=state.pub.salon,p=s.profile||{},dpr=Math.min(3,Math.max(1,window.devicePixelRatio||1));
  var W=dpr>=2.5?2160:1440,u=W/1440;
  var fonts=document.fonts&&document.fonts.load?Promise.all([document.fonts.load('800 56px Estedad','مزون آینه'),document.fonts.load('600 40px Vazirmatn','مزون آینه')]).catch(function(){}):Promise.resolve();
- return Promise.all([loadImg(media(id)),logoInfo(p.logo),fonts]).then(function(r){
+ return Promise.all([loadImg(media(id)),logoInfo(p.logo),fonts,loadImg('/brand/logo-216.png').catch(function(){return null})]).then(function(r){
   var img=r[0],logo=r[1],ar=clampAr(img.naturalWidth,img.naturalHeight);
   var M=Math.round(96*u),Fw=W-2*M,k=Fw/380,pad=Math.round(11*k),Gw=Fw-2*pad,Gh=Math.round(Gw/ar),Fh=Gh+2*pad,top=Math.round(110*u);
   var scratch=document.createElement('canvas').getContext('2d');
@@ -1586,7 +1589,8 @@ function brandedBlob(id){
   nameBox.lines.forEach(function(t,i){g.fillText(t,sx+widest/2,rowY+rowH/2-(nameBox.lines.length-1)*nLine/2+i*nLine)});
   if(logo){var lx=sx+widest+gap,lhh=Math.min(lh,Math.round(logoW/Math.max(.1,logo.ar)));g.imageSmoothingQuality='high';g.drawImage(logo.mono&&logo.canvas?logo.canvas:logo.im,lx,rowMid-lhh/2,logoW,lhh)}
   if(cityTxt){g.fillStyle='#4B3D33';g.font=cardFont(Math.round(38*u),500);g.fillText(cityTxt,W/2,cityY+cityH/2)}
-  g.fillStyle='#A07A2E';g.font=cardFont(Math.round(30*u),600);g.fillText('با مزون آینه',W/2,creditY+Math.round(20*u));
+  g.fillStyle='#A07A2E';g.font=cardFont(Math.round(30*u),600);g.font=cardFont(Math.round(30*u),600);var cw=g.measureText('با مزون آینه').width,pl=r[3],plH=Math.round(50*u),plW=pl?Math.round(plH*pl.width/pl.height):0,pg=pl?Math.round(12*u):0,ct=cw+pg+plW,cmid=creditY+Math.round(20*u);
+  g.fillText('با مزون آینه',W/2-ct/2+cw/2,cmid);if(pl){g.imageSmoothingQuality='high';g.drawImage(pl,W/2+ct/2-plW,cmid-plH/2-Math.round(2*u),plW,plH)}
   return new Promise(function(res){c.toBlob(function(b){res(b)},'image/jpeg',.93)});
  });
 }
@@ -2843,7 +2847,7 @@ export const customerHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><h
 <meta property="og:title" content="مزون آینه | لباس عروس را روی اندام خودت ببین">
 <meta property="og:description" content="لباس عروس را انتخاب کن، عکس تمام‌قدت را اضافه کن و نتیجه را برای بررسی به مزون بفرست.">
 <meta property="og:type" content="website">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest">
 <link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/estedad-arabic.woff2" as="font" type="font/woff2" crossorigin>
 <title>مزون آینه | لباس عروس را روی اندام خودت ببین</title>

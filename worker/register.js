@@ -1,12 +1,13 @@
 // Salon owner registration (/register): salon details, the manager's own username and password, and the wanted
 // subdomain. It creates the salon page (unapproved: everything works except image generation) via POST /api/trial.
-import {illos} from './design.js';
-export const registerHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0c6b6b"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><title>ثبت‌نام مدیر مزون | مزون آینه</title>
+import {illos,brandImg} from './design.js';
+export const registerHTML=String.raw`<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0c6b6b"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><title>ثبت‌نام مدیر مزون | مزون آینه</title>
 <style>
 @font-face{font-family:"Estedad";font-weight:100 900;font-display:swap;src:url(/fonts/estedad-arabic.woff2) format("woff2");unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+200C-200D,U+FB50-FDFF,U+FE70-FEFF}
 @font-face{font-family:"Vazirmatn";font-weight:100 900;font-display:swap;src:url(/fonts/vazirmatn-arabic.woff2) format("woff2");unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+200C-200D,U+FB50-FDFF,U+FE70-FEFF}
 *{box-sizing:border-box}body{margin:0;font:16px/1.8 "Vazirmatn",system-ui,Tahoma,sans-serif;background:linear-gradient(180deg,#e8edeb,#fafbfa 38%);color:#23170f;min-height:100vh;padding-bottom:40px}
 .top{background:linear-gradient(135deg,#0c6b6b,#074c4d);color:#fff;padding:26px 20px 70px;text-align:center;border-radius:0 0 34px 34px}.top h1{font:800 24px/1.5 "Estedad","Vazirmatn",sans-serif;margin:0}.top p{margin:4px 0 0;opacity:.9;font-size:15px}
+/*lg*/.top .lg{display:inline-grid;place-items:center;min-width:44px;min-height:44px;padding:5px 9px;margin-bottom:10px;border-radius:14px;background:#F7F3EC}.top .lg img{display:block}
 main{max-width:520px;margin:-46px auto 0;padding:0 16px}.card{background:#fff;border-radius:24px;padding:20px;box-shadow:0 18px 40px -22px rgba(7,76,77,.45);margin-bottom:14px}
 label{display:block;margin:12px 0 0;font-weight:700;font-size:15px}label small{display:block;font-weight:400;color:#6a756f;font-size:13px;line-height:1.7}
 input,textarea{width:100%;border:2px solid #d6dfdb;border-radius:14px;padding:11px 14px;font:inherit;background:#fff;margin-top:4px}input:not([type=checkbox]):focus{outline:0;border-color:#0c6b6b}.ltr{direction:ltr;text-align:left}
@@ -20,7 +21,7 @@ input,textarea{width:100%;border:2px solid #d6dfdb;border-radius:14px;padding:11
 /*ok*/.draw-check{width:84px;height:84px;display:block;margin:4px auto 8px}.draw-check circle{fill:#dcefe1;animation:pop .45s both}.draw-check path{fill:none;stroke:#2b6a40;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:50;stroke-dashoffset:50;animation:draw .5s .25s forwards}@keyframes pop{from{transform:scale(.4);opacity:0}}@keyframes draw{to{stroke-dashoffset:0}}@media(prefers-reduced-motion:reduce){.draw-check path{stroke-dashoffset:0;animation:none}.draw-check circle{animation:none}}.draw-check circle{transform-origin:center}
 h2{font:700 17px/1.6 "Estedad","Vazirmatn",sans-serif;margin:0}
 input:focus-visible,.btn:focus-visible,#consent:focus-visible{outline:3px solid #0c6b6b;outline-offset:2px}.chk input{width:22px;height:22px}</style></head><body>
-<div class="top"><h1>ثبت‌نام مدیر مزون</h1><p>صفحهٔ اختصاصی مزون خودت را بساز و پنل مدیریت بگیر</p></div>
+<div class="top"><a class="lg" href="/" aria-label="مزون آینه">${brandImg(36)}</a><h1>ثبت‌نام مدیر مزون</h1><p>صفحهٔ اختصاصی مزون خودت را بساز و پنل مدیریت بگیر</p></div>
 <main>
 <form class="card" id="f" autocomplete="off"><div class="grp"><h2><b>۱</b>مشخصات مزون</h2>
 <label>نام و نام خانوادگی مدیر<input id="name" maxlength="60"></label>

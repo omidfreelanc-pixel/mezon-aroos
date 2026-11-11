@@ -177,6 +177,8 @@ img{display:block;max-width:100%}
 `;
 
 // Brand mark: an arched fitting mirror with a small gown outline in the glass.
+// The platform logo as an <img>: explicit width/height (no layout shift), 1x/2x/3x files, alt in Persian.
+export const brandImg=(h=36,cls='brandmark')=>'<img class="'+cls+'" src="/brand/logo-36.png" srcset="/brand/logo-36.png 1x,/brand/logo-72.png 2x,/brand/logo-108.png 3x" width="'+Math.round(h*619/763)+'" height="'+h+'" alt="مزون آینه" decoding="async">';
 export const markSVG='<svg viewBox="0 0 32 40" fill="none" aria-hidden="true"><path d="M4 38V16a12 12 0 0 1 24 0v22z" fill="#0c6b6b"/><path d="M8 34V16.5a8 8 0 0 1 16 0V34z" fill="#e8edeb"/><path d="M14.5 17.5 16 14l1.5 3.5-1.2 4L21.5 33h-11l5.2-11.5z" stroke="#23170f" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 export const favicon='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40"><path d="M4 38V16a12 12 0 0 1 24 0v22z" fill="#0c6b6b"/><path d="M8 34V16.5a8 8 0 0 1 16 0V34z" fill="#e8edeb"/><path d="M14.5 17.5 16 14l1.5 3.5-1.2 4L21.5 33h-11l5.2-11.5z" stroke="#23170f" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" fill="none"/></svg>';
 
