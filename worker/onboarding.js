@@ -53,13 +53,13 @@ export const DELETE_WARN='پیام رمز شما به‌طور خودکار پا
 export const MENU_HINT='از منوی زیر ادامه دهید.';
 
 /* ---------- keyboards (one button per row; one small symbol per label) ---------- */
-export const BTN={login:'ورود مدیر مزون ◂',panel:'پنل مدیریت مزون من ◂',register:'ثبت‌نام مزون‌دار جدید ↗',guide:'راهنمای خرید محصول ◂',demo:'مشاهده سایت و دمو محصول ↗',site:'ورود به سایت ↗',demoOnly:'مشاهده دمو ↗',back:'▸ بازگشت',cancel:'انصراف',share:'تأیید شمارهٔ من'};
+export const BTN={login:'ورود مدیر ◂',panel:'پنل مدیریت من ◂',register:'ثبت‌نام مزون‌دار ↗',guide:'راهنمای خرید ◂',demo:'مشاهده دمو ↗',site:'سایت آینه ↗',demoOnly:'مشاهده دمو ↗',back:'▸ منوی اصلی',cancel:'انصراف',share:'تأیید شمارهٔ من'};
 const url=(origin,path='')=>String(origin||'').replace(/\/+$/,'')+path;
 // Primary action full width (Telegram paints style:'primary' blue; unsupported -> call() resends without it), secondary in pairs.
 export const mainKeyboard=(origin,panel=false)=>{
  const reg={text:BTN.register,url:url(origin,'/register'),style:'primary'},guide={text:BTN.guide,callback_data:'ob:guide'},demo={text:BTN.demo,url:url(origin,'/s/demo')};
  return {inline_keyboard:panel
-  ?[[{text:BTN.panel,callback_data:'ob:panel'}],[reg],[guide,demo]]
+  ?[[{text:BTN.panel,callback_data:'ob:panel',style:'success'}],[reg],[guide,demo]]
   :[[reg],[{text:BTN.login,callback_data:'ob:login'},guide],[demo]]};
 };
 export const guideKeyboard=origin=>({inline_keyboard:[
@@ -68,6 +68,7 @@ export const guideKeyboard=origin=>({inline_keyboard:[
  [{text:BTN.back,callback_data:'ob:home'}]]});
 export const contactKeyboard=()=>({keyboard:[[{text:BTN.share,request_contact:true}],[{text:BTN.cancel}]],resize_keyboard:true,one_time_keyboard:true,is_persistent:false});
 export const cancelKeyboard=()=>({inline_keyboard:[[{text:BTN.cancel,callback_data:'ob:cancel'}]]});
+export const menuKeyboard=()=>({inline_keyboard:[[{text:BTN.back,callback_data:'ob:home'}]]});
 
 /* ---------- phone ---------- */
 // Any spelling of an Iranian mobile (+98 / 98 / 0098 / 0 / bare 9..., Persian digits) -> 09xxxxxxxxx, else ''.
@@ -102,15 +103,18 @@ export async function noteFailure(ctx){
 // force: /welcome, skips the 24 h video dedupe. The owner chat always skips it, so it can re-test.
 export async function sendWelcome(ctx,{panel=false,force=false}={}){
  let queued=false;
+ await typing(ctx);
  await sendSafe(ctx,WELCOME_TEXT,{parse_mode:'HTML',reply_markup:mainKeyboard(ctx.origin,panel)});
  // Rows for panel chats use kind 'introf': processDue does not skip them as "already a salon chat".
  try{queued=await scheduleIntro(ctx.db,ctx.p,ctx.chat,Date.now(),{kind:panel||force?'introf':'intro',force:force||!!ctx.owner})}catch(e){console.error('schedule intro',e?.message)}
  // Primary path: keep this request's isolate alive and send when due. The queue row is the fallback; processDue claims rows atomically, so the video can never go twice.
  if(queued&&ctx.wait)ctx.wait(timing.sleep(VIDEO_DELAY+500).then(()=>processDue(ctx.env,{origin:ctx.origin,limit:5})).catch(()=>{}));
 }
+const typing=ctx=>api(ctx,'sendChatAction',{chat_id:ctx.chat,action:'typing'}).catch(()=>{});
+// A tap always produces a NEW message (so the user sees the reply); the old message loses its buttons so none go stale.
+const unstick=(ctx,q)=>q?.message?.message_id?api(ctx,'editMessageReplyMarkup',{chat_id:ctx.chat,message_id:q.message.message_id,reply_markup:{inline_keyboard:[]}}).catch(()=>{}):null;
 async function screen(ctx,q,text,kb){
- // Edit the menu message in place; if that is refused, send a fresh one.
- try{await api(ctx,'editMessageText',{chat_id:ctx.chat,message_id:q.message.message_id,text,parse_mode:'HTML',reply_markup:kb});return}catch{}
+ await typing(ctx);
  await sendSafe(ctx,text,{parse_mode:'HTML',reply_markup:kb});
 }
 
@@ -121,19 +125,21 @@ export async function onbCallback(ctx,q){
  try{
   if(!chat)return;
   if(data==='ob:guide')await screen(ctx,q,GUIDE_TEXT,guideKeyboard(ctx.origin));
-  else if(data==='ob:home')await screen(ctx,q,WELCOME_TEXT,mainKeyboard(ctx.origin,await hasPanelChat(ctx)));
-  else if(data==='ob:panel'){if(!await sendManagerHelp(ctx))note='این گفتگو به مزونی وصل نیست'}
+  else if(data==='ob:home'){await clearOnb(db,p,chat);await screen(ctx,q,WELCOME_TEXT,mainKeyboard(ctx.origin,await hasPanelChat(ctx)))}
+  else if(data==='ob:panel'){await typing(ctx);if(!await sendManagerHelp(ctx,{reply_markup:menuKeyboard()}))note='این گفتگو به مزونی وصل نیست'}
   else if(data==='ob:cancel'){await clearOnb(db,p,chat);await sendSafe(ctx,LOGIN_CANCELLED+'\n'+MENU_HINT,{reply_markup:mainKeyboard(ctx.origin)});note=LOGIN_CANCELLED}
   else if(data==='ob:login')note=await startLogin(ctx);
  }catch(e){console.error('onboarding callback',e?.message)}
+ await unstick(ctx,q);
  await api(ctx,'answerCallbackQuery',{callback_query_id:q.id,...(note?{text:note}:{})}).catch(()=>{});
 }
 const hasPanelChat=async ctx=>!!(await actorByChat(ctx.db,ctx.p,ctx.chat))||!!(await one(ctx.db,'SELECT 1 AS x FROM owner_chats WHERE platform=? AND chat_id=?',ctx.p,ctx.chat));
 async function startLogin(ctx){
  const {db,p,chat}=ctx,a=await actorByChat(db,p,chat);
- if(a){await sendSafe(ctx,ALREADY_LINKED(a.salon?.name||''));return ''}
+ if(a){await sendSafe(ctx,ALREADY_LINKED(a.salon?.name||''),{reply_markup:menuKeyboard()});return ''}
  if(await locked(ctx)){await sendSafe(ctx,LOGIN_LOCKED,{reply_markup:mainKeyboard(ctx.origin)});return ''}
  await putJ(db,stKey(p,chat),{step:'phone',ts:Date.now()});
+ await typing(ctx);
  await sendSafe(ctx,ASK_PHONE,{reply_markup:contactKeyboard()});
  return '';
 }
@@ -284,4 +290,5 @@ export async function onbCleanup(db){
  await run(db,"DELETE FROM app_settings WHERE key LIKE 'onb:%' AND updated_at<?",now-ONB_TTL*3);
  await run(db,"DELETE FROM app_settings WHERE key LIKE 'onbf:%' AND updated_at<?",now-LOCK_WINDOW*4);
  await run(db,"DELETE FROM promo_queue WHERE created_at<?",now-30*86400000);
+ await run(db,"DELETE FROM support_hist WHERE updated_at<?",now-2*86400000).catch(()=>{});
 }

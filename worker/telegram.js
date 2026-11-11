@@ -22,6 +22,7 @@ import {setLeadStatus} from './dresses.js';
 import {notifyOwner,linkOwner,isOwnerChat,sendDigest,setupStatus} from './alerts.js';
 import {newSession} from './server.js';
 import {setConsent} from './social.js';
+import {supportMessage} from './support.js';
 import {sendWelcome,onbCallback,onboardingMessage,clearOnb,processDue} from './onboarding.js';
 const STALE=20*60000; // an unfinished wizard or team question is dropped after 20 idle minutes
 
@@ -133,7 +134,7 @@ export async function baleWebhook(req,env,secret,exec){
 }
 async function handle(req,env,p,exec){
  const u=await req.json().catch(()=>({}));const db=env.DB,origin=env.APP_ORIGIN||new URL(req.url).origin;
- const ctx={env,db,p,origin,wait:pr=>{try{exec?.waitUntil(pr)}catch{}}};
+ const ctx={env,db,p,origin,hasExec:!!exec?.waitUntil,wait:pr=>{try{exec?.waitUntil(pr)}catch{}}};
  try{
   // Telegram may deliver the same update twice; handle each once.
   if(Number.isInteger(u.update_id)){const seen=await run(db,'INSERT OR IGNORE INTO bot_seen(key,created_at) VALUES(?,?)',p+':'+u.update_id,Date.now());if(!seen.meta.changes)return J({ok:true})}
@@ -153,7 +154,7 @@ async function handle(req,env,p,exec){
   // Someone who opened the bot from a boutique's customer link is a bride, not staff.
   const bc=await one(db,'SELECT * FROM bot_customers WHERE platform=? AND chat_id=?',p,ctx.chat);
   if(bc&&(!actor||(Date.now()-bc.created_at<30*60000&&!textIn.startsWith('/')&&!(photoOf(m)&&(m.caption||m.media_group_id))))){await customerMessage(ctx,bc,m);return J({ok:true})}
-  if(!actor){await strangerMessage(ctx);return J({ok:true})}
+  if(!actor){await strangerMessage(ctx,m,textIn);return J({ok:true})}
   const salon=actor.salon;ctx.salon=salon;ctx.staff=actor.staff||null;ctx.role=actor.role;
   if(actor.role==='staff'){await staffMessage(ctx,m,textIn);return J({ok:true})}
   if(textIn==='/link'){await managerLink(ctx);return J({ok:true})}
@@ -193,9 +194,10 @@ async function handle(req,env,p,exec){
  }
 }
 // A chat that is neither a salon nor a member: usually a customer who tapped "notify me".
-async function strangerMessage(ctx){
+async function strangerMessage(ctx,m={},textIn=''){
  const l=await one(ctx.db,'SELECT l.salon_status,l.look,s.name AS salon_name,s.profile AS salon_profile FROM leads l JOIN salons s ON s.id=l.salon_id WHERE l.follow_chat=? AND l.follow_platform=? ORDER BY l.created_at DESC LIMIT 1',ctx.chat,ctx.p);
  if(l){const tel=parse(l.salon_profile).phone;await ctx.say('این ربات فقط وضعیت درخواستت را خبر می‌دهد و پیامت را به مزون نمی‌رساند.\n\nوضعیت درخواستت در «'+l.salon_name+'»'+(l.look?' ('+l.look+')':'')+': '+STATUS[l.salon_status||'new']+'.'+(tel?'\n📞 برای صحبت با مزون: '+local(tel):''));return}
+ if(await supportMessage(ctx,m,textIn))return;
  await ctx.say('این گفتگو به هیچ مزونی وصل نیست.\n• اگر مزون‌دار یا مدیر مزون هستید، لینک اتصال را از تیم مزون آینه یا مدیر مزونتان بگیرید و باز کنید.\n• اگر مشتری هستید، از صفحهٔ مزون درخواست بفرستید و بعد «خبرم کن» را بزنید.');
 }
 const photoOf=m=>m.photo?.length?m.photo[m.photo.length-1]:(m.document&&/^image\/(jpeg|png|webp)$/.test(m.document.mime_type||'')?m.document:null);
@@ -235,11 +237,11 @@ async function onStart(ctx,arg){
 }
 const hasPanel=async ctx=>!!(await actorByChat(ctx.db,ctx.p,ctx.chat))||(ctx.owner??await isOwnerChat(ctx.db,ctx.p,ctx.chat).catch(()=>false));
 // The manager / team / owner help for this chat. Returns false when the chat has none.
-export async function sendManagerHelp(ctx){
+export async function sendManagerHelp(ctx,extra={}){
  const {env,db,p}=ctx,P=PLATFORMS[p],a=await actorByChat(db,p,ctx.chat);
- if(a?.role==='staff'){await ctx.say(staffHelp(a.staff,a.salon,ctx.origin,inviteReady(env)),{parse_mode:'HTML'});return true}
- if(a?.salon){await ctx.say(help(a.salon.name,inviteReady(env),P),{parse_mode:'HTML'});return true}
- if(await isOwnerChat(db,p,ctx.chat)){await ctx.say(ownerHelp,{parse_mode:'HTML'});return true}
+ if(a?.role==='staff'){await ctx.say(staffHelp(a.staff,a.salon,ctx.origin,inviteReady(env)),{parse_mode:'HTML',...extra});return true}
+ if(a?.salon){await ctx.say(help(a.salon.name,inviteReady(env),P),{parse_mode:'HTML',...extra});return true}
+ if(await isOwnerChat(db,p,ctx.chat)){await ctx.say(ownerHelp,{parse_mode:'HTML',...extra});return true}
  return false;
 }
 
