@@ -8,9 +8,9 @@ import {call} from './telegram.js';
 import {normalizeMobile} from './onboarding.js';
 import {SUPPORT_PROMPT,PROMPT_MARKER} from './ai-support-prompt.js';
 
-export const GEMINI_MODEL='gemini-3.6-flash'; // override with env GEMINI_MODEL
+export const GEMINI_MODEL='gemini-2.5-flash'; // override with env GEMINI_MODEL
 export const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/';
-export const LIM={turns:10,ttl:86400000,maxIn:800,perHour:20,maxOutTokens:1024,timeout:15000,budget:27000,maxReply:1200,temperature:0.4};
+export const LIM={turns:10,ttl:86400000,maxIn:800,perHour:20,maxOutTokens:768,timeout:20000,budget:27000,maxReply:1200,temperature:0.4};
 export const TEXT={
  fallback:'در حال حاضر نمی‌توانم پاسخ دقیقی بدهم، اما پیام شما را برای همکار کارشناس ما ثبت کردم و پیگیری می‌کنند.',
  askContact:'لطفاً نام و شمارهٔ موبایلتان را بفرستید (با دکمهٔ «ارسال شمارهٔ من» یا تایپ) تا با شما تماس بگیرند.',
@@ -27,39 +27,74 @@ export const contactKb=()=>({keyboard:[[{text:TEXT.share,request_contact:true}]]
 
 const schema=lower=>{const T=x=>lower?x.toLowerCase():x;return {type:T('OBJECT'),properties:{reply:{type:T('STRING')},escalate:{type:T('BOOLEAN')},reason:{type:T('STRING')},collect_contact:{type:T('BOOLEAN')},name:{type:T('STRING')}},required:['reply','escalate','reason','collect_contact']}};
 const JSON_HINT='\n\nخروجی را فقط به صورت یک شیء JSON معتبر بده، بدون هیچ متن دیگر و بدون بلاک کد، با کلیدهای reply (رشته)، escalate (بولی)، reason (رشته)، collect_contact (بولی) و name (رشته).';
-const bad=(msg,status)=>Object.assign(new Error(msg),{status});
-// One generateContent call. A 400 (schema rejected) is retried with the other type casing, then without responseSchema
-// (JSON mime type + an instruction in the prompt). Returns {reply,escalate,reason,collect_contact,name} or throws a key-free Error with .status.
-async function gemini(env,system,contents,ms){
- const model=encodeURIComponent(String(env.GEMINI_MODEL||GEMINI_MODEL)),t0=Date.now();
- for(const mode of ['upper','lower','none']){
-  const left=ms-(Date.now()-t0);if(left<1500)throw bad('gemini timeout',0);
-  const cfg={temperature:LIM.temperature,maxOutputTokens:LIM.maxOutTokens,responseMimeType:'application/json'};
-  if(mode!=='none')cfg.responseSchema=schema(mode==='lower');
-  const res=await fetch(GEMINI_URL+model+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(left),
-   body:JSON.stringify({systemInstruction:{parts:[{text:mode==='none'?system+JSON_HINT:system}]},contents,generationConfig:cfg})});
-  if(res.status===400&&mode!=='none')continue;
-  if(!res.ok)throw bad('gemini http '+res.status,res.status);
-  const d=await res.json().catch(()=>({}));
-  if(d.promptFeedback?.blockReason)throw bad('gemini blocked',-1);
-  const raw=(d.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').replace(/^\s*```(?:json)?|```\s*$/g,'');
-  const o=parse(raw,null);
-  if(!o||typeof o.reply!=='string'||!o.reply.trim())throw bad('gemini bad output',-2);
-  return {reply:o.reply,escalate:o.escalate===true,reason:cut(o.reason,200),collect_contact:o.collect_contact===true,name:cut(o.name,60)};
- }
- throw bad('gemini http 400',400);
+const modelOf=env=>String(env.GEMINI_MODEL||GEMINI_MODEL);
+// 2.5 flash models think by default, which can be slow; switch thinking off for them (other models reject or ignore it).
+export const thinkingFor=model=>/2\.5-flash/.test(model)?{thinkingBudget:0}:null;
+const redact=(env,s)=>String(s||'').split(env.GEMINI_API_KEY||'\u0000').join('[key]').replace(/AIza[0-9A-Za-z_-]{10,}/g,'[key]').replace(/\s+/g,' ').trim().slice(0,200);
+const bad=(msg,status,extra={})=>Object.assign(new Error(msg),{status,...extra});
+const genBody=(model,system,contents,mode)=>{
+ const cfg={temperature:LIM.temperature,maxOutputTokens:LIM.maxOutTokens,responseMimeType:'application/json'};
+ const th=thinkingFor(model);if(th)cfg.thinkingConfig=th;
+ if(mode!=='none')cfg.responseSchema=schema(mode==='lower');
+ return {systemInstruction:{parts:[{text:mode==='none'?system+JSON_HINT:system}]},contents,generationConfig:cfg};
+};
+// One HTTP call. Never throws for HTTP errors: returns {status,ms,text}; a timeout/network error gives status 0 and err.
+async function post(env,model,body,ms){
+ const t=Date.now();
+ try{
+  const res=await fetch(GEMINI_URL+encodeURIComponent(model)+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(ms),body:JSON.stringify(body)});
+  return {status:res.status,ms:Date.now()-t,text:await res.text().catch(()=>'')};
+ }catch(e){return {status:0,ms:Date.now()-t,err:e?.name==='TimeoutError'||/timeout|abort/i.test(e?.message||'')?'timeout':'network'}}
 }
-// Last failure (status codes and short reasons only, never keys or user text) for later reading from D1: app_settings.support_last_error
-const noteError=(db,reason,status)=>setSetting(db,'support_last_error',JSON.stringify({at:new Date().toISOString(),reason,status:status??null})).catch(()=>{});
+const readOut=text=>{
+ const d=parse(text,{});
+ if(d.promptFeedback?.blockReason)return {err:'blocked'};
+ const raw=(d.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').replace(/^\s*```(?:json)?|```\s*$/g,'');
+ const o=parse(raw,null);
+ if(!o||typeof o.reply!=='string'||!o.reply.trim())return {err:'bad output'};
+ return {out:{reply:o.reply,escalate:o.escalate===true,reason:cut(o.reason,200),collect_contact:o.collect_contact===true,name:cut(o.name,60)}};
+};
+// generateContent with a deadline. A 400 (schema rejected) is retried with lowercase types, then without responseSchema.
+// Throws a key-free Error carrying {status,ms,model,snippet}.
+async function gemini(env,system,contents,ms){
+ const model=modelOf(env),t0=Date.now();
+ for(const mode of ['upper','lower','none']){
+  const left=ms-(Date.now()-t0);if(left<1500)throw bad('timeout',0,{ms:Date.now()-t0,model,snippet:''});
+  const r=await post(env,model,genBody(model,system,contents,mode),left);
+  if(r.status===400&&mode!=='none')continue;
+  if(r.status===0)throw bad(r.err,0,{ms:Date.now()-t0,model,snippet:''});
+  if(r.status<200||r.status>=300)throw bad('http '+r.status,r.status,{ms:Date.now()-t0,model,snippet:redact(env,r.text)});
+  const o=readOut(r.text);
+  if(o.err)throw bad(o.err,-1,{ms:Date.now()-t0,model,snippet:o.err==='bad output'?redact(env,r.text).slice(0,120):''});
+  return {...o.out,_ms:Date.now()-t0};
+ }
+ throw bad('http 400',400,{ms:Date.now()-t0,model,snippet:''});
+}
+// Last failure / success for later reading from D1 (app_settings.support_last_error / support_last_ok). Never keys or user text.
+const noteError=(db,e,model)=>setSetting(db,'support_last_error',JSON.stringify({at:new Date().toISOString(),model:e?.model||model,ms:e?.ms??null,status:e?.status??null,reason:String(e?.message||e||'failed').slice(0,60),snippet:e?.snippet||''})).catch(()=>{});
+// Retries once, and only on 429 or 5xx (never on a timeout or a client error).
 async function askModel(env,system,contents,notify){
  const t0=Date.now();let last;
  for(let i=0;i<2;i++){
   const left=LIM.budget-(Date.now()-t0);if(left<2000)break;
-  try{await notify?.();const r=await gemini(env,system,contents,Math.min(LIM.timeout,left));await setSetting(env.DB,'support_last_ok',new Date().toISOString()).catch(()=>{});return r}
-  catch(e){last=e;console.error('support ai',String(e?.message||e).slice(0,60));if(e?.status===401||e?.status===403||e?.status===404)break}
+  try{await notify?.();const r=await gemini(env,system,contents,Math.min(LIM.timeout,left));await setSetting(env.DB,'support_last_ok',JSON.stringify({at:new Date().toISOString(),model:modelOf(env),ms:r._ms})).catch(()=>{});return r}
+  catch(e){last=e;console.error('support ai',String(e?.message||e).slice(0,40),e?.status);if(!(e?.status===429||e?.status>=500))break}
  }
- await noteError(env.DB,String(last?.message||'failed').slice(0,60),last?.status);
+ await noteError(env.DB,last,modelOf(env));
  throw last||new Error('gemini failed');
+}
+// POST /api/internal/ai-check: diagnoses the key/model without Telegram. Returns status/latency/error snippets only.
+export async function aiCheck(env){
+ const model=modelOf(env);
+ if(!env.GEMINI_API_KEY)return {model,status:null,ms:0,ok:false,error_snippet:'GEMINI_API_KEY missing'};
+ const contents=[{role:'user',parts:[{text:'پاسخ بده: ok'}]}],system='فقط یک JSON با کلید reply بده که مقدارش ok باشد. اگر کلیدهای escalate و collect_contact لازم است، false بگذار و reason را خالی بگذار.';
+ const one=async mode=>{const r=await post(env,model,genBody(model,system,contents,mode),LIM.timeout);const ok=r.status>=200&&r.status<300&&!readOut(r.text).err;
+  return {status:r.status||null,ms:r.ms,ok,error_snippet:ok?'':(r.err||redact(env,r.text||readOut(r.text).err))}};
+ const list=async()=>{const t=Date.now();try{const res=await fetch(GEMINI_URL.replace(/models\/$/,'models')+'?pageSize=200',{headers:{'x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(15000)});
+  const d=await res.json().catch(()=>({}));return {status:res.status,ms:Date.now()-t,names:(d.models||[]).map(x=>String(x.name||'').replace(/^models\//,'')).filter(n=>n.includes('flash')).slice(0,15)}}
+  catch(e){return {status:null,ms:Date.now()-t,names:[],error_snippet:e?.name==='TimeoutError'?'timeout':'network'}}};
+ const [schemaMode,plain,models]=await Promise.all([one('upper'),one('none'),list()]);
+ return {model,thinking:thinkingFor(model),...schemaMode,plain,models};
 }
 // Never show the prompt or a key, whatever the model produced; plain text only.
 export function cleanReply(s){
@@ -130,7 +165,7 @@ async function respond(ctx,text,hist,now,role=''){
  const contents=[...hist.turns.map(t=>({role:t.r==='user'?'user':'model',parts:[{text:t.t}]})),{role:'user',parts:[{text}]}];
  let out=null;
  if(env.GEMINI_API_KEY){try{out=await askModel(env,system,contents,typing)}catch{out=null}}
- else await noteError(db,'no GEMINI_API_KEY',null);
+ else await noteError(db,{message:'no GEMINI_API_KEY'},modelOf(env));
  let reply,esc,reason,want,name='';
  if(out){reply=cleanReply(out.reply);esc=out.escalate;reason=out.reason;want=out.collect_contact;name=out.name}
  else{reply=TEXT.fallback;esc=true;reason='پاسخ خودکار در دسترس نبود';want=true}

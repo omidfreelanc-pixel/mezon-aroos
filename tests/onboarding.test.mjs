@@ -349,7 +349,7 @@ test('setWebhook sets commands, description, short description and the menu butt
 const GURL='https://generativelanguage.googleapis.com/';
 function mockGemini(fn){const g=[];const prev=globalThis.fetch;let cur=fn;
  globalThis.fetch=async(url,init)=>{const u=String(url);if(!u.startsWith(GURL))return prev(url,init);
-  const rec={url:u,headers:init.headers,body:JSON.parse(init.body)};g.push(rec);return cur(rec,g.length)};
+  const rec={url:u,headers:init.headers,body:init.body?JSON.parse(init.body):null};g.push(rec);return cur(rec,g.length)};
  return {g,set(f){cur=f;return this},restore(){globalThis.fetch=prev}}}
 const gOk=o=>Response.json({candidates:[{content:{parts:[{text:JSON.stringify({reason:'',collect_contact:false,escalate:false,...o})}]}}]});
 const KEY='TEST-KEY-not-real-123';
@@ -518,4 +518,39 @@ test('support: schema rejected with 400 -> retry with lowercase types, then with
  const e=JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_error'").get().value);assert.equal(e.status,429);assert(!JSON.stringify(e).includes(KEY));
  // auth errors are not retried
  let n=0;g.set(()=>{n++;return new Response('x',{status:403})});await say(tgHook,env,9997,'سلام');assert.equal(n,1);
+}));
+
+test('gemini: default model 2.5-flash with thinking off; other models get no thinkingConfig; timeouts are not retried; failures store model, ms, status and a redacted snippet',()=>withSupport(async(env,bots,g)=>{
+ assert.equal(sup.GEMINI_MODEL,'gemini-2.5-flash');
+ await say(tgHook,env,9801,'سلام');
+ assert(g.g[0].url.includes('/models/gemini-2.5-flash:generateContent'));assert.deepEqual(g.g[0].body.generationConfig.thinkingConfig,{thinkingBudget:0});assert(g.g[0].body.generationConfig.maxOutputTokens<=1024);
+ const ok=JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_ok'").get().value);assert.equal(ok.model,'gemini-2.5-flash');assert.equal(typeof ok.ms,'number');
+ env.GEMINI_MODEL='gemini-3.6-flash';await say(tgHook,env,9801,'دوباره');assert.equal(g.g.at(-1).body.generationConfig.thinkingConfig,undefined);env.GEMINI_MODEL='gemini-2.5-flash';
+ // timeout: one attempt only
+ let n=0;g.set(()=>{n++;throw Object.assign(new Error('The operation was aborted due to timeout'),{name:'TimeoutError'})});
+ await say(tgHook,env,9802,'سلام');assert.equal(n,1,'no retry on timeout');
+ let e=JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_error'").get().value);
+ assert.equal(e.model,'gemini-2.5-flash');assert.equal(e.reason,'timeout');assert.equal(e.status,0);assert.equal(typeof e.ms,'number');
+ assert(bots.of('sendMessage').at(-1).body.text.startsWith(sup.TEXT.fallback));
+ // 5xx: retried once; snippet is cut to 200 chars and the key is redacted
+ n=0;g.set(()=>{n++;return new Response('{"error":{"message":"'+KEY+' '+'x'.repeat(400)+'"}}',{status:503})});
+ await say(tgHook,env,9803,'سلام');assert.equal(n,2);
+ e=JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_error'").get().value);
+ assert.equal(e.status,503);assert(e.snippet.length<=200&&e.snippet.length>20);assert(!JSON.stringify(e).includes(KEY));
+ // 4xx: not retried
+ n=0;g.set(()=>{n++;return new Response('{"error":{"message":"API key not valid"}}',{status:400})});await say(tgHook,env,9804,'سلام');assert.equal(n,3,'only the schema variants, no extra retry');
+}));
+
+test('/api/internal/ai-check: JOB_TOKEN only; reports model, status, latency and flash model names for both modes',()=>withSupport(async(env,bots,g)=>{
+ const call=(h={})=>app.fetch(new Request(origin+'/api/internal/ai-check',{method:'POST',headers:h}),env);
+ assert.equal((await call()).status,403);assert.equal((await call({Authorization:'Bearer wrong'})).status,403);
+ assert.equal((await app.fetch(new Request(origin+'/api/internal/ai-check',{method:'GET',headers:{Authorization:'Bearer job-test'}}),env)).status,405);
+ g.set((r)=>r.url.includes(':generateContent')?gOk({reply:'ok'}):Response.json({models:[{name:'models/gemini-2.5-flash'},{name:'models/gemini-pro-x'},{name:'models/gemini-3.6-flash'},{name:'models/embedding-001'}]}));
+ const res=await call({Authorization:'Bearer job-test'});assert.equal(res.status,200);const d=await res.json();
+ assert.equal(d.model,'gemini-2.5-flash');assert.equal(d.status,200);assert.equal(d.ok,true);assert.equal(typeof d.ms,'number');assert.equal(d.error_snippet,'');
+ assert.equal(d.plain.ok,true);assert.deepEqual(d.models.names,['gemini-2.5-flash','gemini-3.6-flash']);
+ assert(g.g.some(r=>r.body?.generationConfig?.responseSchema)&&g.g.some(r=>r.body?.generationConfig&&!r.body.generationConfig.responseSchema));
+ assert(!JSON.stringify(d).includes(KEY));
+ g.set(()=>new Response('{"error":{"message":"model not found"}}',{status:404}));
+ const bad=await (await call({Authorization:'Bearer job-test'})).json();assert.equal(bad.ok,false);assert.equal(bad.status,404);assert(bad.error_snippet.includes('model not found'));
 }));

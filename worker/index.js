@@ -6,6 +6,7 @@ import {setting,setSetting} from './alerts.js';
 import {fontResponse} from './fonts.js';
 import {webhook,baleWebhook,setWebhook} from './telegram.js';
 import {processSoon} from './onboarding.js';
+import {aiCheck} from './support.js';
 import {favicon,baseCSS} from './design.js';
 import {sharePage} from './share.js';
 import {postPage} from './social.js';
@@ -51,6 +52,7 @@ export default {
  async fetch(request,env,ctx){try{const u=new URL(request.url);
   if(u.pathname==='/api/health'){try{await env.DB.prepare('SELECT 1').first();return Response.json({ok:true})}catch(e){console.error('health',e&&e.message);return Response.json({ok:false},{status:503})}}
   if(u.pathname==='/api/internal/webhook'){must(request.method==='POST','متد مجاز نیست',405);must(env.JOB_TOKEN&&request.headers.get('Authorization')==='Bearer '+env.JOB_TOKEN,'دسترسی مجاز نیست',403);return Response.json(await setWebhook(env,env.APP_ORIGIN||u.origin));}
+  if(u.pathname==='/api/internal/ai-check'){must(request.method==='POST','متد مجاز نیست',405);must(env.JOB_TOKEN&&request.headers.get('Authorization')==='Bearer '+env.JOB_TOKEN,'دسترسی مجاز نیست',403);return Response.json(await aiCheck(env),{headers:{'Cache-Control':'no-store'}});}
   if(u.pathname==='/api/internal/tick'){must(request.method==='POST','متد مجاز نیست',405);must(env.JOB_TOKEN&&request.headers.get('Authorization')==='Bearer '+env.JOB_TOKEN,'دسترسی مجاز نیست',403);return Response.json(await tick(env,u.origin));}
   if(u.pathname==='/api/telegram/webhook'){const r=await webhook(request,env,ctx);processSoon(env,env.APP_ORIGIN||u.origin,ctx);return r}
   if(u.pathname.startsWith('/api/bale/webhook/')){const r=await baleWebhook(request,env,decodeURIComponent(u.pathname.slice(18)),ctx);processSoon(env,env.APP_ORIGIN||u.origin,ctx);return r}
