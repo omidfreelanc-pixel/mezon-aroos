@@ -37,15 +37,16 @@ test('normalizeMobile: every Iranian spelling becomes 09…; junk is rejected',(
  assert.equal(ob.e164('09121234567'),'+989121234567');
 });
 
-test('keyboards: one button per row, URLs follow the origin, callbacks stay within 64 bytes, at most one symbol per label',()=>{
- for(const kb of [ob.mainKeyboard(origin),ob.guideKeyboard(origin)]){
-  for(const row of kb.inline_keyboard){assert.equal(row.length,1);const b=row[0];assert(b.url||b.callback_data);assert(!(b.url&&b.callback_data));if(b.callback_data)assert(Buffer.byteLength(b.callback_data)<=64);if(b.url)assert(b.url.startsWith(origin+'/'));
-   assert(!/\p{Emoji_Presentation}/u.test(b.text),'no emoji: '+b.text);assert((b.text.match(/[◂↗✦]/g)||[]).length<=1)}}
- const m=ob.mainKeyboard(origin).inline_keyboard.flat();
- assert.deepEqual(m.map(b=>b.text.replace(/ [◂↗]$/,'')),['ورود مدیر مزون','ثبت‌نام مزون‌دار جدید','راهنمای خرید محصول','مشاهده سایت و دمو محصول']);
- assert.equal(m[0].callback_data,'ob:login');assert.equal(m[1].url,origin+'/register');assert.equal(m[2].callback_data,'ob:guide');assert.equal(m[3].url,origin+'/s/demo');
- const g=ob.guideKeyboard(origin+'/').inline_keyboard.flat();
- assert.deepEqual(g.map(b=>b.url||b.callback_data),[origin+'/',origin+'/register',origin+'/s/demo','ob:home']);
+test('keyboards: primary register button full width, secondaries in pairs, URLs follow the origin, callbacks within 64 bytes, no emoji',()=>{
+ for(const kb of [ob.mainKeyboard(origin),ob.mainKeyboard(origin,true),ob.guideKeyboard(origin)]){
+  for(const b of kb.inline_keyboard.flat()){assert(b.url||b.callback_data);assert(!(b.url&&b.callback_data));if(b.callback_data)assert(Buffer.byteLength(b.callback_data)<=64);if(b.url)assert(b.url.startsWith(origin+'/'));
+   assert(!/\p{Emoji_Presentation}/u.test(b.text),'no emoji: '+b.text);assert((b.text.match(/[◂▸↗✦]/g)||[]).length<=1)}}
+ const k=ob.mainKeyboard(origin).inline_keyboard;
+ assert.deepEqual(k.map(r=>r.length),[1,2,1]);assert.equal(k[0][0].url,origin+'/register');assert.equal(k[0][0].style,'primary');
+ assert.deepEqual(k.flat().map(b=>b.text.replace(/ [◂↗]$/,'')),['ثبت‌نام مزون‌دار جدید','ورود مدیر مزون','راهنمای خرید محصول','مشاهده سایت و دمو محصول']);
+ assert.equal(k[1][0].callback_data,'ob:login');assert.equal(k[1][1].callback_data,'ob:guide');assert.equal(k[2][0].url,origin+'/s/demo');
+ const g=ob.guideKeyboard(origin+'/').inline_keyboard;
+ assert.deepEqual(g.flat().map(b=>b.url||b.callback_data),[origin+'/register',origin+'/',origin+'/s/demo','ob:home']);assert.deepEqual(g.map(r=>r.length),[1,2,1]);
  const ck=ob.contactKeyboard();assert.equal(ck.keyboard[0][0].request_contact,true);
  assert(/تأیید شمارهٔ من/.test(ck.keyboard[0][0].text));
 });
@@ -55,10 +56,10 @@ test('plain /start: welcome with the four-button menu, video queued once per 24 
  try{
   await say(tgHook,env,5001,'/start');
   const w=bots.of('sendMessage')[0].body;
-  assert.equal(w.text,ob.WELCOME_TEXT);assert.equal(w.parse_mode,'HTML');assert(w.text.startsWith('<b>سلام و خوش آمدید به پلتفرم آینه</b>'));
-  assert.equal(w.reply_markup.inline_keyboard[1][0].url,'https://ayneh-mezon.site/register','APP_ORIGIN wins over the request origin');
-  assert.equal(w.reply_markup.inline_keyboard[3][0].url,'https://ayneh-mezon.site/s/demo');
-  let q=queue(env);assert.equal(q.length,1);assert.equal(q[0].status,'pending');assert(q[0].due_at-q[0].created_at===60000);
+  assert.equal(w.text,ob.WELCOME_TEXT);assert.equal(w.parse_mode,'HTML');assert(w.text.startsWith('<b>پلتفرم آینه</b>'));assert(w.text.length<=900);
+  assert.equal(w.reply_markup.inline_keyboard[0][0].url,'https://ayneh-mezon.site/register','APP_ORIGIN wins over the request origin');
+  assert.equal(w.reply_markup.inline_keyboard[2][0].url,'https://ayneh-mezon.site/s/demo');
+  let q=queue(env);assert.equal(q.length,1);assert.equal(q[0].status,'pending');assert(q[0].due_at-q[0].created_at===15000);
   await say(tgHook,env,5001,'/start');assert.equal(queue(env).length,1,'one video per chat per 24h');
   await say(tgHook,env,5002,'/start');assert.equal(queue(env).length,2);
   // an unknown code falls back to the welcome as before? (a 24-hex code that matches nothing keeps the old "expired" answer)
@@ -75,11 +76,11 @@ test('guide screen and back button edit the menu message; Bale gets the same men
   await press(tgHook,env,5001,'ob:guide',77);
   const e=bots.last('editMessageText');assert.equal(e.message_id,77);assert.equal(e.text,ob.GUIDE_TEXT);
   assert(/حدود یک روز کاری/.test(e.text)&&/قیمت هر پنل/.test(e.text)&&!/\d{3,}\s*(تومان|ریال)/.test(e.text),'no invented prices');
-  assert.deepEqual(e.reply_markup.inline_keyboard.flat().map(b=>b.url||b.callback_data),[origin+'/',origin+'/register',origin+'/s/demo','ob:home']);
+  assert.deepEqual(e.reply_markup.inline_keyboard.flat().map(b=>b.url||b.callback_data),[origin+'/register',origin+'/',origin+'/s/demo','ob:home']);
   await press(tgHook,env,5001,'ob:home',77);assert.equal(bots.last('editMessageText').text,ob.WELCOME_TEXT);
   assert.equal(bots.of('answerCallbackQuery').length,2);
   bots.calls.length=0;await say(baleHook,env,6001,'/start');
-  const b=bots.calls.find(c=>c.method==='sendMessage');assert.equal(b.platform,'bale');assert(!/<b>/.test(b.body.text)&&!b.body.parse_mode,'Bale is plain text');assert.equal(b.body.reply_markup.inline_keyboard.length,4);
+  const b=bots.calls.find(c=>c.method==='sendMessage');assert.equal(b.platform,'bale');assert(!/<b>/.test(b.body.text)&&!b.body.parse_mode,'Bale is plain text');assert(!/style/.test(JSON.stringify(b.body.reply_markup)),'no style on Bale');assert.equal(b.body.reply_markup.inline_keyboard.flat().length,4);
   assert.equal(queue(env).at(-1).platform,'bale');
  }finally{bots.restore()}
 });
@@ -231,10 +232,11 @@ test('end-to-end transcript (set SHOW_TRANSCRIPT=1 to print)',async()=>{
   note('USER','shares someone else\'s contact');await contact(tgHook,env,1,'+989121234567',555);show(bots);
   note('USER','taps «تأیید شمارهٔ من» (own contact +98 912 123 4567)');await contact(tgHook,env,1,'+98 912 123 4567');show(bots);
   note('USER','types the password');await tgHook(env,{message:{...priv(1),message_id:31,text:'Secret-pass1'}});show(bots);
-  note('SYSTEM','60 s later, chat 2 (a visitor who stayed in the welcome) gets the video');await say(tgHook,env,2,'/start');show(bots);
+  note('SYSTEM','15 s later, chat 2 (a visitor who stayed in the welcome) gets the video');await say(tgHook,env,2,'/start');show(bots);
   env.DB.sql.prepare("UPDATE promo_queue SET due_at=0").run();await ob.processDue(env,{origin:'https://ayneh-mezon.site'});show(bots);
   if(process.env.SHOW_TRANSCRIPT)console.log('\n'+T.join('\n')+'\n');
   assert(T.length>10);assert.equal(linked(env,id),'1');
+  const all=T.join('\n');assert(all.includes('پلتفرم آینه')&&all.includes('<blockquote>')&&all.includes('───')&&all.includes('sendVideo'),'transcript shows the redesigned screens and the video');
  }finally{bots.restore()}
 });
 
@@ -246,14 +248,14 @@ test('linked chat: plain /start shows the welcome with the panel button instead 
   const w=bots.last('sendMessage'),rows=w.reply_markup.inline_keyboard.flat();
   assert.equal(w.text,ob.WELCOME_TEXT);assert.equal(rows.length,4);
   assert.equal(rows[0].callback_data,'ob:panel');assert.equal(rows[0].text,ob.BTN.panel);assert(!rows.some(b=>b.callback_data==='ob:login'));
-  assert.deepEqual(rows.slice(1).map(b=>b.url||b.callback_data),[origin+'/register','ob:guide',origin+'/s/demo']);
+  assert.deepEqual(rows.slice(1).map(b=>b.url||b.callback_data),[origin+'/register','ob:guide',origin+'/s/demo']);assert.deepEqual(w.reply_markup.inline_keyboard.map(r=>r.length),[1,1,2]);
   assert.equal(queue(env).length,1);assert.equal(queue(env)[0].kind,'introf');
   bots.calls.length=0;await press(tgHook,env,6001,'ob:panel');
   assert(/راهنمای مدیر مزون/.test(bots.last('sendMessage').text));
   // the video is NOT skipped for a linked chat
   env.DB.sql.prepare('UPDATE promo_queue SET due_at=0').run();assert.equal(await ob.processDue(env,{origin}),1);assert.equal(bots.of('sendVideo').length,1);
   // unlinked chat still gets the login button; a bad code is unchanged
-  bots.calls.length=0;await say(tgHook,env,6002,'/start');assert.equal(bots.last('sendMessage').reply_markup.inline_keyboard[0][0].callback_data,'ob:login');
+  bots.calls.length=0;await say(tgHook,env,6002,'/start');assert.equal(bots.last('sendMessage').reply_markup.inline_keyboard.flat().find(b=>b.callback_data==='ob:login').callback_data,'ob:login');
   await say(tgHook,env,6002,'/start '+'b'.repeat(24));assert(/منقضی/.test(bots.last('sendMessage').text));
   // ob:panel from a chat with no panel is refused politely
   await press(tgHook,env,6002,'ob:panel');assert(/وصل نیست/.test(bots.last('answerCallbackQuery').text));
@@ -285,10 +287,49 @@ test('/welcome and /platform force the welcome + a fresh video even inside the 2
  }finally{bots.restore()}
 });
 
-test('setWebhook registers /start /welcome /help',async()=>{
+
+test('15 s: waitUntil path sends the video once; the queue row is the fallback and a claimed row is never sent twice; /welcome re-queues at 15 s',async()=>{
+ const env=fixture(),bots=mockBots(),waits=[];const realSleep=ob.timing.sleep;let slept=0;
+ try{
+  assert.equal(ob.VIDEO_DELAY,15000);
+  ob.timing.sleep=async ms=>{slept=ms;env.DB.sql.prepare('UPDATE promo_queue SET due_at=0').run()};
+  const wh=(chat,text)=>app.fetch(new Request(origin+'/api/telegram/webhook',{method:'POST',headers:{'content-type':'application/json','x-telegram-bot-api-secret-token':'hook-secret'},body:JSON.stringify({update_id:++uidn,message:{...priv(chat),message_id:1,text}})}),env,{waitUntil:p=>waits.push(p)});
+  await wh(9701,'/start');assert(waits.length>=1);await Promise.all(waits);
+  assert(slept>=15000&&slept<20000);assert.equal(bots.of('sendVideo').length,1);assert.equal(queue(env)[0].status,'sent');
+  // fallback processing after the primary path already sent: nothing more goes out
+  assert.equal(await ob.processDue(env,{origin}),0);assert.equal(bots.of('sendVideo').length,1);
+  // two racing workers on one due row: exactly one video
+  await ob.scheduleIntro(env.DB,'telegram','9702');env.DB.sql.prepare("UPDATE promo_queue SET due_at=0 WHERE chat_id='9702'").run();
+  const n=await Promise.all([ob.processDue(env,{origin}),ob.processDue(env,{origin})]);assert.equal(n[0]+n[1],1);assert.equal(bots.of('sendVideo').length,2);
+  // /welcome inside 24 h: new row due in 15 s
+  bots.calls.length=0;await wh(9701,'/welcome');await Promise.all(waits);
+  const r=queue(env).filter(x=>x.chat_id==='9701').at(-1);assert.equal(r.kind,'introf');assert.equal(bots.of('sendVideo').length,1);
+  const p=ob.scheduleIntro(env.DB,'telegram','9703',1000,{force:true});await p;assert.equal(queue(env).find(x=>x.chat_id==='9703').due_at,16000);
+ }finally{ob.timing.sleep=realSleep;bots.restore()}
+});
+
+test('premium texts: within 900 chars, divider + blockquote in the guide, bold key terms, no emoji; Telegram button style falls back on 400; Bale never gets style',async()=>{
+ for(const s of [ob.WELCOME_TEXT,ob.GUIDE_TEXT]){assert(s.length<=900);assert(!/\p{Emoji_Presentation}/u.test(s));assert(s.includes('───'));assert(s.includes('<b>')&&s.includes('◆'))}
+ assert(/<blockquote>.*<\/blockquote>/s.test(ob.GUIDE_TEXT));assert(!ob.WELCOME_TEXT.includes('blockquote'));
+ const env=fixture({BALE_BOT_TOKEN:'bale:tok'});let n=0;
+ const bots=mockBots((m,b,pl)=>{if(m==='sendMessage'&&pl==='telegram'&&JSON.stringify(b).includes('"style"')&&n++===0)return Response.json({ok:false,description:'Bad Request: BUTTON_STYLE_INVALID'},{status:400})});
+ try{
+  await say(tgHook,env,9801,'/start');
+  const sends=bots.of('sendMessage');assert.equal(sends.length,2,'first try with style, resend without');
+  assert(JSON.stringify(sends[0].body).includes('"style":"primary"'));assert(!JSON.stringify(sends[1].body).includes('style'));assert.equal(sends[1].body.text,ob.WELCOME_TEXT);
+  bots.calls.length=0;await say(baleHook,env,9802,'/start');assert(!JSON.stringify(bots.calls.find(c=>c.method==='sendMessage').body).includes('style'));
+ }finally{bots.restore()}
+});
+
+test('setWebhook sets commands, description, short description and the menu button (idempotent)',async()=>{
  const env=fixture(),bots=mockBots();
  try{
-  const {setWebhook,BOT_COMMANDS}=await import('../worker/telegram.js');await setWebhook(env,origin);
-  assert.deepEqual(bots.last('setMyCommands').commands.map(c=>c.command),['start','welcome','help']);assert.equal(BOT_COMMANDS.length,3);
+  const {setWebhook,BOT_DESCRIPTION,BOT_SHORT_DESCRIPTION}=await import('../worker/telegram.js');
+  await setWebhook(env,origin);await setWebhook(env,origin);
+  assert.deepEqual(bots.last('setMyCommands').commands.map(c=>c.command),['start','welcome','help']);
+  assert(bots.last('setMyCommands').commands.every(c=>/[\u0600-\u06FF]/.test(c.description)));
+  assert.equal(bots.last('setMyDescription').description,BOT_DESCRIPTION);assert(BOT_DESCRIPTION.length<=512);
+  assert.equal(bots.last('setMyShortDescription').short_description,BOT_SHORT_DESCRIPTION);assert(BOT_SHORT_DESCRIPTION.length<=120);
+  assert.deepEqual(bots.last('setChatMenuButton').menu_button,{type:'commands'});
  }finally{bots.restore()}
 });

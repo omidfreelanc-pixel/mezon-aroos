@@ -18,29 +18,28 @@ const parse=s=>{try{return JSON.parse(s||'{}')}catch{return {}}};
 
 export const ONB_TTL=10*60000;          // an unfinished sign-in is dropped after 10 minutes
 export const LOCK_FAILS=5,LOCK_WINDOW=15*60000; // 5 failures per chat lock sign-in for 15 minutes
-export const VIDEO_DELAY=60000;         // intro video is due one minute after the welcome
+export const VIDEO_DELAY=15000;         // intro video is due 15 s after the welcome
+export const timing={sleep:ms=>new Promise(r=>setTimeout(r,ms))}; // replaced in tests
 export const VIDEO_PATH='/promo/ayneh-intro.mp4';
 export const VIDEO_CAPTION='معرفی پلتفرم آینه در یک دقیقه';
 const VIDEO_META={width:720,height:1280,duration:54};
 const VIDEO_VERSION='v1'; // bump when public/promo/ayneh-intro.mp4 changes so cached file_ids are not reused
 
 /* ---------- copy ---------- */
-export const WELCOME_TEXT='<b>سلام و خوش آمدید به پلتفرم آینه</b>\n\n'+
- 'آینه، پلتفرم پرو مجازی لباس عروس برای مزون‌هاست.\n'+
- 'عروس QR مزون را اسکن می‌کند یا صفحهٔ مزون را باز می‌کند، یک عکس تمام‌قد می‌فرستد و تقریباً در یک دقیقه، با هوش مصنوعی، لباس‌های واقعی همان مزون را روی خودش می‌بیند؛ بعد نتیجه را برای مزون می‌فرستد.\n'+
- 'مزون‌دار هم مشتری آماده می‌گیرد، صفحه‌ای اختصاصی با نام و هویت خودش دارد، در مزون از کیوسک یا تبلت استفاده می‌کند و اعتبار مصرفی‌اش را از پنل می‌بیند.\n\n'+
- '<b>با آینه می‌توانید</b>\n'+
- '• صفحه و QR اختصاصی مزون خودتان را داشته باشید\n'+
- '• کاتالوگ لباس‌هایتان را مدیریت کنید\n'+
- '• درخواست مشتری‌ها را همین‌جا در ربات دریافت کنید\n'+
- '• از کیوسک یا تبلت در مزون استفاده کنید\n'+
- '• آمار و اعتبار را زیر نظر داشته باشید\n\n'+
- 'از منوی زیر ادامه دهید.';
-export const GUIDE_TEXT='<b>راهنمای خرید و راه‌اندازی آینه</b>\n\n'+
- '۱. ابتدا وارد سایت شوید.\n'+
- '۲. از «ثبت‌نام مزون‌دار» حساب خودتان را بسازید.\n'+
- '۳. بعد از ورود، از بخش دمو، محصول را امتحان کنید.\n\n'+
- 'حدود یک روز کاری بعد، کارشناسان ما با شما تماس می‌گیرند. اگر از نتیجه راضی بودید و خواستید آینه را در مزون خودتان به‌کار بگیرید، توضیح می‌دهند اپلیکیشن آینه چطور برای مزون شما روی کیوسک، تبلت یا دستگاه‌های دیگر راه‌اندازی می‌شود و پنل‌های موجود را همراه با قیمت هر پنل برایتان می‌فرستند.';
+const RULE='───────────';
+export const WELCOME_TEXT='<b>پلتفرم آینه</b>\nپرو مجازی لباس عروس برای مزون‌ها\n'+RULE+'\n'+
+ 'عروس عکسی تمام‌قد می‌فرستد و تقریباً در یک دقیقه، لباس‌های واقعی <b>همان مزون</b> را با هوش مصنوعی روی خودش می‌بیند؛ سپس نتیجه را برای مزون می‌فرستد.\n\n'+
+ '◆ صفحه و <b>QR اختصاصی</b> مزون\n'+
+ '◆ مدیریت <b>کاتالوگ</b> لباس‌ها\n'+
+ '◆ دریافت <b>درخواست مشتری</b> همین‌جا در ربات\n'+
+ '◆ استفاده روی <b>کیوسک</b> یا تبلت مزون\n'+
+ '◆ آمار و <b>اعتبار مصرفی</b> در پنل\n'+RULE+'\n'+
+ 'برای ادامه، یکی از گزینه‌ها را انتخاب کنید.';
+export const GUIDE_TEXT='<b>راهنمای خرید و راه‌اندازی</b>\n'+RULE+'\n'+
+ '◆ <b>گام اول</b>  ورود به سایت\n'+
+ '◆ <b>گام دوم</b>  ثبت‌نام مزون‌دار و ساخت حساب\n'+
+ '◆ <b>گام سوم</b>  امتحان <b>دمو</b> پس از ورود\n'+RULE+'\n'+
+ '<blockquote>حدود یک روز کاری بعد، کارشناسان ما با شما تماس می‌گیرند. اگر از نتیجه راضی بودید، راه‌اندازی آینه روی کیوسک، تبلت یا دستگاه‌های دیگر و پنل‌های موجود را همراه با <b>قیمت هر پنل</b> برایتان توضیح می‌دهند.</blockquote>';
 export const ASK_PHONE='برای ورود مدیر مزون، اول شمارهٔ موبایل خودتان را تأیید کنید.\nدکمهٔ «تأیید شمارهٔ من» را در پایین صفحه بزنید. فقط شمارهٔ خود همین حساب پذیرفته می‌شود و تایپ‌کردن شماره کافی نیست.';
 export const PHONE_REJECT='این شماره پذیرفته نشد. فقط شمارهٔ خود حساب شما با دکمهٔ «تأیید شمارهٔ من» قابل تأیید است. دوباره امتحان کنید یا «انصراف» را بزنید.';
 export const PHONE_OK='شمارهٔ شما دریافت شد.';
@@ -54,17 +53,18 @@ export const DELETE_WARN='پیام رمز شما به‌طور خودکار پا
 export const MENU_HINT='از منوی زیر ادامه دهید.';
 
 /* ---------- keyboards (one button per row; one small symbol per label) ---------- */
-export const BTN={login:'ورود مدیر مزون ◂',panel:'پنل مدیریت مزون من ◂',register:'ثبت‌نام مزون‌دار جدید ↗',guide:'راهنمای خرید محصول ◂',demo:'مشاهده سایت و دمو محصول ↗',site:'ورود به سایت ↗',demoOnly:'مشاهده دمو ↗',back:'بازگشت ◂',cancel:'انصراف',share:'تأیید شمارهٔ من'};
+export const BTN={login:'ورود مدیر مزون ◂',panel:'پنل مدیریت مزون من ◂',register:'ثبت‌نام مزون‌دار جدید ↗',guide:'راهنمای خرید محصول ◂',demo:'مشاهده سایت و دمو محصول ↗',site:'ورود به سایت ↗',demoOnly:'مشاهده دمو ↗',back:'▸ بازگشت',cancel:'انصراف',share:'تأیید شمارهٔ من'};
 const url=(origin,path='')=>String(origin||'').replace(/\/+$/,'')+path;
-export const mainKeyboard=(origin,panel=false)=>({inline_keyboard:[
- [panel?{text:BTN.panel,callback_data:'ob:panel'}:{text:BTN.login,callback_data:'ob:login'}],
- [{text:BTN.register,url:url(origin,'/register')}],
- [{text:BTN.guide,callback_data:'ob:guide'}],
- [{text:BTN.demo,url:url(origin,'/s/demo')}]]});
+// Primary action full width (Telegram paints style:'primary' blue; unsupported -> call() resends without it), secondary in pairs.
+export const mainKeyboard=(origin,panel=false)=>{
+ const reg={text:BTN.register,url:url(origin,'/register'),style:'primary'},guide={text:BTN.guide,callback_data:'ob:guide'},demo={text:BTN.demo,url:url(origin,'/s/demo')};
+ return {inline_keyboard:panel
+  ?[[{text:BTN.panel,callback_data:'ob:panel'}],[reg],[guide,demo]]
+  :[[reg],[{text:BTN.login,callback_data:'ob:login'},guide],[demo]]};
+};
 export const guideKeyboard=origin=>({inline_keyboard:[
- [{text:BTN.site,url:url(origin,'/')}],
- [{text:BTN.register,url:url(origin,'/register')}],
- [{text:BTN.demoOnly,url:url(origin,'/s/demo')}],
+ [{text:BTN.register,url:url(origin,'/register'),style:'primary'}],
+ [{text:BTN.site,url:url(origin,'/')},{text:BTN.demoOnly,url:url(origin,'/s/demo')}],
  [{text:BTN.back,callback_data:'ob:home'}]]});
 export const contactKeyboard=()=>({keyboard:[[{text:BTN.share,request_contact:true}],[{text:BTN.cancel}]],resize_keyboard:true,one_time_keyboard:true,is_persistent:false});
 export const cancelKeyboard=()=>({inline_keyboard:[[{text:BTN.cancel,callback_data:'ob:cancel'}]]});
@@ -101,9 +101,12 @@ export async function noteFailure(ctx){
 // panel: chat is a linked salon/team chat or the owner chat (menu gets the manager-panel button).
 // force: /welcome, skips the 24 h video dedupe. The owner chat always skips it, so it can re-test.
 export async function sendWelcome(ctx,{panel=false,force=false}={}){
+ let queued=false;
  await sendSafe(ctx,WELCOME_TEXT,{parse_mode:'HTML',reply_markup:mainKeyboard(ctx.origin,panel)});
  // Rows for panel chats use kind 'introf': processDue does not skip them as "already a salon chat".
- try{await scheduleIntro(ctx.db,ctx.p,ctx.chat,Date.now(),{kind:panel||force?'introf':'intro',force:force||!!ctx.owner})}catch(e){console.error('schedule intro',e?.message)}
+ try{queued=await scheduleIntro(ctx.db,ctx.p,ctx.chat,Date.now(),{kind:panel||force?'introf':'intro',force:force||!!ctx.owner})}catch(e){console.error('schedule intro',e?.message)}
+ // Primary path: keep this request's isolate alive and send when due. The queue row is the fallback; processDue claims rows atomically, so the video can never go twice.
+ if(queued&&ctx.wait)ctx.wait(timing.sleep(VIDEO_DELAY+500).then(()=>processDue(ctx.env,{origin:ctx.origin,limit:5})).catch(()=>{}));
 }
 async function screen(ctx,q,text,kb){
  // Edit the menu message in place; if that is refused, send a fresh one.

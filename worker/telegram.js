@@ -47,11 +47,12 @@ export function followLinks(env,token){const out={};for(const P of Object.values
 export function customerLinks(env,slug){const out={};if(!/^[a-z0-9-]{1,62}$/.test(slug))return out;for(const P of Object.values(PLATFORMS)){const u=P.user(env);if(P.token(env)&&u)out[P.name]=P.link(u,'c_'+slug)}return out}
 
 const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-const plain=s=>String(s??'').replace(/<\/?b>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
+const plain=s=>String(s??'').replace(/<\/?(b|blockquote)>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
 const local=p=>String(p||'').replace(/^\+98/,'0');
 const fa=n=>Number(n).toLocaleString('fa-IR');
 
 // One API call. Bale gets plain text (no parse_mode) and the classic reply_to_message_id.
+const stripDeco=rm=>({...rm,inline_keyboard:rm.inline_keyboard.map(r=>r.map(({style,icon_custom_emoji_id,...x})=>x))});
 export async function call(env,p,method,payload){
  const P=PLATFORMS[p];must(P.token(env),'ربات '+P.label+' هنوز تنظیم نشده است',503);
  let body=payload||{};
@@ -61,8 +62,12 @@ export async function call(env,p,method,payload){
   if(p!=='telegram'&&body.reply_parameters){body.reply_to_message_id=body.reply_parameters.message_id;delete body.reply_parameters}
  }
  const isForm=body instanceof FormData;
- const res=await fetch(P.api+'/bot'+P.token(env)+'/'+method,{method:'POST',...(isForm?{body}:{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),signal:AbortSignal.timeout(25000)});
- const d=await res.json().catch(()=>({}));
+ const send=async b=>{const res=await fetch(P.api+'/bot'+P.token(env)+'/'+method,{method:'POST',...(isForm?{body:b}:{headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}),signal:AbortSignal.timeout(25000)});return {res,d:await res.json().catch(()=>({}))}};
+ // Button colours (style) and custom-emoji icons are Telegram-only extras: Bale never gets them, and a 400 on Telegram is retried without them.
+ const decorated=!isForm&&body.reply_markup?.inline_keyboard?.some(r=>r.some(x=>x.style||x.icon_custom_emoji_id));
+ if(decorated&&p!=='telegram')body={...body,reply_markup:stripDeco(body.reply_markup)};
+ let {res,d}=await send(body);
+ if(decorated&&p==='telegram'&&res.status===400&&(!res.ok||!d.ok)){({res,d}=await send({...body,reply_markup:stripDeco(body.reply_markup)}))}
  if(!res.ok||!d.ok)throw new Problem(502,P.label+' درخواست را نپذیرفت'+(d.description?': '+d.description:''));
  return d.result;
 }
@@ -114,21 +119,21 @@ export async function staffInvite(db,env,t){
  return links;
 }
 
-export async function webhook(req,env){
+export async function webhook(req,env,exec){
  must(req.method==='POST','متد مجاز نیست',405);
  must(env.TELEGRAM_WEBHOOK_SECRET&&req.headers.get('x-telegram-bot-api-secret-token')===env.TELEGRAM_WEBHOOK_SECRET,'دسترسی مجاز نیست',403);
- return handle(req,env,'telegram');
+ return handle(req,env,'telegram',exec);
 }
 // Bale is authenticated by a secret in the webhook path (works whether or not Bale sends the
 // secret-token header).
-export async function baleWebhook(req,env,secret){
+export async function baleWebhook(req,env,secret,exec){
  must(req.method==='POST','متد مجاز نیست',405);
  const want=baleSecret(env);must(want&&secret===want,'دسترسی مجاز نیست',403);
- return handle(req,env,'bale');
+ return handle(req,env,'bale',exec);
 }
-async function handle(req,env,p){
+async function handle(req,env,p,exec){
  const u=await req.json().catch(()=>({}));const db=env.DB,origin=env.APP_ORIGIN||new URL(req.url).origin;
- const ctx={env,db,p,origin};
+ const ctx={env,db,p,origin,wait:pr=>{try{exec?.waitUntil(pr)}catch{}}};
  try{
   // Telegram may deliver the same update twice; handle each once.
   if(Number.isInteger(u.update_id)){const seen=await run(db,'INSERT OR IGNORE INTO bot_seen(key,created_at) VALUES(?,?)',p+':'+u.update_id,Date.now());if(!seen.meta.changes)return J({ok:true})}
@@ -753,6 +758,13 @@ export async function remind(env,origin,now=Date.now()){
 }
 
 export const BOT_COMMANDS=[{command:'start',description:'شروع و معرفی پلتفرم آینه'},{command:'welcome',description:'نمایش دوبارهٔ معرفی و منو'},{command:'help',description:'راهنما'}];
+export const BOT_DESCRIPTION='پلتفرم آینه، پرو مجازی لباس عروس برای مزون‌ها. عروس لباس‌های واقعی مزون را در حدود یک دقیقه روی عکس خودش می‌بیند و نتیجه را برای مزون می‌فرستد. برای شروع /start را بزنید.';
+export const BOT_SHORT_DESCRIPTION='پرو مجازی لباس عروس برای مزون‌ها';
+// Safe to repeat: every call just sets the same values. One failure never blocks the others (Bale may lack some methods).
+export async function setBotProfile(env,b){
+ const steps=[['setMyCommands',{commands:BOT_COMMANDS}],['setMyDescription',{description:BOT_DESCRIPTION}],['setMyShortDescription',{short_description:BOT_SHORT_DESCRIPTION}],['setChatMenuButton',{menu_button:{type:'commands'}}]];
+ for(const [m,x] of steps)await call(env,b,m,x).catch(e=>console.error(m,e?.message));
+}
 export async function setWebhook(env,origin){
  const out={ok:true,bots:{}};
  if(platformReady(env,'telegram')){
@@ -765,7 +777,7 @@ export async function setWebhook(env,origin){
   await call(env,'bale','setWebhook',{url:origin+'/api/bale/webhook/'+baleSecret(env)});
   out.bots.bale=(await call(env,'bale','getMe',{})).username;out.bot=out.bot||out.bots.bale;
  }
- for(const b of Object.keys(out.bots))await call(env,b,'setMyCommands',{commands:BOT_COMMANDS}).catch(e=>console.error('setMyCommands',e?.message));
+ for(const b of Object.keys(out.bots))await setBotProfile(env,b);
  must(Object.keys(out.bots).length,'هیچ رباتی تنظیم نشده است',503);
  return out;
 }

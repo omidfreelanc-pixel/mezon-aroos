@@ -52,8 +52,8 @@ export default {
   if(u.pathname==='/api/health'){try{await env.DB.prepare('SELECT 1').first();return Response.json({ok:true})}catch(e){console.error('health',e&&e.message);return Response.json({ok:false},{status:503})}}
   if(u.pathname==='/api/internal/webhook'){must(request.method==='POST','متد مجاز نیست',405);must(env.JOB_TOKEN&&request.headers.get('Authorization')==='Bearer '+env.JOB_TOKEN,'دسترسی مجاز نیست',403);return Response.json(await setWebhook(env,env.APP_ORIGIN||u.origin));}
   if(u.pathname==='/api/internal/tick'){must(request.method==='POST','متد مجاز نیست',405);must(env.JOB_TOKEN&&request.headers.get('Authorization')==='Bearer '+env.JOB_TOKEN,'دسترسی مجاز نیست',403);return Response.json(await tick(env,u.origin));}
-  if(u.pathname==='/api/telegram/webhook'){const r=await webhook(request,env);processSoon(env,env.APP_ORIGIN||u.origin,ctx);return r}
-  if(u.pathname.startsWith('/api/bale/webhook/')){const r=await baleWebhook(request,env,decodeURIComponent(u.pathname.slice(18)));processSoon(env,env.APP_ORIGIN||u.origin,ctx);return r}
+  if(u.pathname==='/api/telegram/webhook'){const r=await webhook(request,env,ctx);processSoon(env,env.APP_ORIGIN||u.origin,ctx);return r}
+  if(u.pathname.startsWith('/api/bale/webhook/')){const r=await baleWebhook(request,env,decodeURIComponent(u.pathname.slice(18)),ctx);processSoon(env,env.APP_ORIGIN||u.origin,ctx);return r}
   if(u.pathname.startsWith('/api/'))return await api(request,env);
   if(u.pathname==='/favicon.svg')return new Response(favicon,{headers:{'Content-Type':'image/svg+xml','Cache-Control':'public,max-age=86400'}});
   if(u.pathname.startsWith('/fonts/')){const f=fontResponse(u.pathname.slice(7));if(f)return f;}
