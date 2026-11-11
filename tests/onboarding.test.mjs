@@ -412,7 +412,7 @@ test('support: a typed mobile number completes an open contact request',()=>with
 test('support: API failure (twice) and bad output give the friendly fallback, one retry, an escalation, never a crash',()=>withSupport(async(env,bots,g)=>{
  let n=0; const g2=g.set(()=>{n++;return new Response('boom',{status:503})});
  try{
-  await say(tgHook,env,9931,'سلام');assert.equal(n,2,'one retry');
+  await say(tgHook,env,9931,'سلام');assert.equal(n,sup.modelChain(env).length,'walks the model chain');
   const t=bots.of('sendMessage').at(-1).body;assert(t.text.startsWith(sup.TEXT.fallback));assert(t.text.includes(sup.TEXT.askContact));
   assert.equal(row(env).length,1);assert.equal(row(env)[0].reason,'پاسخ خودکار در دسترس نبود');
  }finally{0}
@@ -421,7 +421,7 @@ test('support: API failure (twice) and bad output give the friendly fallback, on
  const g4=g.set(()=>Response.json({promptFeedback:{blockReason:'SAFETY'}}));
  try{await say(tgHook,env,9933,'سلام');assert(bots.of('sendMessage').at(-1).body.text.startsWith(sup.TEXT.fallback))}finally{0}
  // a first failure then success is retried transparently
- let k=0;const g5=g.set(()=>++k===1?new Response('x',{status:500}):gOk({reply:'بعد از تلاش دوم'}));
+ let k=0;const g5=g.set(()=>++k===1?new Response('x',{status:503}):gOk({reply:'بعد از تلاش دوم'}));
  try{await say(tgHook,env,9934,'سلام');assert.equal(bots.of('sendMessage').at(-1).body.text,'بعد از تلاش دوم')}finally{0}
 }));
 
@@ -508,7 +508,7 @@ test('support for linked chats: old manager text is shown only when the AI is of
 },{key:''}));
 
 test('support: plain JSON mode first; a 400 falls back through thinking levels, then responseSchema (upper, lower); last error/ok are stored without secrets',()=>withSupport(async(env,bots,g)=>{
- const seen=[];g.set(r=>{const c=r.body.generationConfig;seen.push((c.responseSchema?c.responseSchema.type:'plain')+'/'+JSON.stringify(c.thinkingConfig||null));return new Response('{"error":{"status":"INVALID_ARGUMENT"}}',{status:400})});
+ env.GEMINI_MODEL='gemini-2.5-flash';const seen=[];g.set(r=>{const c=r.body.generationConfig;seen.push((c.responseSchema?c.responseSchema.type:'plain')+'/'+JSON.stringify(c.thinkingConfig||null));return new Response('{"error":{"status":"INVALID_ARGUMENT"}}',{status:400})});
  await say(tgHook,env,9995,'سلام');
  assert.deepEqual(seen,['plain/{"thinkingBudget":0}','plain/null','OBJECT/{"thinkingBudget":0}','OBJECT/null','object/{"thinkingBudget":0}','object/null']);
  g.set(r=>r.body.generationConfig.responseSchema?gOk({reply:'با اسکیما'}):new Response('{}',{status:400}));
@@ -529,18 +529,18 @@ test('thinking control by model family: 2.5 budget 0; 3.6/lite minimal then low 
  await say(tgHook,env,9791,'سلام');assert.deepEqual(seen,['minimal','low']);assert.equal(bots.of('sendMessage').at(-1).body.text,'با low');
 }));
 
-test('gemini: default model 2.5-flash; timeouts are not retried; failures store model, ms, status and a redacted snippet',()=>withSupport(async(env,bots,g)=>{
- assert.equal(sup.GEMINI_MODEL,'gemini-2.5-flash');
+test('gemini: default model 3.6-flash; timeouts and 5xx fall through the model chain; failures store model, ms, status and a redacted snippet',()=>withSupport(async(env,bots,g)=>{
+ assert.equal(sup.GEMINI_MODEL,'gemini-3.6-flash');env.GEMINI_MODEL='gemini-2.5-flash';
  await say(tgHook,env,9801,'سلام');
  assert(g.g[0].url.includes('/models/gemini-2.5-flash:generateContent'));assert.deepEqual(g.g[0].body.generationConfig.thinkingConfig,{thinkingBudget:0});assert(g.g[0].body.generationConfig.maxOutputTokens<=1024);
  const ok=JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_ok'").get().value);assert.equal(ok.model,'gemini-2.5-flash');assert.equal(typeof ok.ms,'number');
  let n=0;g.set(()=>{n++;throw Object.assign(new Error('The operation was aborted due to timeout'),{name:'TimeoutError'})});
- await say(tgHook,env,9802,'سلام');assert.equal(n,1,'no retry on timeout');
+ await say(tgHook,env,9802,'سلام');assert.equal(n,sup.modelChain(env).length,'timeout moves to next model');
  let e=JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_error'").get().value);
- assert.equal(e.model,'gemini-2.5-flash');assert.equal(e.reason,'timeout');assert.equal(e.status,0);assert.equal(typeof e.ms,'number');
+ assert.equal(e.model,sup.modelChain(env).at(-1));assert.equal(e.reason,'timeout');assert.equal(e.status,0);assert.equal(typeof e.ms,'number');
  assert(bots.of('sendMessage').at(-1).body.text.startsWith(sup.TEXT.fallback));
  n=0;g.set(()=>{n++;return new Response('{"error":{"message":"'+KEY+' '+'x'.repeat(400)+'"}}',{status:503})});
- await say(tgHook,env,9803,'سلام');assert.equal(n,2,'one retry on 5xx');
+ await say(tgHook,env,9803,'سلام');assert.equal(n,sup.modelChain(env).length,'5xx walks the chain');
  e=JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_error'").get().value);
  assert.equal(e.status,503);assert(e.snippet.length<=200&&e.snippet.length>20);assert(!JSON.stringify(e).includes(KEY));
 }));
@@ -567,7 +567,7 @@ test('/api/internal/ai-check: JOB_TOKEN only; reports model, status, latency and
  assert.equal((await call()).status,403);assert.equal((await call({Authorization:'Bearer wrong'})).status,403);
  assert.equal((await app.fetch(new Request(origin+'/api/internal/ai-check',{method:'GET',headers:{Authorization:'Bearer job-test'}}),env)).status,405);
  g.set((r)=>r.url.includes(':generateContent')?gOk({reply:'ok'}):Response.json({models:[{name:'models/gemini-2.5-flash'},{name:'models/gemini-pro-x'},{name:'models/gemini-3.6-flash'},{name:'models/embedding-001'}]}));
- const res=await call({Authorization:'Bearer job-test'});assert.equal(res.status,200);const d=await res.json();
+ env.GEMINI_MODEL='gemini-2.5-flash';const res=await call({Authorization:'Bearer job-test'});assert.equal(res.status,200);const d=await res.json();
  assert.equal(d.model,'gemini-2.5-flash');assert.equal(d.status,200);assert.equal(d.ok,true);assert.equal(typeof d.ms,'number');assert.equal(d.error_snippet,'');
  assert.equal(d.plain.ok,true);assert.deepEqual(d.models.names,['gemini-2.5-flash','gemini-3.6-flash']);
  assert(g.g.some(r=>r.body?.generationConfig?.responseSchema)&&g.g.some(r=>r.body?.generationConfig&&!r.body.generationConfig.responseSchema));

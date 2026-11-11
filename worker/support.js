@@ -8,7 +8,7 @@ import {call} from './telegram.js';
 import {normalizeMobile} from './onboarding.js';
 import {SUPPORT_PROMPT,PROMPT_MARKER} from './ai-support-prompt.js';
 
-export const GEMINI_MODEL='gemini-2.5-flash'; // override with env GEMINI_MODEL
+export const GEMINI_MODEL='gemini-3.6-flash'; // override with env GEMINI_MODEL
 export const GEMINI_URL='https://generativelanguage.googleapis.com/v1beta/models/';
 export const LIM={turns:10,ttl:86400000,maxIn:800,perHour:20,maxOutTokens:768,timeout:20000,budget:27000,maxReply:1200,temperature:0.4};
 export const TEXT={
@@ -75,8 +75,8 @@ async function chain(env,model,body0,ms,{schemaMode='none',system,contents,token
 }
 // Production call. Default: plain JSON mode (JSON mime type + an instruction), the most tolerant; a 400 falls back to
 // responseSchema. Throws a key-free Error carrying {status,ms,model,snippet}.
-async function gemini(env,system,contents,ms){
- const model=modelOf(env),t0=Date.now();let r;
+async function gemini(env,system,contents,ms,model=modelOf(env)){
+ const t0=Date.now();let r;
  for(const schemaMode of ['none','upper','lower']){
   const left=ms-(Date.now()-t0);if(left<1500)throw bad('timeout',0,{ms:Date.now()-t0,model,snippet:''});
   r=await chain(env,model,null,left,{schemaMode,system,contents});
@@ -91,15 +91,20 @@ async function gemini(env,system,contents,ms){
 }
 // Last failure / success for later reading from D1 (app_settings.support_last_error / support_last_ok). Never keys or user text.
 const noteError=(db,e,model)=>setSetting(db,'support_last_error',JSON.stringify({at:new Date().toISOString(),model:e?.model||model,ms:e?.ms??null,status:e?.status??null,reason:String(e?.message||e||'failed').slice(0,60),snippet:e?.snippet||''})).catch(()=>{});
-// Retries once, and only on 429 or 5xx (never on a timeout or a client error).
+// Walks a model chain (env model first, then fallbacks) and moves on only for overload-type failures: 429, 5xx or a timeout.
+// Each model gets a shorter deadline so a stuck/overloaded model cannot eat the whole budget.
+export const FALLBACK_MODELS=['gemini-3.6-flash','gemini-3.7-flash','gemini-3.5-flash-lite'];
+export const modelChain=env=>[...new Set([modelOf(env),...FALLBACK_MODELS])];
 async function askModel(env,system,contents,notify){
- const t0=Date.now();let last;
- for(let i=0;i<2;i++){
-  const left=LIM.budget-(Date.now()-t0);if(left<2000)break;
-  try{await notify?.();const r=await gemini(env,system,contents,Math.min(LIM.timeout,left));await setSetting(env.DB,'support_last_ok',JSON.stringify({at:new Date().toISOString(),model:modelOf(env),ms:r._ms})).catch(()=>{});return r}
-  catch(e){last=e;console.error('support ai',String(e?.message||e).slice(0,40),e?.status);if(!(e?.status===429||e?.status>=500))break}
+ const t0=Date.now();let last,lastModel=modelOf(env);const chainM=modelChain(env);
+ for(let i=0;i<chainM.length;i++){
+  const model=chainM[i],left=LIM.budget-(Date.now()-t0);if(left<2500)break;
+  const per=i===chainM.length-1?left:Math.min(LIM.timeout-8000>6000?LIM.timeout-8000:9000,left);
+  lastModel=model;
+  try{await notify?.();const r=await gemini(env,system,contents,per,model);await setSetting(env.DB,'support_last_ok',JSON.stringify({at:new Date().toISOString(),model,ms:r._ms})).catch(()=>{});return r}
+  catch(e){last=e;console.error('support ai',model,String(e?.message||e).slice(0,40),e?.status);if(!(e?.status===429||e?.status>=500||e?.status===0||e?.status===404))break}
  }
- await noteError(env.DB,last,modelOf(env));
+ await noteError(env.DB,last,lastModel);
  throw last||new Error('gemini failed');
 }
 
