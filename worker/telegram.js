@@ -22,7 +22,7 @@ import {setLeadStatus} from './dresses.js';
 import {notifyOwner,linkOwner,isOwnerChat,sendDigest,setupStatus} from './alerts.js';
 import {newSession} from './server.js';
 import {setConsent} from './social.js';
-import {supportMessage} from './support.js';
+import {supportMessage,aiCheckCommand} from './support.js';
 import {sendWelcome,onbCallback,onboardingMessage,clearOnb,processDue} from './onboarding.js';
 const STALE=20*60000; // an unfinished wizard or team question is dropped after 20 idle minutes
 
@@ -145,6 +145,7 @@ async function handle(req,env,p,exec){
   const owner=await isOwnerChat(db,p,ctx.chat).catch(()=>false);ctx.owner=owner;
   // The owner re-tests often: any message from the owner chat delivers overdue videos right away (never throws).
   if(owner)await processDue(env,{origin,limit:5});
+  if(/^\/aicheck(@\w+)?$/i.test(textIn)){if(owner)await aiCheckCommand(ctx);return J({ok:true})}
   if(/^\/start(@\w+)?(\s|$)/.test(textIn)){await onStart(ctx,textIn.split(/\s+/)[1]||'');return J({ok:true})}
   if(/^\/(welcome|platform)(@\w+)?$/i.test(textIn)){await clearOnb(db,p,ctx.chat);await sendWelcome(ctx,{panel:await hasPanel(ctx),force:true});return J({ok:true})}
   if(await onboardingMessage(ctx,m,textIn))return J({ok:true});

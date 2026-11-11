@@ -28,15 +28,23 @@ export const contactKb=()=>({keyboard:[[{text:TEXT.share,request_contact:true}]]
 const schema=lower=>{const T=x=>lower?x.toLowerCase():x;return {type:T('OBJECT'),properties:{reply:{type:T('STRING')},escalate:{type:T('BOOLEAN')},reason:{type:T('STRING')},collect_contact:{type:T('BOOLEAN')},name:{type:T('STRING')}},required:['reply','escalate','reason','collect_contact']}};
 const JSON_HINT='\n\nخروجی را فقط به صورت یک شیء JSON معتبر بده، بدون هیچ متن دیگر و بدون بلاک کد، با کلیدهای reply (رشته)، escalate (بولی)، reason (رشته)، collect_contact (بولی) و name (رشته).';
 const modelOf=env=>String(env.GEMINI_MODEL||GEMINI_MODEL);
-// 2.5 flash models think by default, which can be slow; switch thinking off for them (other models reject or ignore it).
-export const thinkingFor=model=>/2\.5-flash/.test(model)?{thinkingBudget:0}:null;
+// Thinking control per model family (Gemini docs): 2.5 flash takes thinkingBudget 0; 3.x takes thinkingLevel.
+// 'minimal' exists only on some 3.x models (3.6-flash, flash-lite, 3-flash-preview); 3.8-flash and unknown/alias ids get 'low'.
+export function thinkingFor(model){
+ if(/2\.5-flash/.test(model))return {thinkingBudget:0};
+ if(/gemini-3\.6-flash|gemini-3(\.\d)?-flash-(lite|preview)/.test(model)&&!/image/.test(model))return {thinkingLevel:'minimal'};
+ if(/gemini-3|gemini-4|-latest/.test(model))return {thinkingLevel:'low'};
+ return null;
+}
 const redact=(env,s)=>String(s||'').split(env.GEMINI_API_KEY||'\u0000').join('[key]').replace(/AIza[0-9A-Za-z_-]{10,}/g,'[key]').replace(/\s+/g,' ').trim().slice(0,200);
 const bad=(msg,status,extra={})=>Object.assign(new Error(msg),{status,...extra});
-const genBody=(model,system,contents,mode)=>{
- const cfg={temperature:LIM.temperature,maxOutputTokens:LIM.maxOutTokens,responseMimeType:'application/json'};
- const th=thinkingFor(model);if(th)cfg.thinkingConfig=th;
- if(mode!=='none')cfg.responseSchema=schema(mode==='lower');
- return {systemInstruction:{parts:[{text:mode==='none'?system+JSON_HINT:system}]},contents,generationConfig:cfg};
+const genBody=(system,contents,{schemaMode='none',think=null,tokens=LIM.maxOutTokens,mime=true}={})=>{
+ const cfg={temperature:LIM.temperature,maxOutputTokens:tokens};
+ if(mime)cfg.responseMimeType='application/json';
+ if(think)cfg.thinkingConfig=think;
+ if(schemaMode!=='none')cfg.responseSchema=schema(schemaMode==='lower');
+ const text=schemaMode==='none'&&mime?system+JSON_HINT:system;
+ return {...(text?{systemInstruction:{parts:[{text}]}}:{}),contents,generationConfig:cfg};
 };
 // One HTTP call. Never throws for HTTP errors: returns {status,ms,text}; a timeout/network error gives status 0 and err.
 async function post(env,model,body,ms){
@@ -54,21 +62,32 @@ const readOut=text=>{
  if(!o||typeof o.reply!=='string'||!o.reply.trim())return {err:'bad output'};
  return {out:{reply:o.reply,escalate:o.escalate===true,reason:cut(o.reason,200),collect_contact:o.collect_contact===true,name:cut(o.name,60)}};
 };
-// generateContent with a deadline. A 400 (schema rejected) is retried with lowercase types, then without responseSchema.
-// Throws a key-free Error carrying {status,ms,model,snippet}.
+// Tries thinking settings in order (e.g. minimal -> low -> none) while the answer is a 400, within one deadline.
+async function chain(env,model,body0,ms,{schemaMode='none',system,contents,tokens,mime=true}){
+ const th=thinkingFor(model),thinks=[th,th?.thinkingLevel==='minimal'?{thinkingLevel:'low'}:null,null].filter((x,i,a)=>a.findIndex(y=>JSON.stringify(y)===JSON.stringify(x))===i);
+ const t0=Date.now();let r;
+ for(const think of thinks){
+  const left=ms-(Date.now()-t0);if(left<1500)return {...(r||{status:0,err:'timeout'}),ms:Date.now()-t0};
+  r=await post(env,model,genBody(system,contents,{schemaMode,think,tokens,mime}),left);r.think=think;
+  if(r.status!==400)break;
+ }
+ return {...r,ms:Date.now()-t0};
+}
+// Production call. Default: plain JSON mode (JSON mime type + an instruction), the most tolerant; a 400 falls back to
+// responseSchema. Throws a key-free Error carrying {status,ms,model,snippet}.
 async function gemini(env,system,contents,ms){
- const model=modelOf(env),t0=Date.now();
- for(const mode of ['upper','lower','none']){
+ const model=modelOf(env),t0=Date.now();let r;
+ for(const schemaMode of ['none','upper','lower']){
   const left=ms-(Date.now()-t0);if(left<1500)throw bad('timeout',0,{ms:Date.now()-t0,model,snippet:''});
-  const r=await post(env,model,genBody(model,system,contents,mode),left);
-  if(r.status===400&&mode!=='none')continue;
+  r=await chain(env,model,null,left,{schemaMode,system,contents});
+  if(r.status===400)continue;
   if(r.status===0)throw bad(r.err,0,{ms:Date.now()-t0,model,snippet:''});
   if(r.status<200||r.status>=300)throw bad('http '+r.status,r.status,{ms:Date.now()-t0,model,snippet:redact(env,r.text)});
   const o=readOut(r.text);
   if(o.err)throw bad(o.err,-1,{ms:Date.now()-t0,model,snippet:o.err==='bad output'?redact(env,r.text).slice(0,120):''});
   return {...o.out,_ms:Date.now()-t0};
  }
- throw bad('http 400',400,{ms:Date.now()-t0,model,snippet:''});
+ throw bad('http 400',400,{ms:Date.now()-t0,model,snippet:redact(env,r?.text)});
 }
 // Last failure / success for later reading from D1 (app_settings.support_last_error / support_last_ok). Never keys or user text.
 const noteError=(db,e,model)=>setSetting(db,'support_last_error',JSON.stringify({at:new Date().toISOString(),model:e?.model||model,ms:e?.ms??null,status:e?.status??null,reason:String(e?.message||e||'failed').slice(0,60),snippet:e?.snippet||''})).catch(()=>{});
@@ -83,18 +102,62 @@ async function askModel(env,system,contents,notify){
  await noteError(env.DB,last,modelOf(env));
  throw last||new Error('gemini failed');
 }
-// POST /api/internal/ai-check: diagnoses the key/model without Telegram. Returns status/latency/error snippets only.
+
+/* ---------- diagnostics: /aicheck (owner chat) and POST /api/internal/ai-check ---------- */
+async function listFlash(env,max){
+ const t=Date.now();
+ try{
+  const res=await fetch(GEMINI_URL.replace(/models\/$/,'models')+'?pageSize=200',{headers:{'x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(10000)});
+  const d=await res.json().catch(()=>({}));
+  return {status:res.status,ms:Date.now()-t,names:(d.models||[]).map(x=>String(x.name||'').replace(/^models\//,'')).filter(n=>n.includes('flash')).slice(0,max),error_snippet:res.ok?'':redact(env,JSON.stringify(d))};
+ }catch(e){return {status:0,ms:Date.now()-t,names:[],error_snippet:e?.name==='TimeoutError'?'timeout':'network'}}
+}
+// One probe: label, model, prompt, mode ('plain'|'schema'), per-probe deadline. Never throws.
+async function probe(env,{model,system,user,schemaMode='none',tokens=64,ms=12000,mime=true}){
+ const contents=[{role:'user',parts:[{text:user}]}];
+ const r=await chain(env,model,null,ms,{schemaMode,system,contents,tokens,mime});
+ const body=parse(r.text,{}),got=(body.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('');
+ const ok=r.status>=200&&r.status<300&&!!got;
+ return {model,mode:(schemaMode==='none'?'plain':'schema')+(r.think?'/'+(r.think.thinkingLevel||'b'+r.think.thinkingBudget):''),status:r.status||null,ms:r.ms,ok,error_snippet:ok?'':String(r.err||redact(env,r.text)||'empty').slice(0,120)};
+}
+// Runs all probes in parallel (each has its own deadline), so the whole report fits well inside the 25 s guard.
+export async function aiProbes(env){
+ const model=modelOf(env);
+ if(!env.GEMINI_API_KEY)return {model,rows:[],models:{status:null,ms:0,names:[]},error:'GEMINI_API_KEY missing'};
+ const tiny='فقط بگو سلام',full=SUPPORT_PROMPT.replaceAll('{{SITE}}',String(env.APP_ORIGIN||'').replace(/\/+$/,''));
+ const models=await listFlash(env,20),has=n=>models.names.includes(n);
+ const jobs=[
+  probe(env,{model,system:'',user:tiny,tokens:64,ms:12000,mime:false}),
+  probe(env,{model,system:full,user:'سلام',tokens:LIM.maxOutTokens,ms:12000}),
+  probe(env,{model,system:full,user:'سلام',tokens:LIM.maxOutTokens,ms:12000,schemaMode:'upper'}),
+  ...['gemini-flash-latest','gemini-flash-lite-latest'].filter(has).map(m=>probe(env,{model:m,system:'',user:tiny,tokens:64,ms:10000,mime:false}))];
+ const labels=['tiny','full-prompt plain','full-prompt schema','tiny alias','tiny alias'];
+ const rows=(await Promise.all(jobs)).map((r,i)=>({label:labels[i],...r}));
+ return {model,rows,models};
+}
+export function formatProbes(d){
+ if(d.error)return 'آزمایش AI: '+d.error;
+ const l=[ 'مدل فعلی: '+d.model,'', 'مدل‌های flash این کلید ('+d.models.status+', '+d.models.ms+'ms):',(d.models.names.join('\n')||d.models.error_snippet||'—'),'','نتیجهٔ آزمایش‌ها (مدل | حالت | وضعیت | ms | خطا):'];
+ for(const r of d.rows)l.push(r.label+' | '+r.model+' | '+r.mode+' | '+(r.status??'timeout')+' | '+r.ms+'ms | '+(r.ok?'ok':r.error_snippet));
+ return l.join('\n').slice(0,3800);
+}
+// /aicheck from the owner chat: probes run in the background (waitUntil) and the report arrives as a message.
+export async function aiCheckCommand(ctx){
+ const job=(async()=>{
+  await ctx.say('در حال آزمایش اتصال به Gemini… (حدود ۱۵ ثانیه)').catch(()=>{});
+  let text;try{text=formatProbes(await Promise.race([aiProbes(ctx.env),new Promise(r=>setTimeout(()=>r({error:'زمان آزمایش از ۲۵ ثانیه گذشت',rows:[],models:{names:[]}}),25000))]))}catch(e){text='آزمایش ناموفق بود: '+String(e?.message||e).slice(0,100)}
+  await ctx.say(text).catch(()=>{});
+ })();
+ if(ctx.hasExec)ctx.wait(job);else await job;
+}
+// POST /api/internal/ai-check (JOB_TOKEN): trivial JSON-schema and plain calls plus the flash model names.
 export async function aiCheck(env){
  const model=modelOf(env);
  if(!env.GEMINI_API_KEY)return {model,status:null,ms:0,ok:false,error_snippet:'GEMINI_API_KEY missing'};
- const contents=[{role:'user',parts:[{text:'پاسخ بده: ok'}]}],system='فقط یک JSON با کلید reply بده که مقدارش ok باشد. اگر کلیدهای escalate و collect_contact لازم است، false بگذار و reason را خالی بگذار.';
- const one=async mode=>{const r=await post(env,model,genBody(model,system,contents,mode),LIM.timeout);const ok=r.status>=200&&r.status<300&&!readOut(r.text).err;
-  return {status:r.status||null,ms:r.ms,ok,error_snippet:ok?'':(r.err||redact(env,r.text||readOut(r.text).err))}};
- const list=async()=>{const t=Date.now();try{const res=await fetch(GEMINI_URL.replace(/models\/$/,'models')+'?pageSize=200',{headers:{'x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(15000)});
-  const d=await res.json().catch(()=>({}));return {status:res.status,ms:Date.now()-t,names:(d.models||[]).map(x=>String(x.name||'').replace(/^models\//,'')).filter(n=>n.includes('flash')).slice(0,15)}}
-  catch(e){return {status:null,ms:Date.now()-t,names:[],error_snippet:e?.name==='TimeoutError'?'timeout':'network'}}};
- const [schemaMode,plain,models]=await Promise.all([one('upper'),one('none'),list()]);
- return {model,thinking:thinkingFor(model),...schemaMode,plain,models};
+ const system='فقط یک JSON با کلید reply بده که مقدارش ok باشد. escalate و collect_contact را false و reason را خالی بگذار.';
+ const one=async schemaMode=>{const r=await probe(env,{model,system,user:'پاسخ بده: ok',schemaMode,tokens:128,ms:LIM.timeout});return {status:r.status,ms:r.ms,ok:r.ok,error_snippet:r.error_snippet}};
+ const [schemaRes,plain,models]=await Promise.all([one('upper'),one('none'),listFlash(env,15)]);
+ return {model,thinking:thinkingFor(model),...schemaRes,plain,models};
 }
 // Never show the prompt or a key, whatever the model produced; plain text only.
 export function cleanReply(s){

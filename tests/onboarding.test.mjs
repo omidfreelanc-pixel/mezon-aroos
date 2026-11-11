@@ -370,7 +370,7 @@ test('support: normal answer goes through Gemini JSON mode, plain text, typing a
  assert(r.url.startsWith(GURL+'v1beta/models/'+sup.GEMINI_MODEL+':generateContent'));assert(!r.url.includes(KEY),'key never in the URL');
  assert.equal(r.headers['x-goog-api-key'],KEY);
  const b=r.body;assert(b.systemInstruction.parts[0].text.includes(PROMPT_MARKER));assert(b.systemInstruction.parts[0].text.includes('https://ayneh-mezon.site/register'),'{{SITE}} filled');assert(!b.systemInstruction.parts[0].text.includes('{{SITE}}'));
- assert.equal(b.generationConfig.responseMimeType,'application/json');assert.deepEqual(b.generationConfig.responseSchema.required,['reply','escalate','reason','collect_contact']);
+ assert.equal(b.generationConfig.responseMimeType,'application/json');assert.equal(b.generationConfig.responseSchema,undefined,'plain JSON mode is the default');assert(b.systemInstruction.parts[0].text.includes('شیء JSON معتبر'));
  assert.equal(b.generationConfig.temperature,0.4);assert(b.generationConfig.maxOutputTokens<=1024);
  assert.deepEqual(b.contents.at(-1),{role:'user',parts:[{text:'ثبت‌نام مزون‌دار چطوره؟'}]});
  assert.equal(bots.last('sendMessage').text,'پاسخ 1');assert(!bots.last('sendMessage').parse_mode);
@@ -507,38 +507,59 @@ test('support for linked chats: old manager text is shown only when the AI is of
  assert.equal(JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_error'").get().value).reason,'no GEMINI_API_KEY');
 },{key:''}));
 
-test('support: schema rejected with 400 -> retry with lowercase types, then without responseSchema; last error is stored without secrets; success records support_last_ok',()=>withSupport(async(env,bots,g)=>{
- const seen=[];g.set(r=>{const c=r.body.generationConfig;seen.push(c.responseSchema?c.responseSchema.type:'none');return c.responseSchema?new Response('{"error":{"status":"INVALID_ARGUMENT"}}',{status:400}):gOk({reply:'بدون اسکیما'})});
- await say(tgHook,env,9995,'سلام');assert.deepEqual(seen,['OBJECT','object','none']);
- const last=g.g.at(-1).body;assert(last.systemInstruction.parts[0].text.includes('شیء JSON معتبر'));assert.equal(last.generationConfig.responseMimeType,'application/json');
- assert.equal(bots.of('sendMessage').at(-1).body.text,'بدون اسکیما');
+test('support: plain JSON mode first; a 400 falls back through thinking levels, then responseSchema (upper, lower); last error/ok are stored without secrets',()=>withSupport(async(env,bots,g)=>{
+ const seen=[];g.set(r=>{const c=r.body.generationConfig;seen.push((c.responseSchema?c.responseSchema.type:'plain')+'/'+JSON.stringify(c.thinkingConfig||null));return new Response('{"error":{"status":"INVALID_ARGUMENT"}}',{status:400})});
+ await say(tgHook,env,9995,'سلام');
+ assert.deepEqual(seen,['plain/{"thinkingBudget":0}','plain/null','OBJECT/{"thinkingBudget":0}','OBJECT/null','object/{"thinkingBudget":0}','object/null']);
+ g.set(r=>r.body.generationConfig.responseSchema?gOk({reply:'با اسکیما'}):new Response('{}',{status:400}));
+ await say(tgHook,env,9994,'سلام');assert.equal(bots.of('sendMessage').at(-1).body.text,'با اسکیما');
  assert(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_ok'").get());
- // hard failure stores status only
  g.set(()=>new Response('quota',{status:429}));await say(tgHook,env,9996,'سلام');
  const e=JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_error'").get().value);assert.equal(e.status,429);assert(!JSON.stringify(e).includes(KEY));
- // auth errors are not retried
  let n=0;g.set(()=>{n++;return new Response('x',{status:403})});await say(tgHook,env,9997,'سلام');assert.equal(n,1);
 }));
 
-test('gemini: default model 2.5-flash with thinking off; other models get no thinkingConfig; timeouts are not retried; failures store model, ms, status and a redacted snippet',()=>withSupport(async(env,bots,g)=>{
+test('thinking control by model family: 2.5 budget 0; 3.6/lite minimal then low on 400; 3.8 and aliases low; unknown none',()=>withSupport(async(env,bots,g)=>{
+ assert.deepEqual(sup.thinkingFor('gemini-2.5-flash'),{thinkingBudget:0});
+ for(const m of ['gemini-3.6-flash','gemini-3.5-flash-lite','gemini-3-flash-preview'])assert.deepEqual(sup.thinkingFor(m),{thinkingLevel:'minimal'},m);
+ for(const m of ['gemini-3.8-flash','gemini-flash-latest','gemini-flash-lite-latest'])assert.deepEqual(sup.thinkingFor(m),{thinkingLevel:'low'},m);
+ assert.equal(sup.thinkingFor('gemma-x'),null);
+ env.GEMINI_MODEL='gemini-3.6-flash';const seen=[];
+ g.set(r=>{const th=r.body.generationConfig.thinkingConfig;seen.push(th?.thinkingLevel||'none');return th?.thinkingLevel==='minimal'?new Response('{}',{status:400}):gOk({reply:'با low'})});
+ await say(tgHook,env,9791,'سلام');assert.deepEqual(seen,['minimal','low']);assert.equal(bots.of('sendMessage').at(-1).body.text,'با low');
+}));
+
+test('gemini: default model 2.5-flash; timeouts are not retried; failures store model, ms, status and a redacted snippet',()=>withSupport(async(env,bots,g)=>{
  assert.equal(sup.GEMINI_MODEL,'gemini-2.5-flash');
  await say(tgHook,env,9801,'سلام');
  assert(g.g[0].url.includes('/models/gemini-2.5-flash:generateContent'));assert.deepEqual(g.g[0].body.generationConfig.thinkingConfig,{thinkingBudget:0});assert(g.g[0].body.generationConfig.maxOutputTokens<=1024);
  const ok=JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_ok'").get().value);assert.equal(ok.model,'gemini-2.5-flash');assert.equal(typeof ok.ms,'number');
- env.GEMINI_MODEL='gemini-3.6-flash';await say(tgHook,env,9801,'دوباره');assert.equal(g.g.at(-1).body.generationConfig.thinkingConfig,undefined);env.GEMINI_MODEL='gemini-2.5-flash';
- // timeout: one attempt only
  let n=0;g.set(()=>{n++;throw Object.assign(new Error('The operation was aborted due to timeout'),{name:'TimeoutError'})});
  await say(tgHook,env,9802,'سلام');assert.equal(n,1,'no retry on timeout');
  let e=JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_error'").get().value);
  assert.equal(e.model,'gemini-2.5-flash');assert.equal(e.reason,'timeout');assert.equal(e.status,0);assert.equal(typeof e.ms,'number');
  assert(bots.of('sendMessage').at(-1).body.text.startsWith(sup.TEXT.fallback));
- // 5xx: retried once; snippet is cut to 200 chars and the key is redacted
  n=0;g.set(()=>{n++;return new Response('{"error":{"message":"'+KEY+' '+'x'.repeat(400)+'"}}',{status:503})});
- await say(tgHook,env,9803,'سلام');assert.equal(n,2);
+ await say(tgHook,env,9803,'سلام');assert.equal(n,2,'one retry on 5xx');
  e=JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_error'").get().value);
  assert.equal(e.status,503);assert(e.snippet.length<=200&&e.snippet.length>20);assert(!JSON.stringify(e).includes(KEY));
- // 4xx: not retried
- n=0;g.set(()=>{n++;return new Response('{"error":{"message":"API key not valid"}}',{status:400})});await say(tgHook,env,9804,'سلام');assert.equal(n,3,'only the schema variants, no extra retry');
+}));
+
+test('/aicheck: owner chat only; reports models and probes (tiny, full prompt plain/schema, aliases) without the key; others are ignored',()=>withSupport(async(env,bots,g)=>{
+ env.DB.sql.prepare("INSERT INTO owner_chats(platform,chat_id,created_at) VALUES('telegram','8810',?)").run(Date.now());
+ g.set(r=>r.url.includes(':generateContent')?gOk({reply:'سلام'}):Response.json({models:[{name:'models/gemini-2.5-flash'},{name:'models/gemini-flash-latest'},{name:'models/gemini-flash-lite-latest'},{name:'models/other'}]}));
+ await say(tgHook,env,9811,'/aicheck');assert.equal(g.g.length,0);assert.equal(bots.of('sendMessage').length,0,'non-owner chat: ignored silently');
+ await say(tgHook,env,8810,'/aicheck');
+ const texts=sentTexts(bots);assert.equal(texts.length,2);assert(/در حال آزمایش/.test(texts[0]));
+ const rep=texts[1];assert(rep.includes('gemini-2.5-flash')&&rep.includes('gemini-flash-latest'));assert(!rep.includes(KEY));
+ const rows=rep.split('\n').filter(l=>/ \| \d+ms \|/.test(l));assert.equal(rows.length,5);assert(rows.every(l=>/\| ok$/.test(l)));
+ const calls=g.g.filter(r=>r.url.includes(':generateContent'));
+ assert.equal(calls.length,5);assert(calls.some(c=>c.body.generationConfig.responseSchema));assert(calls.some(c=>!c.body.systemInstruction),'tiny probe has no system prompt');
+ assert(calls.some(c=>c.body.systemInstruction?.parts[0].text.includes(PROMPT_MARKER)&&!c.body.generationConfig.responseSchema),'full prompt, plain');
+ assert(calls.filter(c=>c.url.includes('flash-latest')||c.url.includes('flash-lite-latest')).every(c=>c.body.generationConfig.thinkingConfig?.thinkingLevel==='low'));
+ // failures are shown compactly
+ g.set(r=>r.url.includes(':generateContent')?new Response('{"error":{"message":"model not found '+'z'.repeat(300)+'"}}',{status:404}):Response.json({models:[]}));
+ bots.calls.length=0;await say(tgHook,env,8810,'/aicheck');const bad=sentTexts(bots)[1];assert(bad.includes('404')&&bad.includes('model not found'));assert(bad.split('\n').every(l=>l.length<260));
 }));
 
 test('/api/internal/ai-check: JOB_TOKEN only; reports model, status, latency and flash model names for both modes',()=>withSupport(async(env,bots,g)=>{
