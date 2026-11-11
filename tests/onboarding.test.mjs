@@ -452,7 +452,7 @@ test('support: history keeps the last 10 turns, expires after 24 h; commands, lo
  await press(tgHook,env,9962,'ob:login');await say(tgHook,env,9962,'غیرتماس');await contact(tgHook,env,9962,'09121234567');
  const m=g.g.length;await tgHook(env,{message:{...priv(9962),message_id:++uidn,text:'Secret-pass1'}});assert.equal(g.g.length,m,'a password in the sign-in state never reaches the agent');
  const id=await makeSalon(env);env.DB.sql.prepare('UPDATE salons SET telegram_chat_id=? WHERE id=?').run('9963',id);
- await say(tgHook,env,9963,'یک متن آزاد');assert.equal(g.g.length,m,'linked managers keep the old behaviour');
+ await say(tgHook,env,9963,'/help');assert.equal(g.g.length,m,'manager commands are not AI');await say(tgHook,env,9963,'یک متن آزاد');assert.equal(g.g.length,m+1,'manager free text now reaches the agent');
  await say(tgHook,env,9964,'ا'.repeat(5000));assert.equal(g.g.at(-1).body.contents.at(-1).parts[0].text.length,800);
 }));
 
@@ -482,4 +482,40 @@ test('support: simulated conversations (set SHOW_TRANSCRIPT=1 to print)',()=>wit
   if(process.env.SHOW_TRANSCRIPT)console.log('\n'+tr.join('\n---\n')+'\n');
   assert.equal(row(env).length,2);
  }finally{0}
+}));
+
+test('support for linked chats: greeting from a manager/owner/team chat reaches the AI with a role block; phone numbers, photos and commands keep the manager actions; fallback only when AI is off',()=>withSupport(async(env,bots,g)=>{
+ const id=await makeSalon(env);env.DB.sql.prepare('UPDATE salons SET telegram_chat_id=? WHERE id=?').run('9990',id);
+ await say(tgHook,env,9990,'سلام');
+ assert.equal(g.g.length,1);const sys=g.g[0].body.systemInstruction.parts[0].text;
+ assert(sys.includes('زمینهٔ کاربر')&&sys.includes('مدیر مزون (وارد شده')&&sys.includes('مزون تست'));assert.deepEqual(g.g[0].body.contents.at(-1),{role:'user',parts:[{text:'سلام'}]},'role is not mixed into the user turn');
+ assert.equal(bots.of('sendMessage').at(-1).body.text,'پاسخ 1');assert(!/برای اضافه‌کردن نمونه‌کار/.test(JSON.stringify(bots.calls)));
+ // owner chat that is also linked
+ env.DB.sql.prepare("INSERT INTO owner_chats(platform,chat_id,created_at) VALUES('telegram','9990',?)").run(Date.now());
+ await say(tgHook,env,9990,'سلام دوباره');assert(g.g[1].body.systemInstruction.parts[0].text.includes('مالک پلتفرم'));
+ // manager actions are untouched
+ const n=g.g.length;await say(tgHook,env,9990,'09121234567');assert.equal(g.g.length,n,'a lone phone number still sends the link');
+ await tgHook(env,{message:{...priv(9990),message_id:++uidn,photo:[{file_id:'f',file_size:10,width:1,height:1}],caption:'پرنسسی'}});assert.equal(g.g.length,n,'photos are portfolio');
+ // team member
+ env.DB.sql.prepare("INSERT INTO team(id,salon_id,name,telegram_chat_id,ref_code,active,created_at) VALUES('tm1',?,?,?,?,1,?)").run(id,'سارا','9991','ref1',Date.now());
+ await say(tgHook,env,9991,'سلام');assert(g.g.at(-1).body.systemInstruction.parts[0].text.includes('عضو تیم'));
+}));
+
+test('support for linked chats: old manager text is shown only when the AI is off or failing (with a stored reason)',()=>withSupport(async(env,bots,g)=>{
+ const id=await makeSalon(env);env.DB.sql.prepare('UPDATE salons SET telegram_chat_id=? WHERE id=?').run('9992',id);
+ await say(tgHook,env,9992,'سلام');assert(bots.of('sendMessage').at(-1).body.text.startsWith(sup.TEXT.fallback),'AI off -> friendly fallback, not the generic manager hint');
+ assert.equal(JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_error'").get().value).reason,'no GEMINI_API_KEY');
+},{key:''}));
+
+test('support: schema rejected with 400 -> retry with lowercase types, then without responseSchema; last error is stored without secrets; success records support_last_ok',()=>withSupport(async(env,bots,g)=>{
+ const seen=[];g.set(r=>{const c=r.body.generationConfig;seen.push(c.responseSchema?c.responseSchema.type:'none');return c.responseSchema?new Response('{"error":{"status":"INVALID_ARGUMENT"}}',{status:400}):gOk({reply:'بدون اسکیما'})});
+ await say(tgHook,env,9995,'سلام');assert.deepEqual(seen,['OBJECT','object','none']);
+ const last=g.g.at(-1).body;assert(last.systemInstruction.parts[0].text.includes('شیء JSON معتبر'));assert.equal(last.generationConfig.responseMimeType,'application/json');
+ assert.equal(bots.of('sendMessage').at(-1).body.text,'بدون اسکیما');
+ assert(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_ok'").get());
+ // hard failure stores status only
+ g.set(()=>new Response('quota',{status:429}));await say(tgHook,env,9996,'سلام');
+ const e=JSON.parse(env.DB.sql.prepare("SELECT value FROM app_settings WHERE key='support_last_error'").get().value);assert.equal(e.status,429);assert(!JSON.stringify(e).includes(KEY));
+ // auth errors are not retried
+ let n=0;g.set(()=>{n++;return new Response('x',{status:403})});await say(tgHook,env,9997,'سلام');assert.equal(n,1);
 }));

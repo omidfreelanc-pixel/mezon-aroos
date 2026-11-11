@@ -181,6 +181,7 @@ async function handle(req,env,p,exec){
   const numbers=mobilesIn(textIn);
   if(numbers.length){if(inviteReady(env))await sendInvites(env,db,salon,ctx.chat,numbers,ctx.say);else await shareInvites(ctx,numbers,ctx.staff);return J({ok:true})}
   if(photo){await addPortfolio(ctx,photo,m.caption||'',m.media_group_id,m.message_id);return J({ok:true})}
+  if(await supportMessage(ctx,m,textIn,ctx.owner?'owner':'manager'))return J({ok:true});
   await ctx.say('برای اضافه‌کردن نمونه‌کار، عکس بفرستید'+' و برای فرستادن لینک مزون به مشتری، شمارهٔ موبایلش را بنویسید. /help راهنما را نشان می‌دهد.');
   return J({ok:true});
  }catch(e){
@@ -338,6 +339,7 @@ async function staffMessage(ctx,m,textIn){
  if(textIn==='/share'){await shareInvites(ctx,[],t);return}
  const photo=photoOf(m);
  if(photo){await addPortfolio(ctx,photo,m.caption||'',m.media_group_id,m.message_id);return}
+ if(await supportMessage(ctx,m,textIn,'staff'))return;
  await ctx.say('برای نمونه‌کار، عکس کارت را بفرست و زیرش اسم کار را بنویس.'+' برای فرستادن لینک اختصاصی‌ات به مشتری، شماره‌اش را بنویس.'+'\n/share فرستادن لینک · /link لینک اختصاصی · /list نمونه‌کارها · /help راهنما');
 }
 const teamLine=(t,i)=>fa(i+1)+'. <b>'+esc(t.name)+'</b>'+(t.is_manager?' (خودِ مدیر)':'')+(t.specialty&&!t.is_manager?' — '+esc(t.specialty):'')+' · '+(t.telegram_chat_id||t.bale_chat_id?'✅ وصل':'⏳ هنوز وصل نشده');

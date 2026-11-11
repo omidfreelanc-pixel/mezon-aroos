@@ -3,7 +3,7 @@
 // support_escalations plus a short note to the owner chat. Secrets: GEMINI_API_KEY (required), GEMINI_MODEL (optional).
 // The key is only ever sent as a request header; it is never logged or stored. Nothing here throws into the webhook.
 import {Problem,limited,uid,digits} from './domain.js';
-import {notifyOwner} from './alerts.js';
+import {notifyOwner,setSetting} from './alerts.js';
 import {call} from './telegram.js';
 import {normalizeMobile} from './onboarding.js';
 import {SUPPORT_PROMPT,PROMPT_MARKER} from './ai-support-prompt.js';
@@ -25,28 +25,40 @@ const parse=(s,d)=>{try{return JSON.parse(s)}catch{return d}};
 const cut=(s,n)=>String(s??'').replace(/\s+/g,' ').trim().slice(0,n);
 export const contactKb=()=>({keyboard:[[{text:TEXT.share,request_contact:true}]],resize_keyboard:true,one_time_keyboard:true});
 
-const schema={type:'OBJECT',properties:{reply:{type:'STRING'},escalate:{type:'BOOLEAN'},reason:{type:'STRING'},collect_contact:{type:'BOOLEAN'},name:{type:'STRING'}},required:['reply','escalate','reason','collect_contact']};
-
-// One generateContent call with a deadline; returns {reply,escalate,reason,collect_contact,name} or throws a key-free Error.
+const schema=lower=>{const T=x=>lower?x.toLowerCase():x;return {type:T('OBJECT'),properties:{reply:{type:T('STRING')},escalate:{type:T('BOOLEAN')},reason:{type:T('STRING')},collect_contact:{type:T('BOOLEAN')},name:{type:T('STRING')}},required:['reply','escalate','reason','collect_contact']}};
+const JSON_HINT='\n\nخروجی را فقط به صورت یک شیء JSON معتبر بده، بدون هیچ متن دیگر و بدون بلاک کد، با کلیدهای reply (رشته)، escalate (بولی)، reason (رشته)، collect_contact (بولی) و name (رشته).';
+const bad=(msg,status)=>Object.assign(new Error(msg),{status});
+// One generateContent call. A 400 (schema rejected) is retried with the other type casing, then without responseSchema
+// (JSON mime type + an instruction in the prompt). Returns {reply,escalate,reason,collect_contact,name} or throws a key-free Error with .status.
 async function gemini(env,system,contents,ms){
- const model=encodeURIComponent(String(env.GEMINI_MODEL||GEMINI_MODEL));
- const res=await fetch(GEMINI_URL+model+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(ms),
-  body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents,generationConfig:{temperature:LIM.temperature,maxOutputTokens:LIM.maxOutTokens,responseMimeType:'application/json',responseSchema:schema}})});
- if(!res.ok)throw new Error('gemini http '+res.status);
- const d=await res.json().catch(()=>({}));
- if(d.promptFeedback?.blockReason)throw new Error('gemini blocked');
- const raw=(d.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('');
- const o=parse(raw,null);
- if(!o||typeof o.reply!=='string'||!o.reply.trim())throw new Error('gemini bad output');
- return {reply:o.reply,escalate:o.escalate===true,reason:cut(o.reason,200),collect_contact:o.collect_contact===true,name:cut(o.name,60)};
+ const model=encodeURIComponent(String(env.GEMINI_MODEL||GEMINI_MODEL)),t0=Date.now();
+ for(const mode of ['upper','lower','none']){
+  const left=ms-(Date.now()-t0);if(left<1500)throw bad('gemini timeout',0);
+  const cfg={temperature:LIM.temperature,maxOutputTokens:LIM.maxOutTokens,responseMimeType:'application/json'};
+  if(mode!=='none')cfg.responseSchema=schema(mode==='lower');
+  const res=await fetch(GEMINI_URL+model+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':env.GEMINI_API_KEY},signal:AbortSignal.timeout(left),
+   body:JSON.stringify({systemInstruction:{parts:[{text:mode==='none'?system+JSON_HINT:system}]},contents,generationConfig:cfg})});
+  if(res.status===400&&mode!=='none')continue;
+  if(!res.ok)throw bad('gemini http '+res.status,res.status);
+  const d=await res.json().catch(()=>({}));
+  if(d.promptFeedback?.blockReason)throw bad('gemini blocked',-1);
+  const raw=(d.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('').replace(/^\s*```(?:json)?|```\s*$/g,'');
+  const o=parse(raw,null);
+  if(!o||typeof o.reply!=='string'||!o.reply.trim())throw bad('gemini bad output',-2);
+  return {reply:o.reply,escalate:o.escalate===true,reason:cut(o.reason,200),collect_contact:o.collect_contact===true,name:cut(o.name,60)};
+ }
+ throw bad('gemini http 400',400);
 }
+// Last failure (status codes and short reasons only, never keys or user text) for later reading from D1: app_settings.support_last_error
+const noteError=(db,reason,status)=>setSetting(db,'support_last_error',JSON.stringify({at:new Date().toISOString(),reason,status:status??null})).catch(()=>{});
 async function askModel(env,system,contents,notify){
  const t0=Date.now();let last;
  for(let i=0;i<2;i++){
   const left=LIM.budget-(Date.now()-t0);if(left<2000)break;
-  try{await notify?.();return await gemini(env,system,contents,Math.min(LIM.timeout,left))}
-  catch(e){last=e;console.error('support ai',String(e?.message||e).slice(0,80))}
+  try{await notify?.();const r=await gemini(env,system,contents,Math.min(LIM.timeout,left));await setSetting(env.DB,'support_last_ok',new Date().toISOString()).catch(()=>{});return r}
+  catch(e){last=e;console.error('support ai',String(e?.message||e).slice(0,60));if(e?.status===401||e?.status===403||e?.status===404)break}
  }
+ await noteError(env.DB,String(last?.message||'failed').slice(0,60),last?.status);
  throw last||new Error('gemini failed');
 }
 // Never show the prompt or a key, whatever the model produced; plain text only.
@@ -85,9 +97,10 @@ async function saveContact(ctx,phone,turns,name){
 }
 
 /* ---------- entry point; true = handled ---------- */
-export async function supportMessage(ctx,m,textIn){
+export async function supportMessage(ctx,m,textIn,role=''){
  try{
   const {env,db,p,chat}=ctx,now=Date.now();
+  if(role&&m.contact)return false; // linked chats keep their own contact handling
   const contact=m.contact?.phone_number?normalizeMobile(m.contact.phone_number):'';
   const text=cut(textIn,LIM.maxIn);
   if(!contact&&(!text||text.startsWith('/')))return false;
@@ -102,20 +115,22 @@ export async function supportMessage(ctx,m,textIn){
   if(!text)return false;
   try{await limited(db,'aisup:'+p+':'+chat+':'+Math.floor(now/3600000),LIM.perHour,TEXT.rate)}
   catch(e){if(e instanceof Problem&&e.status===429){await ctx.say(TEXT.rate);return true}throw e}
-  const job=respond(ctx,text,hist,now).catch(e=>console.error('support',String(e?.message||e).slice(0,80)));
+  const job=respond(ctx,text,hist,now,role).catch(e=>console.error('support',String(e?.message||e).slice(0,80)));
   if(ctx.hasExec)ctx.wait(job);else await job;
   return true;
  }catch(e){console.error('support',String(e?.message||e).slice(0,80));return false}
 }
-async function respond(ctx,text,hist,now){
+const ROLE={manager:'مدیر مزون (وارد شده و وصل به مزون)',owner:'مالک پلتفرم آینه (صاحب پروژه) که ربات را تست می‌کند',staff:'مزون‌دار عضو تیم یک مزون (وصل‌شده)'};
+async function respond(ctx,text,hist,now,role=''){
  const {env,db,p,chat}=ctx,typing=()=>call(env,p,'sendChatAction',{chat_id:chat,action:'typing'}).catch(()=>{});
  await typing();
  const phone=await knownPhone(db,p,chat);
  const system=SUPPORT_PROMPT.replaceAll('{{SITE}}',String(env.APP_ORIGIN||ctx.origin||'').replace(/\/+$/,''))+
-  '\n\n# وضعیت این گفتگو\nپلتفرم: '+(p==='bale'?'بله':'تلگرام')+'\nنام نمایشی کاربر: '+(ctx.name||'نامشخص')+'\nشمارهٔ تماس: '+(phone?'قبلاً داده شده؛ دوباره نخواه':'هنوز نداریم');
+  '\n\n# وضعیت این گفتگو\nپلتفرم: '+(p==='bale'?'بله':'تلگرام')+'\nنام نمایشی کاربر: '+(ctx.name||'نامشخص')+'\nشمارهٔ تماس: '+(phone?'قبلاً داده شده؛ دوباره نخواه':'هنوز نداریم')+(role?'\n\n# زمینهٔ کاربر\nنقش: '+ROLE[role]+(ctx.salon?.name?'\nمزون: «'+ctx.salon.name+'»':'')+'\nاین کاربر از قبل به یک مزون وصل است؛ مثل پشتیبان یک مزون‌دار جواب بده (بخش «مدیر وصل‌شده»). شمارهٔ تماسش را برای ارجاع از او نخواه مگر واقعاً لازم باشد؛ فقط اگر وضعیت بالا می‌گوید شماره نداریم و ارجاع لازم است بخواه.':''); 
  const contents=[...hist.turns.map(t=>({role:t.r==='user'?'user':'model',parts:[{text:t.t}]})),{role:'user',parts:[{text}]}];
  let out=null;
  if(env.GEMINI_API_KEY){try{out=await askModel(env,system,contents,typing)}catch{out=null}}
+ else await noteError(db,'no GEMINI_API_KEY',null);
  let reply,esc,reason,want,name='';
  if(out){reply=cleanReply(out.reply);esc=out.escalate;reason=out.reason;want=out.collect_contact;name=out.name}
  else{reply=TEXT.fallback;esc=true;reason='پاسخ خودکار در دسترس نبود';want=true}
