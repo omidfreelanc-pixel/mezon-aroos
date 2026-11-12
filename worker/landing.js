@@ -8,26 +8,29 @@ body{overflow-x:hidden}
 .top .brand img{display:block;flex:none}
 .top .btn{min-height:48px}
 footer a{display:inline-flex;align-items:center;min-height:44px;padding:0 8px}
-.hero__cta .btn--ghost{flex:1 1 140px}
-.hero__note,.cmp-hint{line-height:1.8}
-.owner .btn--ghost{min-height:48px}
-.owner__alt{margin-top:14px;font-size:14px}
-.owner__note{margin-top:12px;font-size:14px;font-weight:600}
-.sub{font-size:20px;margin-top:30px}
-.owner__alt a{color:#fff;text-decoration:underline;display:inline-flex;align-items:center;min-height:44px}
-.proof{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;padding:0;list-style:none}
-.proof li{font-size:13px;font-weight:600;color:var(--accent-ink);background:var(--surface);padding:6px 12px;border-radius:var(--pill);box-shadow:var(--lift)}
-section{padding:36px 0}
+section{padding:34px 0}
 .eyebrow{display:inline-block;font-size:12.5px;font-weight:700;color:var(--accent-ink);background:var(--accent-soft);padding:3px 12px;border-radius:var(--pill);margin-bottom:12px}
-h1.display{font-size:clamp(30px,8.6vw,52px);line-height:1.3}
-h2.display{font-size:clamp(24px,6.4vw,34px);margin-bottom:10px}
-.lead{font-size:16.5px;line-height:2;color:var(--ink-2);margin-top:14px;max-width:34em}
-.hero{display:grid;gap:28px;padding-top:12px}
+h1.display{font-size:clamp(30px,8.4vw,52px);line-height:1.3}
+h2.display{font-size:clamp(24px,6.4vw,36px);margin-bottom:6px;line-height:1.4}
+.sub-l{font-size:16px;line-height:1.9;color:var(--ink-2);margin-top:8px;max-width:30em}
+.ic{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+/* hero */
+.hero{display:grid;gap:30px;padding-top:10px}
 .hero__cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
 .hero__cta .btn{min-height:54px;font-size:16px;padding-inline:26px}
-.hero__cta .btn--primary{flex:1 1 220px}
-.hero__note{margin-top:12px;font-size:13px;color:var(--muted)}
-.cmp-wrap{width:min(100%,380px);margin-inline:auto}
+.hero__cta .btn--primary{flex:1 1 220px}.hero__cta .btn--ghost{flex:1 1 140px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0;padding:0;list-style:none}
+.chips li{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--accent-ink);background:var(--surface);padding:7px 13px;border-radius:var(--pill);box-shadow:var(--lift)}
+.chips .ic{width:17px;height:17px}
+.stage{position:relative;width:min(100%,430px);margin-inline:auto;padding:0 0 14px}
+.dev{position:relative;background:#16191a;border-radius:22px;padding:12px;box-shadow:0 26px 50px -18px rgba(10,30,30,.55),inset 0 0 0 1.5px rgba(255,255,255,.07)}
+.dev::after{content:"";position:absolute;left:50%;top:5px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:#2c3335}
+.dev .cmp{border-radius:12px}
+.dev__stand{width:34%;height:46px;margin:-1px auto 0;background:linear-gradient(180deg,#262b2c,#141718);clip-path:polygon(18% 0,82% 0,100% 100%,0 100%)}
+.dev__base{width:62%;height:9px;margin:0 auto;border-radius:99px;background:#1b1f20;box-shadow:0 10px 20px rgba(10,30,30,.3)}
+.float{position:absolute;z-index:3;display:inline-flex;align-items:center;gap:8px;background:#fff;border-radius:99px;padding:8px 14px;font-size:13px;font-weight:800;color:var(--ink);box-shadow:0 10px 24px -8px rgba(10,30,30,.35)}
+.float .ic{width:18px;height:18px;color:var(--accent)}
+.float--a{top:12%;inset-inline-end:-6px}.float--b{bottom:20%;inset-inline-start:-6px}
 .cmp{position:relative;aspect-ratio:3/5;overflow:hidden;background:var(--glass-2);direction:ltr;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:ew-resize;--x:50%}
 .cmp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
 .cmp__after{position:absolute;inset:0;clip-path:inset(0 calc(100% - var(--x)) 0 0)}
@@ -38,58 +41,39 @@ h2.display{font-size:clamp(24px,6.4vw,34px);margin-bottom:10px}
 .cmp__tag--b{right:14px}.cmp__tag--a{left:14px}
 .cmp__range{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:ew-resize}
 .cmp:focus-within{outline:3px solid var(--accent-ring);outline-offset:3px}
-.cmp-hint{text-align:center;font-size:13px;color:var(--muted);margin-top:12px}
-.steps{display:grid;gap:12px;margin:18px 0 0;padding:0;list-style:none;counter-reset:s}
-.steps li{display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--surface);border-radius:var(--r);box-shadow:var(--lift)}
-.steps li::before{counter-increment:s;content:counter(s,persian);flex:none;width:36px;height:36px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800}
-.steps b{display:block;font-size:16.5px;margin-bottom:2px}
-.steps span{color:var(--ink-2);font-size:14.5px}
-.ben{display:grid;gap:12px;margin-top:18px}
-.ben div{padding:18px;border-radius:var(--r);background:var(--surface-2);border:1px solid var(--line-2)}
-.ben b{display:block;font-size:16.5px;margin-bottom:4px;color:var(--accent-ink)}
-.ben p{color:var(--ink-2);font-size:14.5px}
-.owner{background:var(--ink);color:#fff;border-radius:var(--r-lg);padding:26px 20px}
-.owner h2{color:#fff}
-.owner p,.owner li{color:rgba(255,255,255,.86);font-size:15px}
-.owner ol{list-style:persian;margin:16px 0 22px;padding-inline-start:22px;display:grid;gap:8px}
-.owner .btn--primary{background:#fff;color:var(--ink);min-height:54px;font-size:16px}
-.owner .btn--primary:hover{background:var(--accent-soft)}
-.trust{display:grid;gap:10px;margin-top:14px}
-.trust p{display:flex;gap:10px;align-items:flex-start;color:var(--ink-2)}
-.trust p::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:12px}
-details{background:var(--surface);border-radius:var(--r-sm);padding:0 16px;margin-top:10px;box-shadow:var(--lift)}
-summary{cursor:pointer;min-height:52px;display:flex;align-items:center;font-weight:700;list-style:none}
-summary::-webkit-details-marker{display:none}
-summary::after{content:"+";margin-inline-start:auto;font-size:22px;color:var(--accent)}
-details[open] summary::after{content:"−"}
-details p{padding:0 0 16px;color:var(--ink-2)}
-footer{padding:28px 0 48px;color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;border-top:1px solid var(--line)}
-footer a{color:var(--accent-ink);font-weight:600;text-decoration:underline}
-.pain{display:grid;gap:10px;margin:18px 0 0;padding:0;list-style:none}
-.pain li{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--r);background:var(--surface-2);border:1px solid var(--line-2);color:var(--ink-2);font-size:15px;line-height:1.9}
-.pain li::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:#b9975b;margin-top:12px}
-.val{display:grid;gap:12px;margin-top:18px}
-.val>div{padding:20px;border-radius:var(--r);background:var(--surface);box-shadow:var(--lift)}
-.val b{display:block;font-size:17px;margin-bottom:6px;color:var(--accent-ink)}
-.val p{color:var(--ink-2);font-size:14.5px;line-height:1.9}
-.lead-demo{display:grid;gap:22px;align-items:center}
-.lcard{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--lift);padding:16px;display:grid;gap:14px;max-width:420px;width:100%;margin-inline:auto;position:relative}
-.lcard__tag{position:absolute;top:-11px;inset-inline-start:16px;background:var(--ink);color:#fff;font-size:12px;font-weight:700;padding:3px 12px;border-radius:99px}
-.lcard__imgs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.lcard__imgs figure{margin:0;position:relative;border-radius:14px;overflow:hidden;aspect-ratio:3/4;background:var(--glass-2)}
-.lcard__imgs img{width:100%;height:100%;object-fit:cover;display:block}
-.lcard__imgs figcaption{position:absolute;bottom:8px;inset-inline-start:8px;background:rgba(250,251,250,.94);padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700}
-.lcard dl{margin:0;display:grid;gap:8px}
-.lcard dl div{display:flex;justify-content:space-between;gap:10px;font-size:14.5px;padding-bottom:8px;border-bottom:1px dashed var(--line)}
-.lcard dt{color:var(--muted)}.lcard dd{margin:0;font-weight:700}
-.lcard__st{display:flex;gap:8px;flex-wrap:wrap}
-.lcard__st span{font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:99px;background:var(--accent-soft);color:var(--accent-ink)}
-.lcard__st span.on{background:var(--accent);color:#fff}
-.ways{display:grid;gap:12px;margin-top:18px}
-.ways>div{padding:20px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--surface-2)}
-.ways b{display:block;font-size:17px;margin-bottom:6px}
-.ways p{color:var(--ink-2);font-size:14.5px;line-height:1.9}
-.ways .chip{display:inline-block;margin-top:10px;font-size:12.5px;font-weight:700;color:var(--accent-ink);background:var(--accent-soft);padding:3px 12px;border-radius:99px}
+.cap{text-align:center;font-size:13px;color:var(--muted);margin-top:10px}
+/* where it lives */
+.where{display:grid;gap:12px;margin-top:20px}
+.spot{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--lift);overflow:hidden}
+.spot svg.art{display:block;width:100%;height:auto;background:linear-gradient(160deg,var(--accent-soft),var(--surface-2))}
+.spot div{padding:14px 16px 16px}
+.spot b{display:block;font-size:17px;margin-bottom:2px}
+.spot span{color:var(--ink-2);font-size:14.5px}
+/* feelings */
+.feel{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.feel div{padding:18px 14px;border-radius:var(--r-lg);background:var(--ink);color:#fff;text-align:center;display:grid;gap:8px;justify-items:center}
+.feel div:nth-child(2),.feel div:nth-child(3){background:var(--accent)}
+.feel .ic{width:34px;height:34px;color:#f3e3bd}
+.feel b{font-size:19px;font-family:var(--display)}
+.feel span{font-size:13.5px;color:rgba(255,255,255,.86);line-height:1.8}
+/* why it pays */
+.why{display:grid;gap:10px;margin-top:20px}
+.why div{display:flex;gap:14px;align-items:center;padding:14px 16px;border-radius:var(--r);background:var(--surface);box-shadow:var(--lift)}
+.why .ic{width:40px;height:40px;padding:9px;border-radius:12px;background:var(--accent-soft);color:var(--accent-ink);box-sizing:border-box}
+.why b{display:block;font-size:16px}.why span{color:var(--ink-2);font-size:14px}
+/* journey */
+.path{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:22px 0 0;padding:0;list-style:none;position:relative}
+.path li{display:grid;justify-items:center;gap:8px;text-align:center;font-size:13px;font-weight:700;position:relative}
+.path .ic{width:52px;height:52px;padding:13px;border-radius:50%;background:var(--surface);box-shadow:var(--lift);color:var(--accent);box-sizing:border-box}
+.path li:not(:last-child)::after{content:"";position:absolute;top:26px;inset-inline-end:-50%;width:100%;border-top:2px dashed var(--accent-ring);z-index:-1}
+/* setup */
+.set{display:grid;gap:10px;margin:20px 0 0;padding:0;list-style:none;counter-reset:s}
+.set li{display:flex;gap:14px;align-items:center;padding:14px 16px;background:var(--surface);border-radius:var(--r);box-shadow:var(--lift);font-weight:600}
+.set li::before{counter-increment:s;content:counter(s,persian);flex:none;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800}
+/* trust strip */
+.safe{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.safe span{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line-2);font-size:14px;font-weight:600;color:var(--ink-2)}
+.safe .ic{width:20px;height:20px;color:var(--accent)}
 .plan{padding:24px 20px;border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--lift);border:1.5px solid var(--accent)}
 .plan h3{font-size:20px;margin-bottom:10px}
 .plan ul{margin:0 0 16px;padding:0;list-style:none;display:grid;gap:8px}
@@ -97,22 +81,28 @@ footer a{color:var(--accent-ink);font-weight:600;text-decoration:underline}
 .plan li::before{content:"✓";flex:none;color:var(--accent);font-weight:800}
 .plan .btn{min-height:54px;font-size:16px;width:100%}
 .plan small{display:block;margin-top:10px;color:var(--muted);line-height:1.8}
+details{background:var(--surface);border-radius:var(--r-sm);padding:0 16px;margin-top:10px;box-shadow:var(--lift)}
+summary{cursor:pointer;min-height:52px;display:flex;align-items:center;font-weight:700;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";margin-inline-start:auto;font-size:22px;color:var(--accent)}
+details[open] summary::after{content:"−"}
+details p{padding:0 0 16px;color:var(--ink-2)}
 .final{background:var(--ink);color:#fff;border-radius:var(--r-lg);padding:34px 22px;text-align:center}
 .final h2{color:#fff}.final p{color:rgba(255,255,255,.86);margin:10px auto 20px;max-width:30em;line-height:1.9}
 .final .btn--primary{background:#fff;color:var(--ink);min-height:54px;font-size:16px;padding-inline:30px}
 .final .btn--primary:hover{background:var(--accent-soft)}
 .final__alt{margin-top:14px;font-size:14px}.final__alt a{color:#fff;text-decoration:underline;display:inline-flex;align-items:center;min-height:44px}
+footer{padding:28px 0 48px;color:var(--muted);font-size:13px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;border-top:1px solid var(--line)}
+footer a{color:var(--accent-ink);font-weight:600;text-decoration:underline}
 @media(min-width:820px){
- .val{grid-template-columns:repeat(2,1fr)}
- .lead-demo{grid-template-columns:1fr 1fr;gap:48px}
- .ways{grid-template-columns:repeat(2,1fr)}
+ section{padding:56px 0}
+ .hero{grid-template-columns:1.05fr .95fr;align-items:center;gap:56px;padding-top:28px}
+ .where{grid-template-columns:repeat(3,1fr)}
+ .feel{grid-template-columns:repeat(4,1fr)}
+ .why{grid-template-columns:repeat(2,1fr)}
  .plan{padding:32px;display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:center}
  .final{padding:56px 40px}
- .hero{grid-template-columns:1.1fr .9fr;align-items:center;gap:48px;padding-top:28px}
- .steps,.ben{grid-template-columns:repeat(3,1fr)}
- .steps li{flex-direction:column}
- .owner{padding:40px}
- section{padding:56px 0}
+ .path .ic{width:64px;height:64px;padding:16px}.path li{font-size:15px}.path li:not(:last-child)::after{top:32px}
 }
 `;
 const grip='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8 5 12l4 4M15 8l4 4-4 4"/></svg>';
@@ -122,18 +112,24 @@ var d=false;function mv(e){var b=c.getBoundingClientRect();var v=Math.max(0,Math
 c.addEventListener('pointerdown',function(e){d=true;mv(e)});c.addEventListener('pointermove',function(e){if(d)mv(e)});
 ['pointerup','pointercancel','pointerleave'].forEach(function(n){c.addEventListener(n,function(){d=false})});
 if(!matchMedia('(prefers-reduced-motion: reduce)').matches){var t=0,i=setInterval(function(){t+=1;if(t>40||d){clearInterval(i);return}var v=50+Math.sin(t/40*Math.PI*2)*18;r.value=v;set(v)},40);r.addEventListener('input',function(){clearInterval(i)})}})();`;
+const P={tv:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',tablet:'<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M11 18.5h2"/>',heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',spark:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/>',users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.4 2.7-5.5 6-5.5s6 2.1 6 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M17 14.4c2.4 0 4 1.6 4 4.1"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',lock:'<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',camera:'<path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.4"/>',dress:'<path d="M9 3l3 3 3-3 1 6-2 3 3 9H7l3-9-2-3z"/>',chat:'<path d="M4 5h16v11H9l-5 4z"/>',chart:'<path d="M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-6"/>',eye:'<path d="M2 12s3.7-7 10-7 10 7 10 7-3.7 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',trash:'<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>',shield:'<path d="M12 3l8 3v6c0 4.6-3.2 7.8-8 9-4.8-1.2-8-4.4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',smile:'<circle cx="12" cy="12" r="9"/><path d="M8 14.5c1 1.6 2.4 2.4 4 2.4s3-.8 4-2.4M9 9.5h.01M15 9.5h.01"/>',wifi:'<path d="M3 9a14 14 0 0 1 18 0M6 12.5a9.5 9.5 0 0 1 12 0M9.3 16a5 5 0 0 1 5.4 0M12 19.5h.01"/>'};
+const ic=n=>'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">'+P[n]+'</svg>';
+const art={
+ tv:'<svg class="art" viewBox="0 0 320 170" aria-hidden="true"><rect x="40" y="18" width="240" height="124" rx="10" fill="#16191a"/><rect x="48" y="26" width="224" height="108" rx="5" fill="#e9efec"/><rect x="132" y="34" width="56" height="92" rx="28" fill="#d9c9a4"/><path d="M146 126l14-44 14 44z" fill="#fff"/><rect x="146" y="142" width="28" height="10" fill="#2b3234"/><rect x="118" y="150" width="84" height="6" rx="3" fill="#2b3234"/></svg>',
+ stand:'<svg class="art" viewBox="0 0 320 170" aria-hidden="true"><rect x="120" y="10" width="80" height="128" rx="9" fill="#16191a"/><rect x="126" y="17" width="68" height="114" rx="5" fill="#e9efec"/><rect x="146" y="30" width="28" height="68" rx="14" fill="#d9c9a4"/><path d="M152 100l8-26 8 26z" fill="#fff"/><rect x="154" y="138" width="12" height="16" fill="#2b3234"/><rect x="128" y="152" width="64" height="8" rx="4" fill="#2b3234"/><path d="M60 156h40M220 156h40" stroke="#c8d1ce" stroke-width="3" stroke-linecap="round"/></svg>',
+ tablet:'<svg class="art" viewBox="0 0 320 170" aria-hidden="true"><rect x="30" y="118" width="260" height="36" rx="6" fill="#c8b48a"/><rect x="104" y="34" width="112" height="86" rx="9" fill="#16191a" transform="rotate(-6 160 77)"/><rect x="110" y="40" width="100" height="74" rx="4" fill="#e9efec" transform="rotate(-6 160 77)"/><rect x="144" y="50" width="26" height="56" rx="13" fill="#d9c9a4" transform="rotate(-6 160 77)"/><circle cx="244" cy="104" r="9" fill="#2b3234"/><rect x="236" y="112" width="16" height="8" fill="#2b3234"/></svg>'
+};
 const faq=[
- ['عروس‌ها چطور به صفحهٔ مزون من می‌رسند؟','شما یک لینک و QR اختصاصی می‌گیرید. لینک را در اینستاگرام، واتساپ یا پیام‌های مشتری بگذارید و QR را روی تبلت یا میز مزون قرار دهید. عروس بدون نصب برنامه، در مرورگر گوشی‌اش صفحه را باز می‌کند.'],
- ['لباس‌های مزون چطور وارد می‌شوند؟','عکس لباس‌ها را در ربات تلگرام مزون آینه می‌فرستید، با نام هر لباس. برای نتیجهٔ دقیق‌تر از هر لباس چند نما (جلو، کنار، پشت، جزئیات) بفرستید. لباس‌ها را خودتان هر وقت خواستید اضافه یا حذف می‌کنید.'],
- ['درخواست‌ها را از کجا می‌بینم؟','هر بار عروس نتیجه را برای مزون بفرستد، درخواستش با عکس قبل و بعد، اسم، شمارهٔ تماس و لباس انتخابی در ربات تلگرام و پنل مزون به شما می‌رسد و وضعیتش را همان‌جا تغییر می‌دهید.'],
- ['لباس در نتیجه دقیقاً همان لباس مزون است؟','هدف همین است: لباسی که شما داده‌اید روی عکس عروس نشانده می‌شود و چهره و اندامش حفظ می‌شود. نتیجه یک شبیه‌سازی برای تصمیم‌گیری اولیه است و رنگ، پارچه و دوخت نهایی را با پرو حضوری تأیید می‌کنید.'],
- ['با عکس عروس‌ها چه می‌شود؟','عکس‌هایی که برای درخواست فرستاده نمی‌شوند ۱۵ دقیقه بعد خودکار پاک می‌شوند و عروس هم می‌تواند خودش همان لحظه عکس‌هایش را پاک کند. عکس عروس جایی نمایش عمومی ندارد و فقط عکس‌های درخواست‌های ارسال‌شده به مزون می‌رسد.'],
- ['هزینه چقدر است؟','برای امتحان، یک نسخهٔ آزمایشی رایگان دارید. قیمت بسته‌ها هنگام ثبت‌نام اعلام می‌شود و تا وقتی تأیید نکنید چیزی پرداخت نمی‌کنید.'],
- ['اگر عروس حضوری آمد چه؟','می‌توانید همان صفحه را روی تبلت مزون باز بگذارید؛ عروس در دوربین داخل صفحه عکس می‌گیرد و پیش از پرو حضوری چند لباس را روی خودش می‌بیند.'],
- ['نیاز به نصب برنامه یا تیم فنی دارم؟','نه. ثبت‌نام یک فرم کوتاه است و مدیریت لباس‌ها و درخواست‌ها از تلگرام انجام می‌شود. صفحهٔ مزون شما بعد از تأیید حساب فعال می‌شود.']
+ ['برای نمایش در مزون چه چیزی لازم دارم؟','یک تبلت، تلویزیون هوشمند یا هر صفحه‌ای که مرورگر و اینترنت دارد. صفحهٔ مزون شما را باز می‌گذارید و مشتری همان‌جا از خودش عکس می‌گیرد. برنامه‌ای نصب نمی‌شود.'],
+ ['لباس‌های مزون را چطور وارد می‌کنم؟','عکس لباس‌ها را با نامشان در ربات تلگرام مزون آینه می‌فرستید. برای نتیجهٔ دقیق‌تر از هر لباس چند نما (جلو، کنار، پشت، جزئیات) بفرستید. هر وقت خواستید لباس اضافه یا حذف می‌کنید.'],
+ ['مشتری فقط لباس‌های مزون من را می‌بیند؟','بله. فقط لباس‌هایی که شما اضافه کرده‌اید نمایش داده می‌شود و مشتری روی همان‌ها خودش را می‌بیند.'],
+ ['با عکس مشتری‌ها چه می‌شود؟','عکس‌هایی که برای درخواست فرستاده نمی‌شوند ۱۵ دقیقه بعد خودکار پاک می‌شوند و مشتری می‌تواند همان لحظه خودش هم پاکشان کند. عکس مشتری جایی نمایش عمومی ندارد.'],
+ ['لباس در نتیجه دقیقاً همان لباس است؟','هدف همین است: لباس شما روی عکس مشتری نشانده می‌شود و چهره و اندامش حفظ می‌شود. نتیجه یک شبیه‌سازی برای تصمیم‌گیری اولیه است و رنگ، پارچه و دوخت نهایی را با پرو حضوری تأیید می‌کنید.'],
+ ['اگر مشتری علاقه‌مند شد چه؟','مشتری می‌تواند درخواستش را با نام و شماره ثبت کند و در ربات تلگرام و پنل مزون به شما می‌رسد. بعد از پیگیری، وضعیتش را ثبت می‌کنید.'],
+ ['هزینه چقدر است؟','برای امتحان، یک نسخهٔ آزمایشی رایگان دارید. قیمت بسته‌ها هنگام ثبت‌نام اعلام می‌شود و تا وقتی تأیید نکنید پرداختی ندارید.']
 ];
-const title='پرو مجازی لباس عروس برای مزون‌ها | مشتری آماده بگیرید · مزون آینه';
-const desc='عروس‌ها لباس‌های مزون شما را روی عکس خودشان می‌بینند و با اسم، شماره و مدل انتخابی برای شما درخواست می‌فرستند. بدون نصب برنامه؛ نسخهٔ آزمایشی رایگان.';
+const title='پرو مجازی لباس عروس داخل مزون | روی تبلت، تلویزیون یا استند · مزون آینه';
+const desc='مشتری شما داخل مزون، روی تبلت، تلویزیون یا استند، خودش را در لباس‌های مزون شما می‌بیند. بدون نصب برنامه؛ نسخهٔ آزمایشی رایگان.';
 const ogImg='/og.jpg';
 const ld=o=>'<script type="application/ld+json">'+JSON.stringify(o).replace(/</g,'\\u003c')+'</script>';
 const jsonld=o=>ld({'@context':'https://schema.org','@graph':[
@@ -146,17 +142,16 @@ export const landingFor=o=>'<!doctype html><html lang="fa" dir="rtl"><head><meta
 +'<a class="skip" href="#main">پرش به محتوای اصلی</a>'
 +'<div class="wrap"><header class="top"><a class="brand" href="/" aria-label="مزون آینه">'+brandImg(36)+'<span>مزون آینه</span></a><a class="btn btn--primary" href="/register">شروع آزمایشی رایگان</a></header>'
 +'<main id="main">'
-+'<section class="hero" aria-labelledby="h1"><div><span class="eyebrow">برای مزون‌دارها</span><h1 class="display" id="h1">عروس‌ها لباس شما را روی خودشان می‌بینند؛ شما مشتری آماده می‌گیرید</h1><p class="lead">مزون آینه پرو مجازی لباس عروس برای مزون شماست. عروس عکس خودش را می‌دهد، لباس‌های شما را روی اندام خودش می‌بیند و با اسم، شماره و مدل انتخابی‌اش برای شما درخواست می‌فرستد.</p><div class="hero__cta"><a class="btn btn--primary" href="/register">شروع آزمایشی رایگان</a><a class="btn btn--ghost" href="/s/demo">خودتان امتحان کنید</a></div><ul class="proof"><li>بدون نصب برنامه</li><li>با لباس‌های خود شما</li><li>درخواست‌ها در تلگرام</li></ul></div>'
-+'<div class="cmp-wrap"><div class="mirror"><div class="cmp" id="cmp"><img src="/catalog/dress/demo-before.webp" alt="عکس عروس پیش از پرو" width="480" height="720"><div class="cmp__after"><img src="/catalog/dress/demo-after.webp" alt="همان عکس با لباس عروس انتخاب‌شده" width="480" height="720" fetchpriority="high"></div><span class="cmp__line"></span><span class="cmp__grip">'+grip+'</span><span class="cmp__tag cmp__tag--b">قبل</span><span class="cmp__tag cmp__tag--a">بعد</span><input class="cmp__range" id="cmpr" type="range" min="0" max="100" value="50" dir="ltr" aria-label="مقایسهٔ قبل و بعد؛ با کلیدهای جهت خط را جابه‌جا کن"></div></div><p class="cmp-hint">این چیزی است که مشتری شما می‌بیند. خط را بکشید.</p></div></section>'
-+'<section aria-labelledby="pain"><span class="eyebrow">مشکل امروز</span><h2 class="display" id="pain">مشتری قبل از رسیدن به مزون، تصمیمش را نیمه‌کاره گرفته است</h2><ul class="pain"><li>عروس‌ها اول در اینستاگرام و واتساپ می‌گردند و چند مزون را کنار هم می‌گذارند.</li><li>عکس لباس روی مانکن نشان نمی‌دهد همان لباس روی اندام خودش چطور است.</li><li>پرسش‌ها و پیام‌های بی‌نتیجه زیاد است و نمی‌دانید کدام مدل واقعاً مورد توجه بوده.</li></ul></section>'
-+'<section aria-labelledby="val"><span class="eyebrow">چرا مزون آینه</span><h2 class="display" id="val">چهار دلیل که برای مزون شما می‌ارزد</h2><div class="val"><div><b>درخواست آماده، نه پیام سرد</b><p>عروس با عکس خودش، لباس انتخابی و شمارهٔ تماس می‌آید. اولین تماس شما از همان لباس شروع می‌شود.</p></div><div><b>مزون شما متفاوت دیده می‌شود</b><p>وقتی عروس می‌تواند همان لباس را روی خودش ببیند، مزون شما را زودتر و بهتر به خاطر می‌سپارد و برای دوستانش هم می‌فرستد.</p></div><div><b>بدانید چه چیزی مورد توجه است</b><p>آمار می‌گوید کدام لباس بیشتر امتحان و ذخیره می‌شود و مشتری‌ها از QR، اینستاگرام یا واتساپ آمده‌اند.</p></div><div><b>بدون زحمت راه‌اندازی</b><p>نه برنامه‌ای نصب می‌شود و نه تیم فنی لازم است. لباس‌ها و درخواست‌ها را از تلگرام مدیریت می‌کنید.</p></div></div></section>'
-+'<section aria-labelledby="how"><span class="eyebrow">راه‌اندازی</span><h2 class="display" id="how">در سه قدم، مزون شما آماده است</h2><ol class="steps"><li><div><b>ثبت‌نام و ارسال لباس‌ها</b><span>فرم کوتاه را پر کنید و عکس لباس‌ها را در ربات تلگرام بفرستید.</span></div></li><li><div><b>لینک یا QR را پخش کنید</b><span>در اینستاگرام، واتساپ یا روی تبلت داخل مزون بگذارید.</span></div></li><li><div><b>درخواست‌ها را پیگیری کنید</b><span>هر عروس با عکس قبل و بعد، اسم و شماره به شما می‌رسد.</span></div></li></ol></section>'
-+'<section aria-labelledby="lead"><div class="lead-demo"><div><span class="eyebrow">آنچه دریافت می‌کنید</span><h2 class="display" id="lead">هر درخواست، یک مشتری با نیاز مشخص</h2><p class="lead">به‌جای «قیمت لباس‌ها چنده؟»، کسی با شما تماس می‌گیرد که لباس مشخصی را روی خودش دیده و برای پرو حضوری آماده است. وضعیت هر درخواست را (جدید، تماس گرفته شد، نوبت پرو) همان‌جا ثبت می‌کنید.</p></div>'
-+'<div class="lcard"><span class="lcard__tag">نمونهٔ نمایشی</span><div class="lcard__imgs"><figure><img src="/catalog/dress/demo-before.webp" alt="" loading="lazy" width="240" height="320"><figcaption>عکس عروس</figcaption></figure><figure><img src="/catalog/dress/demo-after.webp" alt="" loading="lazy" width="240" height="320"><figcaption>با لباس مزون</figcaption></figure></div><dl><div><dt>نام</dt><dd>عروس نمونه</dd></div><div><dt>موبایل</dt><dd dir="ltr">۰۹۱۲ ۰۰۰ ۰۰۰۰</dd></div><div><dt>لباس انتخابی</dt><dd>مدل ماهی دانتل</dd></div></dl><div class="lcard__st"><span class="on">جدید</span><span>تماس گرفته شد</span><span>نوبت پرو</span></div></div></div></section>'
-+'<section aria-labelledby="ways"><span class="eyebrow">دو راه استفاده</span><h2 class="display" id="ways">هم قبل از آمدن، هم داخل مزون</h2><div class="ways"><div><b>آنلاین، با لینک و QR</b><p>لینک مزون را در پیج و پیام‌ها بگذارید. عروس‌ها از خانه، پیش از اینکه وقت بگیرند، لباس‌های شما را امتحان می‌کنند.</p><span class="chip">اینستاگرام · واتساپ · QR</span></div><div><b>داخل مزون، روی تبلت</b><p>عروسی که حضوری آمده، روی تبلت مزون از خودش عکس می‌گیرد و پیش از پرو چند لباس را روی خودش می‌بیند.</p><span class="chip">دوربین داخل صفحه</span></div></div></section>'
-+'<section aria-labelledby="priv"><span class="eyebrow">اعتماد و حریم خصوصی</span><h2 class="display" id="priv">برای شما و برای مشتری‌هایتان قابل اعتماد</h2><div class="trust"><p>لباس‌ها مال شماست و فقط در صفحهٔ مزون خودتان نمایش داده می‌شود.</p><p>عکس عروسی که درخواست نفرستد، ۱۵ دقیقه بعد خودکار پاک می‌شود و خودش هم می‌تواند فوراً پاکش کند.</p><p>نتیجه شبیه‌سازی است؛ رنگ، پارچه و دوخت نهایی را خودتان با پرو حضوری تأیید می‌کنید.</p></div></section>'
-+'<section id="owners" aria-labelledby="own"><span class="eyebrow">شروع</span><h2 class="display" id="own">بدون ریسک امتحان کنید</h2><div class="plan" id="start"><div><h3>نسخهٔ آزمایشی رایگان</h3><ul><li>صفحهٔ اختصاصی مزون خودتان</li><li>ده ساعت استفاده و پنج عکس نتیجه</li><li>درخواست‌ها در ربات تلگرام</li></ul><a class="btn btn--primary" href="/register">شروع آزمایشی رایگان</a><small>قیمت بسته‌ها هنگام ثبت‌نام اعلام می‌شود و تا وقتی تأیید نکنید پرداختی ندارید.</small></div><div><p class="lead" style="margin:0">ترجیح می‌دهید اول با ما صحبت کنید؟ ربات تلگرام را باز کنید، لباس‌هایتان را بفرستید و لینک اختصاصی مزونتان را بگیرید.</p><p style="margin-top:12px"><a class="btn btn--ghost" href="'+BOT_URL+'" rel="noopener">ربات تلگرام مزون آینه</a></p></div></div></section>'
++'<section class="hero" aria-labelledby="h1"><div><span class="eyebrow">آینهٔ هوشمند داخل مزون</span><h1 class="display" id="h1">مشتری شما، همان‌جا در مزون، خودش را در لباس‌های شما می‌بیند</h1><p class="sub-l">یک تبلت، تلویزیون یا استند کنار مشاور؛ بدون نصب برنامه.</p><div class="hero__cta"><a class="btn btn--primary" href="/register">شروع آزمایشی رایگان</a><a class="btn btn--ghost" href="/s/demo">امتحان نمونه</a></div><ul class="chips"><li>'+ic('dress')+'لباس‌های خود شما</li><li>'+ic('clock')+'حدود یک دقیقه</li><li>'+ic('lock')+'عکس خودکار پاک می‌شود</li></ul></div>'
++'<div class="stage"><span class="float float--a">'+ic('spark')+'چهرهٔ خودش، لباس شما</span><span class="float float--b">'+ic('heart')+'همین‌جا، بدون پرو سنگین</span><div class="dev"><div class="cmp" id="cmp"><img src="/catalog/dress/demo-before.webp" alt="عکس مشتری پیش از پرو" width="480" height="720"><div class="cmp__after"><img src="/catalog/dress/demo-after.webp" alt="همان عکس با لباس مزون" width="480" height="720" fetchpriority="high"></div><span class="cmp__line"></span><span class="cmp__grip">'+grip+'</span><span class="cmp__tag cmp__tag--b">قبل</span><span class="cmp__tag cmp__tag--a">بعد</span><input class="cmp__range" id="cmpr" type="range" min="0" max="100" value="50" dir="ltr" aria-label="مقایسهٔ قبل و بعد؛ با کلیدهای جهت خط را جابه‌جا کن"></div></div><div class="dev__stand"></div><div class="dev__base"></div><p class="cap">این چیزی است که مشتری شما روی صفحه می‌بیند</p></div></section>'
++'<section aria-labelledby="where"><span class="eyebrow">کجا بگذارید؟</span><h2 class="display" id="where">هر جا که مشتری نگاه می‌کند</h2><div class="where"><div class="spot">'+art.tv+'<div><b>تلویزیون روی دیوار</b><span>مشتری و همراهانش با هم روی صفحهٔ بزرگ می‌بینند.</span></div></div><div class="spot">'+art.stand+'<div><b>استند کنار ورودی</b><span>اولین چیزی که مشتری جدید می‌بیند.</span></div></div><div class="spot">'+art.tablet+'<div><b>تبلت روی میز مشاور</b><span>مشاور کنار مشتری، لباس‌ها را با او مرور می‌کند.</span></div></div></div></section>'
++'<section aria-labelledby="feel"><span class="eyebrow">حس مشتری</span><h2 class="display" id="feel">مشتری شما چه حسی دارد؟</h2><div class="feel"><div>'+ic('smile')+'<b>هیجان</b><span>خودش را در لباس عروس می‌بیند</span></div><div>'+ic('shield')+'<b>اطمینان</b><span>می‌داند کدام مدل به او می‌آید</span></div><div>'+ic('spark')+'<b>تجربهٔ متفاوت</b><span>مزون شما مدرن و حرفه‌ای دیده می‌شود</span></div><div>'+ic('heart')+'<b>راحتی</b><span>بدون پوشیدن و درآوردن لباس سنگین</span></div></div></section>'
++'<section aria-labelledby="why"><span class="eyebrow">چرا داخل مزون جواب می‌دهد</span><h2 class="display" id="why">برای شما چه چیزی عوض می‌شود؟</h2><div class="why"><div>'+ic('dress')+'<p><b>پرو حضوری هدفمندتر</b><span>مشتری با چند لباس مورد علاقه سراغ پرو می‌رود.</span></p></div><div>'+ic('users')+'<p><b>همراهان هم شریک می‌شوند</b><span>خانواده روی صفحه می‌بینند و تصمیم سریع‌تر می‌شود.</span></p></div><div>'+ic('clock')+'<p><b>وقت مشاور آزاد می‌شود</b><span>هر لباس را لازم نیست از قفسه بیاورد و بپوشاند.</span></p></div><div>'+ic('chart')+'<p><b>بدانید چه چیزی دیده می‌شود</b><span>آمار نشان می‌دهد کدام لباس‌ها بیشتر امتحان می‌شوند.</span></p></div><div>'+ic('chat')+'<p><b>درخواست آماده</b><span>مشتری علاقه‌مند، اسم و شمارهٔ خودش را می‌گذارد.</span></p></div><div>'+ic('eye')+'<p><b>مزون شما دیده می‌شود</b><span>تجربه‌ای که مشتری برای دوستانش تعریف می‌کند.</span></p></div></div></section>'
++'<section aria-labelledby="path"><span class="eyebrow">تجربهٔ مشتری</span><h2 class="display" id="path">یک دقیقه، چهار حرکت</h2><ol class="path"><li>'+ic('camera')+'عکس بگیر</li><li>'+ic('dress')+'لباس را انتخاب کن</li><li>'+ic('eye')+'خودت را ببین</li><li>'+ic('heart')+'حضوری بپوش</li></ol></section>'
++'<section aria-labelledby="setup"><span class="eyebrow">راه‌اندازی</span><h2 class="display" id="setup">سه قدم تا روشن شدن صفحه</h2><ol class="set"><li>ثبت‌نام کنید و عکس لباس‌ها را در تلگرام بفرستید</li><li>صفحهٔ مزونتان را روی تبلت یا تلویزیون باز کنید</li><li>مشتری را کنار صفحه بنشانید؛ تمام!</li></ol></section>'
++'<section aria-labelledby="priv"><span class="eyebrow">اعتماد</span><h2 class="display" id="priv">مشتری با خیال راحت عکس می‌گیرد</h2><div class="safe"><span>'+ic('trash')+'عکس بعد از ۱۵ دقیقه پاک می‌شود</span><span>'+ic('lock')+'جایی نمایش عمومی ندارد</span><span>'+ic('trash')+'خودش هم می‌تواند فوری پاک کند</span><span>'+ic('shield')+'نتیجه شبیه‌سازی است؛ پرو حضوری نهایی است</span></div></section>'
++'<section id="owners" aria-labelledby="own"><span class="eyebrow">شروع</span><h2 class="display" id="own">بدون ریسک امتحان کنید</h2><div class="plan" id="start"><div><h3>نسخهٔ آزمایشی رایگان</h3><ul><li>صفحهٔ اختصاصی مزون خودتان</li><li>ده ساعت استفاده و پنج عکس نتیجه</li><li>درخواست‌ها در ربات تلگرام</li></ul><a class="btn btn--primary" href="/register">شروع آزمایشی رایگان</a><small>قیمت بسته‌ها هنگام ثبت‌نام اعلام می‌شود و تا وقتی تأیید نکنید پرداختی ندارید.</small></div><div><p class="sub-l" style="margin:0">ترجیح می‌دهید اول با ما صحبت کنید؟ ربات تلگرام را باز کنید و لباس‌هایتان را بفرستید.</p><p style="margin-top:12px"><a class="btn btn--ghost" href="'+BOT_URL+'" rel="noopener">ربات تلگرام مزون آینه</a></p></div></div></section>'
 +'<section aria-labelledby="faq"><h2 class="display" id="faq">سؤال‌های مزون‌دارها</h2>'+faq.map(([q,a])=>'<details><summary>'+q+'</summary><p>'+a+'</p></details>').join('')+'</section>'
-+'<section aria-labelledby="fin"><div class="final"><h2 class="display" id="fin">اولین عروس را امتحان کنید</h2><p>خودتان یک بار نمونه را امتحان کنید و ببینید مشتری شما چه تجربه‌ای خواهد داشت.</p><a class="btn btn--primary" href="/s/demo">امتحان نمونه</a><p class="final__alt">آمادهٔ شروع هستید؟ <a href="/register">ثبت‌نام مدیر مزون</a></p></div></section>'
++'<section aria-labelledby="fin"><div class="final"><h2 class="display" id="fin">خودتان یک بار جای مشتری بنشینید</h2><p>نمونه را امتحان کنید و ببینید مشتری شما داخل مزون چه تجربه‌ای خواهد داشت.</p><a class="btn btn--primary" href="/s/demo">امتحان نمونه</a><p class="final__alt">آمادهٔ شروع هستید؟ <a href="/register">ثبت‌نام مدیر مزون</a></p></div></section>'
 +'</main><footer><span>© مزون آینه</span><span><a href="/s/demo">نمونه</a> · <a href="/register">ثبت‌نام مدیر مزون</a> · <a href="/privacy">قوانین و حریم خصوصی</a> · <a href="'+BOT_URL+'" rel="noopener">ربات تلگرام</a></span></footer></div><script>'+js+'</script></body></html>';
 export const landingHTML=landingFor('');
