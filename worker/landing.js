@@ -175,7 +175,105 @@ const demoForm = `<form class="demo-form">
 })();
 </script>`;
 
-export const landingFor=o=>'<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#e8edeb"><meta name="color-scheme" content="light"><title>'+title+'</title><meta name="description" content="'+desc+'"><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="'+o+'/"><link rel="alternate" hreflang="fa" href="'+o+'/"><link rel="alternate" hreflang="x-default" href="'+o+'/"><meta property="og:title" content="'+title+'"><meta property="og:description" content="'+desc+'"><meta property="og:type" content="website"><meta property="og:url" content="'+o+'/"><meta property="og:image" content="'+o+ogImg+'"><meta property="og:image:alt" content="لوگوی مزون آینه؛ لباس عروس را روی اندام خودت ببین"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:site_name" content="مزون آینه"><meta property="og:locale" content="fa_IR"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="'+title+'"><meta name="twitter:description" content="'+desc+'"><meta name="twitter:image" content="'+o+ogImg+'">'+jsonld(o)+'<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/estedad-arabic.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/catalog/dress/demo-after.webp" as="image"><style>'+baseCSS+css+`
+const premiumLandingCSS=String.raw`
+/* Ayneh Luxury Classic — scoped to the public marketing page only */
+body.premium-landing{
+ --glass:#f6efe5;--glass-2:#ecdfce;--surface:#fffaf3;--surface-2:#f8f0e5;
+ --ink:#251b16;--ink-2:#655346;--muted:#796b5d;--line:#decdb8;--line-2:#eadfd1;
+ --accent:#b99057;--accent-ink:#64451e;--accent-soft:#f1e2c8;--accent-ring:rgba(185,144,87,.38);
+ --honey:#bd9659;--lift:0 16px 36px -28px rgba(49,29,15,.27);
+ color:#251b16;background:#f6efe5;
+}
+.premium-landing .wrap{max-width:1300px;padding-inline:clamp(14px,3vw,34px)}
+.premium-landing .top{
+ position:relative;z-index:10;margin-top:16px;padding:14px 25px;
+ background:linear-gradient(115deg,#17120f,#2c211b 70%,#38271c);
+ border:1px solid rgba(225,190,130,.28);border-radius:20px;
+ box-shadow:0 14px 40px rgba(30,19,12,.2);
+}
+.premium-landing .top .brand{color:#f4e2c4;letter-spacing:.01em}
+.premium-landing .top .brand span{font-size:20px}
+.premium-landing .top-nav{display:flex;align-items:center;gap:clamp(12px,2vw,28px)}
+.premium-landing .top-nav a{font-size:13px;font-weight:600;color:#eee0cf;transition:color .2s ease}
+.premium-landing .top-nav a:hover,.premium-landing .top-nav a:focus-visible{color:#e7be7d}
+.premium-landing .top .btn--primary{border-radius:999px;background:linear-gradient(135deg,#f0d6a9,#c99c5c);color:#211610;box-shadow:0 8px 18px -12px #d7a669}
+.premium-landing .hero.hero{
+ grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr);margin-top:18px;
+ min-height:550px;background:radial-gradient(circle at 26% 20%,#584332 0%,#2b201a 44%,#1a1411 100%);
+ border-radius:26px;border:1px solid #71553b;overflow:hidden;
+ box-shadow:0 30px 65px -38px #2b1b11;
+}
+.premium-landing .hero__copy{padding:clamp(28px,4.5vw,70px);position:relative;z-index:1}
+.premium-landing .hero .eyebrow{background:rgba(226,181,113,.12);color:#f3d5a8;border:1px solid rgba(237,191,126,.38);padding:6px 15px}
+.premium-landing .hero .display{font-size:clamp(35px,3.7vw,59px);line-height:1.37;color:#f4d6a8;text-shadow:0 3px 22px rgba(0,0,0,.18)}
+.premium-landing .hero .sub-l{color:#ecdfd0;max-width:34em;font-size:16px;line-height:2}
+.premium-landing .hero__cta{gap:12px;margin-top:24px}
+.premium-landing .hero__cta .btn{border-radius:999px;font-weight:800}
+.premium-landing .hero__cta .btn--primary{background:linear-gradient(135deg,#edd2a2,#c99c5d);color:#21160d;border-color:transparent;box-shadow:0 14px 26px -16px #d8ae74}
+.premium-landing .hero__cta .btn--ghost{color:#f2dfc4;border:1px solid #bda27e;background:rgba(255,255,255,.06)}
+.premium-landing .hero__cta .btn--ghost:hover{background:rgba(255,255,255,.14)}
+.premium-landing .hero__photo{height:100%;width:100%;object-fit:cover;object-position:center;filter:saturate(.92) contrast(1.04)}
+.premium-landing .premium-trust{display:flex;flex-wrap:wrap;gap:9px;margin-top:28px}
+.premium-landing .premium-trust span{font-size:12px;font-weight:650;color:#f3e3d0;padding:7px 12px;border:1px solid rgba(224,191,147,.3);border-radius:99px;background:rgba(255,255,255,.05)}
+.premium-landing main>section:not(.hero){margin-block:70px}
+.premium-landing section>.eyebrow{background:#eee0c7;color:#78572b}
+.premium-landing h2.display{color:#37271b;font-size:clamp(27px,3vw,39px);line-height:1.35}
+.premium-landing .sub-l{color:#615145}
+.premium-landing .product-layout{gap:clamp(24px,5vw,74px)}
+.premium-landing .product-layout>div:first-child{max-width:530px}
+.premium-landing .stage{width:min(100%,430px)}
+.premium-landing .stage .dev{border:3px solid #b68b50;box-shadow:0 27px 52px -24px rgba(25,15,9,.45),0 0 0 7px rgba(195,152,85,.12)}
+.premium-landing .stage .float{background:#fffaf2;color:#2f2318;border:1px solid #dfc497}
+.premium-landing .why{gap:16px;margin-top:27px}
+.premium-landing .why>div{padding:24px;border:1px solid #e3d3bc;border-radius:20px;background:#fffcf7;box-shadow:0 16px 40px -34px rgba(36,25,17,.35);align-items:flex-start;transition:transform .25s ease,box-shadow .25s ease}
+.premium-landing .why>div:hover{transform:translateY(-3px);box-shadow:0 20px 42px -31px rgba(36,25,17,.45)}
+.premium-landing .why .ic{background:#f1e1c8;color:#926531;border-radius:15px;width:48px;height:48px}
+.premium-landing .why b{font-family:var(--display);font-size:17px;margin-bottom:5px;color:#332317}
+.premium-landing .why span{color:#6b594a}
+.premium-landing .journey{gap:16px;margin-top:28px}
+.premium-landing .journey li{position:relative;min-height:145px;background:linear-gradient(160deg,#fffdf8,#f3e8da);padding:25px 18px;border:1px solid #e1ceb2;border-radius:20px;box-shadow:0 12px 28px -26px #6b4d33}
+.premium-landing .journey li::before{content:"";display:block;width:32px;height:3px;background:linear-gradient(90deg,#9b6f34,#e8c894);border-radius:3px;margin-bottom:12px}
+.premium-landing .journey li b{font-size:17px;color:#3d2b1e}
+.premium-landing .journey li span{font-size:14px;line-height:1.9;color:#715d4e}
+.premium-landing .set li{padding:20px;border:1px solid #e7d8c3;border-radius:16px}
+.premium-landing .set li::before{background:#b38a54;color:#fff9ef}
+.premium-landing .safe span{border:1px solid #dfcdb7;background:#fff9f0}
+.premium-landing .safe .ic{color:#987142}
+.premium-landing .demo-layout{background:radial-gradient(circle at 10% 0%,#53402f,#271d18 55%,#191411);border:1px solid #7d5a3c;padding:clamp(28px,5vw,60px);border-radius:28px;box-shadow:0 28px 55px -35px #2d1b0f}
+.premium-landing .demo-layout .display{color:#f4d9ae}
+.premium-landing .demo-layout .sub-l{color:#e4d4c2}
+.premium-landing .demo-layout .btn--ghost{color:#f7e4c8;border-color:#a88659}
+.premium-landing .demo-form{background:#fffaf3;border:1px solid #f1dfc1;border-radius:20px;padding:clamp(20px,3vw,34px);box-shadow:0 16px 32px rgba(0,0,0,.15)}
+.premium-landing .demo-form input:not([type=checkbox]){min-height:48px;border-color:#c9b395;border-radius:12px;background:#fff}
+.premium-landing .demo-form input:focus-visible{outline:3px solid rgba(190,149,87,.25);border-color:#a07940}
+.premium-landing .demo-form .btn--primary{background:linear-gradient(135deg,#e8c892,#be9151);color:#241a13;border:0;font-weight:800;border-radius:12px}
+.premium-landing .landing-registration .card{background:#fffdf9;border-color:#e3d1b7}
+.premium-landing details{border:1px solid #e3d1b7;background:#fffcf7;border-radius:14px;margin-block:12px;box-shadow:0 14px 25px -29px #654126}
+.premium-landing details summary{font-size:15px;min-height:58px}
+.premium-landing footer{color:#6d5b4a;padding-block:30px 46px}
+.premium-landing footer a{color:#735126}
+@media (max-width:900px){.premium-landing .top-nav{gap:12px}.premium-landing .top-nav a{font-size:12px}}
+@media (max-width:760px){
+ .premium-landing .top{margin-top:9px;padding:10px 13px;border-radius:14px}
+ .premium-landing .top .brand span{font-size:16px}
+ .premium-landing .top-nav{display:none}
+ .premium-landing .top .btn{font-size:12px;min-height:43px;padding:0 14px}
+ .premium-landing .hero.hero{grid-template-columns:1fr;min-height:auto;border-radius:20px;margin-top:11px}
+ .premium-landing .hero__copy{padding:30px 23px 26px}
+ .premium-landing .hero .display{font-size:clamp(32px,8.2vw,45px)}
+ .premium-landing .hero .sub-l{font-size:14.5px}
+ .premium-landing .hero__photo{height:clamp(250px,72vw,420px);min-height:0;object-position:center 38%}
+ .premium-landing .hero__cta .btn{flex:1 1 100%;min-height:50px}
+ .premium-landing .premium-trust{margin-top:18px}
+ .premium-landing main>section:not(.hero){margin-block:48px}
+ .premium-landing .journey{grid-template-columns:repeat(2,1fr)}
+ .premium-landing .journey li{min-height:150px;padding:18px 15px}
+ .premium-landing .demo-layout{padding:25px 17px;border-radius:20px}
+}
+@media(max-width:390px){.premium-landing .journey{grid-template-columns:1fr}.premium-landing .top .brand img{width:29px;height:29px}}
+@media(prefers-reduced-motion:reduce){.premium-landing .why>div{transition:none}.premium-landing *{scroll-behavior:auto}}
+`;
+export const landingFor=o=>'<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#211914"><meta name="color-scheme" content="light"><title>'+title+'</title><meta name="description" content="'+desc+'"><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="'+o+'/"><link rel="alternate" hreflang="fa" href="'+o+'/"><link rel="alternate" hreflang="x-default" href="'+o+'/"><meta property="og:title" content="'+title+'"><meta property="og:description" content="'+desc+'"><meta property="og:type" content="website"><meta property="og:url" content="'+o+'/"><meta property="og:image" content="'+o+ogImg+'"><meta property="og:image:alt" content="لوگوی مزون آینه؛ لباس عروس را روی اندام خودت ببین"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:site_name" content="مزون آینه"><meta property="og:locale" content="fa_IR"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="'+title+'"><meta name="twitter:description" content="'+desc+'"><meta name="twitter:image" content="'+o+ogImg+'">'+jsonld(o)+'<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/estedad-arabic.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/catalog/dress/demo-after.webp" as="image"><style>'+baseCSS+css+`
 body{background:#f5eee3;color:#261c16}
 .wrap{max-width:1200px;margin:auto}
 header.top{background:#211a16;color:#f9ebd5;padding:14px clamp(16px,4vw,40px);border-radius:0}
@@ -218,11 +316,11 @@ main>section:not(.hero){margin-block:36px}
 .landing-registration .bad,.landing-registration .ferr{color:#952525}
 .landing-registration a{overflow-wrap:anywhere}
 .landing-registration [hidden]{display:none!important}
-`+'</style></head><body>'
+`+premiumLandingCSS+'</style></head><body class="premium-landing">'
 +'<a class="skip" href="#main">پرش به محتوای اصلی</a>'
-+'<div class="wrap"><header class="top"><a class="brand" href="/" aria-label="مزون آینه">'+brandImg(36)+'<span>مزون آینه</span></a><a class="btn btn--primary" href="#demo-request">درخواست دمو</a></header>'
++'<div class="wrap"><header class="top"><a class="brand" href="/" aria-label="مزون آینه">'+brandImg(36)+'<span>مزون آینه</span></a><nav class="top-nav" aria-label="دسترسی سریع"><a href="#product">محصول</a><a href="#why">مزایا</a><a href="#path">مسیر تجربه</a><a href="#faq">سؤالات متداول</a></nav><a class="btn btn--primary" href="#demo-request">درخواست دموی اختصاصی</a></header>'
 +'<main id="main">'
-+'<section class="hero" aria-labelledby="h1"><div class="hero__copy"><span class="eyebrow">پرو مجازی لباس عروس</span><h1 class="display" id="h1">آینهٔ هوشمند مزون عروس</h1><p class="sub-l">عروس مدل‌های مزون را روی تصویر خودش می‌بیند، مقایسه می‌کند و با انتخاب‌های مشخص سراغ پرو حضوری می‌رود.</p><div class="hero__cta"><a class="btn btn--primary" href="#demo-request">درخواست دمو</a><a class="btn btn--ghost" href="#product">آشنایی با آینه</a></div></div><img class="hero__photo" src="/demo/salon-setup.webp" alt="مشاور مزون و مشتری کنار آینهٔ هوشمند لباس عروس" width="1536" height="1024" fetchpriority="high"></section>'
++'<section class="hero" aria-labelledby="h1"><div class="hero__copy"><span class="eyebrow">راهکار هوشمند و تخصصی مزون‌های عروس</span><h1 class="display" id="h1">آینهٔ هوشمند؛ تجربه‌ای فراتر از انتخاب لباس عروس</h1><p class="sub-l">اجازه دهید عروس لباس‌های مزون شما را روی تصویر خودش ببیند، مدل‌های دلخواهش را مقایسه کند و برای پرو حضوری با انتخاب‌های مشخص پیش برود.</p><div class="hero__cta"><a class="btn btn--primary" href="#demo-request">درخواست دموی اختصاصی</a><a class="btn btn--ghost" href="#product">مشاهده عملکرد آینه</a></div><div class="premium-trust" aria-label="ویژگی‌های اصلی"><span>پیش‌نمایش روی تصویر واقعی مشتری</span><span>مقایسه مدل‌های منتخب</span><span>پرو حضوری هدفمندتر</span></div></div><img class="hero__photo" src="/demo/salon-setup.webp" alt="مشاور مزون و مشتری کنار آینهٔ هوشمند لباس عروس" width="1536" height="1024" fetchpriority="high"></section>'
 +'<section id="product" class="product-layout" aria-labelledby="product-title"><div><h2 class="display" id="product-title">لباس‌های خود مزون، روی تصویر مشتری</h2><p class="sub-l">آینه روی تبلت، تلویزیون یا استند مزون باز می‌شود. خط روی عکس را جابه‌جا کنید تا نمونهٔ قبل و بعد را ببینید.</p><a class="btn btn--ghost" href="/s/demo">امتحان نمونهٔ پرو مجازی</a></div>'
 +'<div class="stage"><span class="float float--a">'+ic('spark')+'چهرهٔ خودش، لباس شما</span><span class="float float--b">'+ic('heart')+'همین‌جا، بدون پرو سنگین</span><div class="dev"><div class="cmp" id="cmp"><img src="/catalog/dress/demo-before.webp" alt="عکس مشتری پیش از پرو" width="480" height="720"><div class="cmp__after"><img src="/catalog/dress/demo-after.webp" alt="همان عکس با لباس مزون" width="480" height="720" fetchpriority="high"></div><span class="cmp__line"></span><span class="cmp__grip">'+grip+'</span><span class="cmp__tag cmp__tag--b">قبل</span><span class="cmp__tag cmp__tag--a">بعد</span><input class="cmp__range" id="cmpr" type="range" min="0" max="100" value="50" dir="ltr" aria-label="مقایسهٔ قبل و بعد؛ با کلیدهای جهت خط را جابه‌جا کن"></div></div><div class="dev__stand"></div><div class="dev__base"></div><p class="cap">مقایسهٔ قبل و بعد پرو مجازی</p></div></section>'
 +'<section aria-labelledby="why"><span class="eyebrow">چرا داخل مزون جواب می‌دهد</span><h2 class="display" id="why">برای شما چه چیزی عوض می‌شود؟</h2><div class="why"><div>'+ic('dress')+'<p><b>پرو حضوری هدفمندتر</b><span>مشتری با چند لباس مورد علاقه سراغ پرو می‌رود.</span></p></div><div>'+ic('users')+'<p><b>همراهان هم شریک می‌شوند</b><span>خانواده روی صفحه می‌بینند و تصمیم سریع‌تر می‌شود.</span></p></div><div>'+ic('clock')+'<p><b>وقت مشاور آزاد می‌شود</b><span>هر لباس را لازم نیست از قفسه بیاورد و بپوشاند.</span></p></div><div>'+ic('chart')+'<p><b>بدانید چه چیزی دیده می‌شود</b><span>آمار نشان می‌دهد کدام لباس‌ها بیشتر امتحان می‌شوند.</span></p></div><div>'+ic('chat')+'<p><b>درخواست آماده</b><span>مشتری علاقه‌مند، اسم و شمارهٔ خودش را می‌گذارد.</span></p></div><div>'+ic('eye')+'<p><b>مزون شما دیده می‌شود</b><span>تجربه‌ای که مشتری برای دوستانش تعریف می‌کند.</span></p></div></div></section>'
