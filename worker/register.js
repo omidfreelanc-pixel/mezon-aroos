@@ -64,3 +64,7 @@ $("f").addEventListener("submit",function(e){e.preventDefault();var err=$("err")
   var tk=(d.panel||"").split("/m/")[1]||"",n=0,iv=setInterval(function(){if(!tk||++n>120){clearInterval(iv);return}fetch("/api/m/"+tk+"/bot").then(function(r){return r.json()}).then(function(x){if(x.linked){clearInterval(iv);$("botbox").className="msg good";$("botbox").textContent="ربات وصل شد. بعد از تأیید تیم مزون آینه، خبر فعال‌شدن صفحه همان‌جا برایتان می‌آید."}}).catch(function(){})},3000)}$("l1").href=$("l1").textContent=d.url;$("l2").href=$("l2").textContent=d.panel;
  }).catch(function(x){var fid=mapErr(x.message||"");if(fid){fieldErr(fid,x.message);return}err.hidden=false;err.className="msg bad";err.textContent=x.message;try{err.scrollIntoView({block:"center"})}catch(z){}}).then(function(){b.disabled=false})});
 </script></body></html>`;
+
+// Reuse the same fields, validation and submission flow on the home page.
+const registrationBody = registerHTML.split('<main>')[1].split('</body>')[0];
+export const landingRegistration = registrationBody.replace('</main>', '');
