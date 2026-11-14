@@ -139,7 +139,72 @@ const jsonld=o=>ld({'@context':'https://schema.org','@graph':[
  {'@type':'SoftwareApplication','name':'مزون آینه','applicationCategory':'BusinessApplication','operatingSystem':'Web (موبایل و دسکتاپ)','inLanguage':'fa-IR','url':o+'/','description':desc,'image':o+ogImg,'publisher':{'@id':o+'/#org'}},
  {'@type':'FAQPage','inLanguage':'fa-IR','mainEntity':faq.map(([q,a])=>({'@type':'Question','name':q,'acceptedAnswer':{'@type':'Answer','text':a}}))}
 ]});
+
+const demoForm = `<form class="demo-form">
+<label>نام و نام خانوادگی<input name="name" required minlength="2" maxlength="60" autocomplete="name"></label>
+<label>نام مزون<input name="salon" required minlength="2" maxlength="80" autocomplete="organization"></label>
+<label>شماره موبایل<input name="phone" type="tel" required maxlength="20" autocomplete="tel" dir="ltr"></label>
+<label class="demo-consent"><input name="consent" type="checkbox" required> برای هماهنگی دمو با من تماس بگیرید.</label>
+<input name="website" type="text" autocomplete="off" tabindex="-1" hidden>
+<button class="btn btn--primary" type="submit">ثبت درخواست دمو</button>
+<p role="status" hidden></p>
+</form><script>
+(function(){
+ const form=document.querySelector('.demo-form');
+ const button=form.querySelector('button');
+ const status=form.querySelector('[role=status]');
+ form.addEventListener('submit',async function(event){
+  event.preventDefault();
+  button.disabled=true;
+  status.hidden=true;
+  const body=Object.fromEntries(new FormData(form));
+  body.consent=form.elements.consent.checked;
+  try{
+   const response=await fetch('/api/inquiry',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+   const result=await response.json();
+   if(!response.ok||!result.ok)throw new Error(result.error||'ارسال درخواست انجام نشد.');
+   form.reset();
+   status.textContent='درخواست ثبت شد. برای هماهنگی دمو با شما تماس می‌گیریم.';
+  }catch(error){
+   status.textContent=error.message||'ارسال درخواست انجام نشد. دوباره امتحان کنید.';
+  }finally{
+   status.hidden=false;
+   button.disabled=false;
+  }
+ });
+})();
+</script>`;
+
 export const landingFor=o=>'<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#e8edeb"><meta name="color-scheme" content="light"><title>'+title+'</title><meta name="description" content="'+desc+'"><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="'+o+'/"><link rel="alternate" hreflang="fa" href="'+o+'/"><link rel="alternate" hreflang="x-default" href="'+o+'/"><meta property="og:title" content="'+title+'"><meta property="og:description" content="'+desc+'"><meta property="og:type" content="website"><meta property="og:url" content="'+o+'/"><meta property="og:image" content="'+o+ogImg+'"><meta property="og:image:alt" content="لوگوی مزون آینه؛ لباس عروس را روی اندام خودت ببین"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:site_name" content="مزون آینه"><meta property="og:locale" content="fa_IR"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="'+title+'"><meta name="twitter:description" content="'+desc+'"><meta name="twitter:image" content="'+o+ogImg+'">'+jsonld(o)+'<link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="manifest" href="/manifest.webmanifest"><link rel="preload" href="/fonts/vazirmatn-arabic.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/estedad-arabic.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/catalog/dress/demo-after.webp" as="image"><style>'+baseCSS+css+`
+body{background:#f5eee3;color:#261c16}
+.wrap{max-width:1200px;margin:auto}
+header.top{background:#211a16;color:#f9ebd5;padding:14px clamp(16px,4vw,40px);border-radius:0}
+.top a,.hero a{color:inherit}
+.hero.hero{display:grid;grid-template-columns: .85fr 1.15fr;gap:0;padding:0;background:#241c17;color:#fff4e2;border-radius:0 0 24px 24px;overflow:hidden}
+.hero__copy{padding:clamp(24px,5vw,64px);align-self:center}
+.hero .display{color:#f2d3a2}
+.hero .sub-l,.hero .eyebrow{color:#ede0d0}
+.hero__photo{width:100%;height:100%;min-height:340px;object-fit:cover;display:block}
+.wrap .btn--primary{background:#e7c58e;color:#251a10;border-color:#e7c58e}
+.wrap .btn--ghost{border-color:#a88659}
+main>section:not(.hero){margin-block:36px}
+.product-layout,.demo-layout{display:grid;grid-template-columns:1fr 1fr;gap:clamp(18px,4vw,48px);align-items:center}
+.product-layout .stage{margin:0}
+.demo-layout{background:#281e18;color:#fff4e2;padding:clamp(20px,4vw,44px);border-radius:22px}
+.demo-layout .display,.demo-layout .sub-l{color:inherit}
+.demo-form{background:#fffaf2;color:#251c17;padding:20px;border-radius:16px;display:grid;gap:12px}
+.demo-form label{display:grid;gap:4px}
+.demo-form label.demo-consent{display:flex;align-items:center;gap:8px}
+.demo-form input:not([type=checkbox]){width:100%;padding:9px;border:1px solid #967c60;border-radius:8px;font:inherit}
+.demo-form button{font:inherit}
+.demo-form button:disabled{opacity:.65}
+.demo-form [hidden]{display:none}
+.journey{list-style:none;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.journey li{background:#fffaf2;border:1px solid #ddcbb5;border-radius:14px;padding:16px}
+.journey b,.journey span{display:block}
+.journey span{margin-top:7px}
+@media(max-width:760px){.hero.hero,.product-layout,.demo-layout{grid-template-columns:1fr}.hero__photo{height:auto;min-height:0}.journey{grid-template-columns:repeat(2,1fr)}}
+`+`
 .landing-registration{max-width:580px}
 .landing-registration .card{padding:clamp(16px,4vw,30px);border:1px solid #d6dfdb;border-radius:22px;background:#fff}
 .landing-registration label,.landing-registration label small,.landing-registration .ferr{display:block}
@@ -155,15 +220,16 @@ export const landingFor=o=>'<!doctype html><html lang="fa" dir="rtl"><head><meta
 .landing-registration [hidden]{display:none!important}
 `+'</style></head><body>'
 +'<a class="skip" href="#main">پرش به محتوای اصلی</a>'
-+'<div class="wrap"><header class="top"><a class="brand" href="/" aria-label="مزون آینه">'+brandImg(36)+'<span>مزون آینه</span></a><a class="btn btn--primary" href="#start">ساخت صفحهٔ مزون</a></header>'
++'<div class="wrap"><header class="top"><a class="brand" href="/" aria-label="مزون آینه">'+brandImg(36)+'<span>مزون آینه</span></a><a class="btn btn--primary" href="#demo-request">درخواست دمو</a></header>'
 +'<main id="main">'
-+'<section class="hero" aria-labelledby="h1"><div><span class="eyebrow">آینهٔ هوشمند داخل مزون</span><h1 class="display" id="h1">مشتری شما، همان‌جا در مزون، خودش را در لباس‌های شما می‌بیند</h1><p class="sub-l">یک تبلت، تلویزیون یا استند کنار مشاور؛ بدون نصب برنامه.</p><div class="hero__cta"><a class="btn btn--primary" href="#start">ساخت صفحهٔ مزون</a><a class="btn btn--ghost" href="/s/demo">امتحان نمونه</a></div><ul class="chips"><li>'+ic('dress')+'لباس‌های خود شما</li><li>'+ic('clock')+'حدود یک دقیقه</li><li>'+ic('lock')+'عکس خودکار پاک می‌شود</li></ul></div>'
-+'<div class="stage"><span class="float float--a">'+ic('spark')+'چهرهٔ خودش، لباس شما</span><span class="float float--b">'+ic('heart')+'همین‌جا، بدون پرو سنگین</span><div class="dev"><div class="cmp" id="cmp"><img src="/catalog/dress/demo-before.webp" alt="عکس مشتری پیش از پرو" width="480" height="720"><div class="cmp__after"><img src="/catalog/dress/demo-after.webp" alt="همان عکس با لباس مزون" width="480" height="720" fetchpriority="high"></div><span class="cmp__line"></span><span class="cmp__grip">'+grip+'</span><span class="cmp__tag cmp__tag--b">قبل</span><span class="cmp__tag cmp__tag--a">بعد</span><input class="cmp__range" id="cmpr" type="range" min="0" max="100" value="50" dir="ltr" aria-label="مقایسهٔ قبل و بعد؛ با کلیدهای جهت خط را جابه‌جا کن"></div></div><div class="dev__stand"></div><div class="dev__base"></div><p class="cap">این چیزی است که مشتری شما روی صفحه می‌بیند</p></div></section>'
-+'<section aria-labelledby="where"><span class="eyebrow">کجا بگذارید؟</span><h2 class="display" id="where">هر جا که مشتری نگاه می‌کند</h2><img src="/demo/salon-setup.webp" alt="نمایش پرو مجازی لباس عروس در مزون" width="1536" height="1024" loading="lazy" style="width:100%;height:auto;border-radius:20px;margin-bottom:16px"><div class="where"><div class="spot">'+art.tv+'<div><b>تلویزیون روی دیوار</b><span>مشتری و همراهانش با هم روی صفحهٔ بزرگ می‌بینند.</span></div></div><div class="spot">'+art.stand+'<div><b>استند کنار ورودی</b><span>اولین چیزی که مشتری جدید می‌بیند.</span></div></div><div class="spot">'+art.tablet+'<div><b>تبلت روی میز مشاور</b><span>مشاور کنار مشتری، لباس‌ها را با او مرور می‌کند.</span></div></div></div></section>'
++'<section class="hero" aria-labelledby="h1"><div class="hero__copy"><span class="eyebrow">پرو مجازی لباس عروس</span><h1 class="display" id="h1">آینهٔ هوشمند مزون عروس</h1><p class="sub-l">عروس مدل‌های مزون را روی تصویر خودش می‌بیند، مقایسه می‌کند و با انتخاب‌های مشخص سراغ پرو حضوری می‌رود.</p><div class="hero__cta"><a class="btn btn--primary" href="#demo-request">درخواست دمو</a><a class="btn btn--ghost" href="#product">آشنایی با آینه</a></div></div><img class="hero__photo" src="/demo/salon-setup.webp" alt="مشاور مزون و مشتری کنار آینهٔ هوشمند لباس عروس" width="1536" height="1024" fetchpriority="high"></section>'
++'<section id="product" class="product-layout" aria-labelledby="product-title"><div><h2 class="display" id="product-title">لباس‌های خود مزون، روی تصویر مشتری</h2><p class="sub-l">آینه روی تبلت، تلویزیون یا استند مزون باز می‌شود. خط روی عکس را جابه‌جا کنید تا نمونهٔ قبل و بعد را ببینید.</p><a class="btn btn--ghost" href="/s/demo">امتحان نمونهٔ پرو مجازی</a></div>'
++'<div class="stage"><span class="float float--a">'+ic('spark')+'چهرهٔ خودش، لباس شما</span><span class="float float--b">'+ic('heart')+'همین‌جا، بدون پرو سنگین</span><div class="dev"><div class="cmp" id="cmp"><img src="/catalog/dress/demo-before.webp" alt="عکس مشتری پیش از پرو" width="480" height="720"><div class="cmp__after"><img src="/catalog/dress/demo-after.webp" alt="همان عکس با لباس مزون" width="480" height="720" fetchpriority="high"></div><span class="cmp__line"></span><span class="cmp__grip">'+grip+'</span><span class="cmp__tag cmp__tag--b">قبل</span><span class="cmp__tag cmp__tag--a">بعد</span><input class="cmp__range" id="cmpr" type="range" min="0" max="100" value="50" dir="ltr" aria-label="مقایسهٔ قبل و بعد؛ با کلیدهای جهت خط را جابه‌جا کن"></div></div><div class="dev__stand"></div><div class="dev__base"></div><p class="cap">مقایسهٔ قبل و بعد پرو مجازی</p></div></section>'
 +'<section aria-labelledby="why"><span class="eyebrow">چرا داخل مزون جواب می‌دهد</span><h2 class="display" id="why">برای شما چه چیزی عوض می‌شود؟</h2><div class="why"><div>'+ic('dress')+'<p><b>پرو حضوری هدفمندتر</b><span>مشتری با چند لباس مورد علاقه سراغ پرو می‌رود.</span></p></div><div>'+ic('users')+'<p><b>همراهان هم شریک می‌شوند</b><span>خانواده روی صفحه می‌بینند و تصمیم سریع‌تر می‌شود.</span></p></div><div>'+ic('clock')+'<p><b>وقت مشاور آزاد می‌شود</b><span>هر لباس را لازم نیست از قفسه بیاورد و بپوشاند.</span></p></div><div>'+ic('chart')+'<p><b>بدانید چه چیزی دیده می‌شود</b><span>آمار نشان می‌دهد کدام لباس‌ها بیشتر امتحان می‌شوند.</span></p></div><div>'+ic('chat')+'<p><b>درخواست آماده</b><span>مشتری علاقه‌مند، اسم و شمارهٔ خودش را می‌گذارد.</span></p></div><div>'+ic('eye')+'<p><b>مزون شما دیده می‌شود</b><span>تجربه‌ای که مشتری برای دوستانش تعریف می‌کند.</span></p></div></div></section>'
-+'<section aria-labelledby="path"><span class="eyebrow">تجربهٔ مشتری</span><h2 class="display" id="path">یک دقیقه، چهار حرکت</h2><ol class="path"><li>'+ic('camera')+'عکس بگیر</li><li>'+ic('dress')+'لباس را انتخاب کن</li><li>'+ic('eye')+'خودت را ببین</li><li>'+ic('heart')+'حضوری بپوش</li></ol></section>'
++'<section aria-labelledby="path"><h2 class="display" id="path">مسیر تجربهٔ مشتری با آینه</h2><ol class="journey"><li><b>۱. ثبت تصویر</b><span>مشتری یک عکس از خودش می‌گیرد.</span></li><li><b>۲. انتخاب مدل</b><span>لباس‌های مزون را مرور می‌کند.</span></li><li><b>۳. مشاهده و مقایسه</b><span>مدل‌ها را روی تصویر خودش می‌بیند.</span></li><li><b>۴. پرو حضوری</b><span>گزینه‌های منتخب را در مزون می‌پوشد.</span></li></ol></section>'
 +'<section aria-labelledby="setup"><span class="eyebrow">راه‌اندازی</span><h2 class="display" id="setup">سه قدم تا روشن شدن صفحه</h2><ol class="set"><li>فرم همین صفحه را تکمیل کنید و عکس لباس‌ها را در تلگرام بفرستید</li><li>صفحهٔ مزونتان را روی تبلت یا تلویزیون باز کنید</li><li>مشتری را کنار صفحه بنشانید؛ تمام!</li></ol></section>'
 +'<section aria-labelledby="priv"><span class="eyebrow">اعتماد</span><h2 class="display" id="priv">مشتری با خیال راحت عکس می‌گیرد</h2><div class="safe"><span>'+ic('trash')+'عکس بعد از ۱۵ دقیقه پاک می‌شود</span><span>'+ic('lock')+'جایی نمایش عمومی ندارد</span><span>'+ic('trash')+'خودش هم می‌تواند فوری پاک کند</span><span>'+ic('shield')+'نتیجه شبیه‌سازی است؛ پرو حضوری نهایی است</span></div></section>'
++'<section class="demo-layout" aria-labelledby="demo-request"><div><h2 class="display" id="demo-request">دموی آینه را برای مزونتان ببینید</h2><p class="sub-l">شماره‌تان را بگذارید تا برای هماهنگی دمو با شما تماس بگیریم.</p><a class="btn btn--ghost" href="#start">شروع آزمایشی رایگان</a></div>'+demoForm+'</section>'
 +'<section id="owners" aria-labelledby="start"><h2 class="display" id="start">صفحهٔ مزونتان را بسازید</h2><p class="sub-l">رایگان شروع کنید. شمارهٔ موبایل را وارد کنید تا تیم مزون آینه برای فعال‌سازی با شما تماس بگیرد.</p><div class="landing-registration">'+landingRegistration+'</div></section>'
 +'<section aria-labelledby="faq"><h2 class="display" id="faq">سؤال‌های مزون‌دارها</h2>'+faq.map(([q,a])=>'<details><summary>'+q+'</summary><p>'+a+'</p></details>').join('')+'</section>'
 +'</main><footer><span>© مزون آینه</span><span><a href="/s/demo">نمونه</a> · <a href="#start">ثبت‌نام مدیر مزون</a> · <a href="/privacy">قوانین و حریم خصوصی</a> · <a href="'+BOT_URL+'" rel="noopener">ربات تلگرام</a></span></footer></div><script>'+js+'</script></body></html>';
